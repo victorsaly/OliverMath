@@ -1,0 +1,7 @@
+{
+  "name": "OliverMath",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "vue"
+}
