@@ -2,7 +2,9 @@
     <div id="bot" :class="botState">
       <p class="bubble speech">
         {{text}}
-         <ion-button v-if="isPlayMode" @click="emit">Play</ion-button>
+        <span style="display:block">
+          <ion-button v-if="isPlayMode" @click="emit">Play Math</ion-button>
+        </span>
       </p>
       <div id="head">
         <div id="left-ear">
@@ -65,7 +67,8 @@ p.bubble {
 	border-radius: 30px;
 	font-family: sans-serif;
 	padding: 20px;
-	font-size: large;
+	font-size: 13px;
+  min-height: 140px;
 }
 
 p.thought {
