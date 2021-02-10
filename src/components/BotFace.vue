@@ -60,7 +60,7 @@ p.bubble {
 	width: 300px;
 	text-align: center;
 	line-height: 1.4em;
-	margin: 40px auto;
+	margin: 5px 40px 30px 20px;
 	background-color: #fff;
   color: #428cff;
 	border: 8px solid #333;
@@ -128,6 +128,7 @@ p.thought:after {
 {
   position: relative;
   padding: 20px;
+  padding-top: 0;
   text-align: left;
   width: 24em;
   height: 24em;
