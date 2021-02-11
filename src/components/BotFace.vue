@@ -19,24 +19,11 @@
         </div>
       </div>
     </div>
-    <div style="display:block">
-          <ion-button v-if="isPlayMode && botState != 'broken'" expand="full" @click="emit">Play Math</ion-button>
-    </div>
+   
 </template>
 <script>
-import {
-  IonButton,
-} from "@ionic/vue";
 export default {
   name: 'BotFace',
-  components: {
-    IonButton,
-  },
-   methods:{
-     emit() {
-       this.$emit('ask_question') //like this
-     }
-  },
   props: {
     botState: {
       type: String,
