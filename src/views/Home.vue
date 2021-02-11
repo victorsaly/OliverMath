@@ -77,16 +77,17 @@ export default {
       isTalking: false,
       isListening: false,
       isComputing: false,
+      isError: false,
       isQuery: false,
       isPlayMode:true,
       text: "",
       selectedLevel:"beginner",
       selectedOperator:"times",
-      speech_phrases: "",
+      speech_phrases: "Click play, listen the question and respond back by talking your answer.",
       synth: window.speechSynthesis,
       encourage_phases:["Well done!","Great work!","Good job!", "Keep up the good work!", "You've really got this!"],
       correct_phases:["That's correct","That's right","That's true", "Flawless", "Perfect"],
-      incorrect_phases:["Not quite","Maybe next try","I'm sure you can get the next one right", "Incorrect"],
+      incorrect_phases:["Not quite","Maybe next time","I'm sure you can get the next one right", "Incorrect"],
       voiceList: [],
       greetingSpeech: new window.SpeechSynthesisUtterance(),
       audioConfig: null,
@@ -100,10 +101,14 @@ export default {
       tokenUrl: process.env.VUE_APP_TOKEN_URL,
       previousPosition: -1,
       stars: 0,
+      isMicrophoneEnabled : false,
     };
   },
   computed: {
     botState() {
+      if (this.isError) {
+        return "broken";
+      }
       if (this.isTalking) {
         return "speaking";
       } else if (this.isListening) {
@@ -127,93 +132,116 @@ export default {
   },
   methods: {
     
-    async showToast(text) {
+    async showToast(text, color) {
       const toast = await toastController
         .create({
           message: text,
           duration: 50000,
-          color: "secondary",
+          color: color,
           translucent: true
         })
       return toast.present();
     },
-    askQuestion(){
-       this.audioConfig = AudioConfig.fromDefaultMicrophoneInput();
-       this.isQuery = true;
-       this.isPlayMode = false;
-       this.speech_phrases = "";
-       var min1 = 1;
-       var max1 = 12;
-       var min2 = 1;
-       var max2 = 12;
-       if (this.selectedOperator == "plus")
-       {
-         max1 = 50;
-         max2 = 50;
+    async enableMicrophone() {
+      if (!this.isMicrophoneEnabled){
+          navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+          .then(function() {
+            this.isMicrophoneEnabled = true
+            return true;
+          })
+          .catch(function() {
+            return false;
+          });
+      }
+      return true;
+    },
+    async askQuestion(){
+      var self = this;
+      this.isComputing = true;
+      await this.enableMicrophone().then(function() {
+        self.isComputing = false;
+        self.isQuery = true;
+        self.isPlayMode = false;
+        self.speech_phrases = "";
+        var min1 = 1;
+        var max1 = 12;
+        var min2 = 1;
+        var max2 = 12;
+        if (self.selectedOperator == "plus")
+        {
+          max1 = 50;
+          max2 = 50;
 
-         if (this.selectedLevel == "medium"){
+          if (self.selectedLevel == "medium"){
             max1 = 100;
             max2 = 100;
-         }
+          }
 
-         if (this.selectedLevel == "expert"){
+          if (self.selectedLevel == "expert"){
             max1 = 1000;
             max2 = 1000;
-         }
+          }
             
-       }
+        }
 
-       if (this.selectedOperator == "minus")
-       {
+        if (self.selectedOperator == "minus")
+        {
           min1 = 10;
           max1 = 20;
           min2 = 1;
           max2 = 10; 
 
-          if (this.selectedLevel == "medium"){
+          if (self.selectedLevel == "medium"){
             min1 = 20;
             max1 = 100;
             min2 = 1;
             max2 = 20;   
           }
 
-         if (this.selectedLevel == "expert"){
+          if (self.selectedLevel == "expert"){
             min1 = 100;
             max1 = 500;
             min2 = 1;
             max2 = 100;
-         }
-       }
+          }
+        }
 
-       if (this.selectedOperator == "times")
-       {
+        if (self.selectedOperator == "times")
+        {
           
-          if (this.selectedLevel == "medium"){
+          if (self.selectedLevel == "medium"){
             min1 = 3;
             max1 = 12;
             min2 = 3;
             max2 = 12;  
           }
 
-         if (this.selectedLevel == "expert"){
+          if (self.selectedLevel == "expert"){
             min1 = 5;
             max1 = 20;
             min2 = 5;
             max2 = 20; 
-         }
-       }
-       this.number1 = this.getRandomInt(min1, max1);
-       this.number2 = this.getRandomInt(min2, max2);
+          }
+        }
+        self.number1 = self.getRandomInt(min1, max1);
+        self.number2 = self.getRandomInt(min2, max2);
+        
+        
+        self.text = "What's " + self.number1 + " " + self.selectedOperator + " " + self.number2 + "?";
+        self.speak();
+      })
+      .catch(function() {            
+        self.isError = true;
+        self.text = "microphone disable"
+        self.showToast(self.text);
+      });
+      
        
-       
-       this.text = "What's " + this.number1 + " " + this.selectedOperator + " " + this.number2 + "?";
-       this.speak();
     },
     /**
      * Shout at the user
      */
     speak() {
-      this.audioConfig = AudioConfig.fromDefaultMicrophoneInput();     
       // it should be 'craic', but it doesn't sound right
       this.greetingSpeech.text = this.text;
       // this.greetingSpeech.voice = this.voiceList.filter(s => s.name.includes('Male'))[0]
@@ -264,8 +292,10 @@ export default {
         },
         function (err) {
           console.log('err recognizeOnceAsync', err);
+          self.showToast("Unable to connect to the server.", "danger");
           self.isListening = false;
           self.isComputing = false;
+          self.isQuery = false;
           self.speechRecording.close();
           self.speechRecording = null;
         }
@@ -376,13 +406,13 @@ export default {
   },
   mounted() {
 
-    navigator.mediaDevices.getUserMedia({ audio: true })
-      .then(function() {
-        console.log('You let me use your mic!')
-      })
-      .catch(function() {
-        console.log('No mic for you!')
-      });
+    // navigator.mediaDevices.getUserMedia({ audio: true })
+    //   .then(function() {
+    //     console.log('You let me use your mic!')
+    //   })
+    //   .catch(function() {
+    //     console.log('No mic for you!')
+    //   });
 
     
     this.listenForSpeechEvents();
@@ -393,20 +423,11 @@ export default {
 
     axios.get(this.tokenUrl).then((response) => {      
         this.token = response.data;
+    }).catch(() => {
+      this.isError = true;
+      this.speech_phrases = "Server is unavailable."
+      this.showToast(this.speech_phrases, "danger");
     });
-
-    // Use matchMedia to check the user preference
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
-
-    toggleDarkTheme(prefersDark.matches);
-
-    // Listen for changes to the prefers-color-scheme media query
-    prefersDark.addListener((mediaQuery) => toggleDarkTheme(mediaQuery.matches));
-
-    // Add or remove the "dark" class based on if the media query matches
-    function toggleDarkTheme(shouldAdd) {
-      document.body.classList.toggle('dark', shouldAdd);
-    }
   },
   setup() {
     return {
