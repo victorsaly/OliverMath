@@ -2,7 +2,7 @@
   <ion-page>
     <ion-header>
       <ion-toolbar>
-        <ion-title>Math Game V1.0.3</ion-title>
+        <ion-title>Math Game V1.0.4</ion-title>
         <ion-chip slot="end">
           <ion-icon :icon="star" color="dark"></ion-icon>
           <ion-label>{{ stars }}</ion-label>
@@ -141,6 +141,7 @@ export default {
       previousPosition: -1,
       stars: 0,
       isMicrophoneEnabled: false,
+      microphoneDeviceId:null,
     };
   },
   computed: {
@@ -184,7 +185,10 @@ export default {
         self.speech_phrases = "enabling microphone..";
         await navigator.mediaDevices
           .getUserMedia({ audio: true, video: false })
-          .then(function () {
+          .then(function (e) {
+            console.log("microphone enabled", e)
+            self.microphoneDeviceId = e.id;
+            self.audioConfig = AudioConfig.fromMicrophoneInput(e.id);
             self.speech_phrases = "microphone enabled";
             self.isMicrophoneEnabled = true;
           })
@@ -295,7 +299,6 @@ export default {
       this.showToast("Connecting...", "warning");
       this.isComputing = true;
       this.isListening = false;
-      this.audioConfig = AudioConfig.fromDefaultMicrophoneInput();
       var sc = SpeechConfig.fromAuthorizationToken(
         // eslint-disable-next-line no-undef
         this.token,
