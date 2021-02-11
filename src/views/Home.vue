@@ -264,6 +264,10 @@ export default {
         },
         function (err) {
           console.log('err recognizeOnceAsync', err);
+          self.isListening = false;
+          self.isComputing = false;
+          self.speechRecording.close();
+          self.speechRecording = null;
         }
       );
     },
