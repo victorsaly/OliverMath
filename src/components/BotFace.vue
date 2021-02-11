@@ -2,9 +2,6 @@
     <div id="bot" :class="botState">
       <p class="bubble speech">
         {{text}}
-        <span style="display:block">
-          <ion-button v-if="isPlayMode" @click="emit">Play Math</ion-button>
-        </span>
       </p>
       <div id="head">
         <div id="left-ear">
@@ -21,6 +18,9 @@
           <div id="right-ear-inner"></div>
         </div>
       </div>
+    </div>
+    <div style="display:block">
+          <ion-button v-if="isPlayMode && botState != 'broken'" expand="full" @click="emit">Play Math</ion-button>
     </div>
 </template>
 <script>
@@ -59,16 +59,21 @@ p.bubble {
 	position: relative;
 	width: 300px;
 	text-align: center;
-	line-height: 1.4em;
 	margin: 5px 40px 30px 20px;
 	background-color: #fff;
   color: #428cff;
 	border: 8px solid #333;
 	border-radius: 30px;
 	font-family: sans-serif;
-	padding: 20px;
-	font-size: 13px;
-  min-height: 140px;
+	padding: 15px;
+  font-size: 18px;
+  vertical-align: middle;
+  min-height: 110px;
+}
+
+div.broken p.bubble {
+  border: 8px solid darkred;
+  color:darkred;
 }
 
 p.thought {
@@ -91,6 +96,14 @@ p.speech:before {
 	border: 25px solid;
 	border-color: #333 transparent transparent #333;
 }
+
+div.broken p.speech:before {
+	left: 30px;
+	bottom: -50px;
+	border: 25px solid;
+	border-color: darkred transparent transparent darkred;
+}
+
 
 p.speech:after {
 	left: 38px;
@@ -135,7 +148,7 @@ p.thought:after {
   min-width: 10em;
   min-height: 10em;
   /*border: 1px solid lightblue;*/
-  margin: 0 auto;
+  margin: 0 auto 20px;
 }
 
 #head
@@ -379,6 +392,39 @@ p.thought:after {
     outline: 0.2em dotted black;
   }
 }
+
+
+/* Broken */
+
+
+#bot.broken #left-eye, #bot.broken #right-eye
+{
+  background-color:darkred;
+  border-radius: 0;
+  transition : border-radius 0.25s linear;
+}
+
+#bot.broken #left-ear, #bot.broken #right-ear,
+#bot.broken #left-ear-inner, #bot.broken #right-ear-inner
+{
+  background-color: darkred;
+}
+
+#bot.broken #face, 
+#bot.broken #left-ear, #bot.broken #right-ear
+{
+   border-color: darkred;
+   transition : border-color 0.25s linear;
+}
+
+#bot.broken #mouth
+{
+  border: 0.1em solid darkred;
+  background: darkred;
+  width: 30%;
+  left: 35%;
+}
+
 
 
 /* Computing */
