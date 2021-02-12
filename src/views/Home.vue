@@ -43,8 +43,13 @@
         :text="speech_phrases"
         v-on:ask_question="askQuestion"
       />
-       <div style="display:block">
-          <ion-button v-if="isPlayMode && botState != 'broken'" expand="full" @click="askQuestion">Play Math</ion-button>
+      <div style="display: block">
+        <ion-button
+          v-if="isPlayMode && botState != 'broken'"
+          expand="full"
+          @click="askQuestion"
+          >Play Math</ion-button
+        >
       </div>
     </ion-content>
   </ion-page>
@@ -71,7 +76,6 @@ import {
   AudioConfig,
   SpeechConfig,
   SpeechRecognizer,
-  PhraseListGrammar,
 } from "microsoft-cognitiveservices-speech-sdk";
 import axios from "axios";
 import { star } from "ionicons/icons";
@@ -90,7 +94,7 @@ export default {
     IonItem,
     IonSelect,
     IonSelectOption,
-    IonButton
+    IonButton,
   },
   data() {
     return {
@@ -101,6 +105,7 @@ export default {
       isError: false,
       isQuery: false,
       isPlayMode: true,
+      isResolved: false,
       text: "",
       selectedLevel: "beginner",
       selectedOperator: "times",
@@ -170,7 +175,6 @@ export default {
   },
   methods: {
     async showToast(text, color) {
-
       const toast = await toastController.create({
         message: text,
         duration: 5000,
@@ -187,7 +191,6 @@ export default {
         await navigator.mediaDevices
           .getUserMedia({ audio: true, video: false })
           .then(function (e) {
-            
             self.audioConfig = AudioConfig.fromMicrophoneInput(e.id);
             self.speech_phrases = "microphone enabled";
           })
@@ -200,13 +203,13 @@ export default {
       }
     },
     async askQuestion() {
-      debugger;
       this.audioConfig = AudioConfig.fromDefaultMicrophoneInput();
+      this.isResolved = false;
       var self = this;
       this.isComputing = true;
 
       await this.enableMicrophone()
-        .then(function() {
+        .then(function () {
           if (self.isMicrophoneEnabled) {
             self.isComputing = false;
             self.isQuery = true;
@@ -278,15 +281,14 @@ export default {
               self.number2 +
               "?";
             self.speak();
-            
-          }else{
+          } else {
             self.speech_phrases = "microphone not available";
             self.isError = true;
             self.showToast("Microphone not available", "danger");
           }
         })
         .catch(function (e) {
-          console.log('internal server error', e)
+          console.log("internal server error", e);
           self.isError = true;
           self.text = "internal error";
           self.showToast(self.text);
@@ -296,18 +298,16 @@ export default {
      * Shout at the user
      */
     speak() {
-      this.audioConfig = AudioConfig.fromDefaultMicrophoneInput(); 
-      // it should be 'craic', but it doesn't sound right
-      this.greetingSpeech.text = this.text;
-      // this.greetingSpeech.voice = this.voiceList.filter(s => s.name.includes('Male'))[0]
-      this.synth.speak(this.greetingSpeech);
-      
+        if (!this.synth.speaking){
+          this.greetingSpeech.text = this.text;
+          // this.greetingSpeech.voice = this.voiceList.filter(s => s.name.includes('Male'))[0]
+          this.synth.speak(this.greetingSpeech);
+        }
     },
     listen() {
       this.showToast("Connecting...", "warning");
       this.isComputing = true;
       this.isListening = false;
-      this.audioConfig = AudioConfig.fromDefaultMicrophoneInput(); 
       var sc = SpeechConfig.fromAuthorizationToken(
         // eslint-disable-next-line no-undef
         this.token,
@@ -319,11 +319,6 @@ export default {
         this.speechConfig,
         this.audioConfig
       );
-
-      var phraseListGrammar = PhraseListGrammar.fromRecognizer(
-        this.speechRecording
-      );
-      phraseListGrammar.addPhrase(String(this.expectedResultAsNumber));
       this.listenForSpeechRecordingEvents();
     },
     /**
@@ -340,9 +335,14 @@ export default {
         self.isComputing = false;
       };
 
+      this.speechRecording.recognizing  = function (s, e) {
+        window.console.log('recognizing ', e.result.text);
+        self.validateSpeechRecording(e.result.text, false);
+      };
+
       this.speechRecording.recognizeOnceAsync(
         function (result) {
-          self.validateSpeechRecording(result.text);
+          self.validateSpeechRecording(result.text, true);
           self.isListening = false;
           self.isComputing = false;
           self.speechRecording.close();
@@ -354,6 +354,10 @@ export default {
           self.isListening = false;
           self.isComputing = false;
           self.isQuery = false;
+          self.isError = true;
+          self.text = "Unable to recognized the voice. Internal error";
+          self.showToast(self.text);
+
           self.speechRecording.close();
           self.speechRecording = null;
         }
@@ -363,17 +367,11 @@ export default {
      * React to speech events
      */
     listenForSpeechEvents() {
-      this.greetingSpeech.onstart = (e) => {
-         console.log(
-           e.name + " onstart reached after " + e.elapsedTime + " milliseconds."
-         );
+      this.greetingSpeech.onstart = () => {
         this.isTalking = true;
       };
 
-      this.greetingSpeech.onend = (e) => {
-         console.log(
-           e.name + " onend reached after " + e.elapsedTime + " milliseconds."
-         );
+      this.greetingSpeech.onend = () => {
         this.isTalking = false;
         if (this.isQuery) {
           this.isQuery = false;
@@ -382,8 +380,7 @@ export default {
       };
 
       this.greetingSpeech.onboundary = (e) => {
-         console.log('boundary', e);
-
+        
         if (e.name == "word") {
           var word = this.getWordAt(this.text, e.charIndex).toLowerCase();
           // console.log(word);
@@ -403,24 +400,35 @@ export default {
         }
       };
     },
-    validateSpeechRecording(recordedText) {
+    validateWord(word) {
+      if (word == null || word == undefined || this.isResolved) {
+        return;
+      }
+
+      var match = word.match(/\d+/);
+
+      if (match) {
+        var validate = String(this.expectedResultAsNumber) == String(word.match(/\d+/)[0]);
+        if (!this.isResolved && validate){
+          this.isResolved = true;
+        }
+      }
+      
+      
+    },
+    validateSpeechRecording(recordedText, isFinalResult) {
       // Perform type conversions.
       recordedText = String(
         recordedText == undefined ? "(silent)" : recordedText
       );
 
       this.showToast("Your response is : " + recordedText, "secondary");
+      this.validateWord(recordedText);
 
-      if (recordedText != undefined && recordedText.length > 0) {
-        var recordedTextAsNumber = recordedText.match(/\d/g);
-        if (
-          recordedTextAsNumber != undefined &&
-          recordedTextAsNumber.length > 0
-        ) {
-          recordedTextAsNumber = recordedTextAsNumber.join("") * 1;
-        }
-        if (recordedTextAsNumber == this.expectedResultAsNumber) {
-          this.stars++;
+      console.log('Correct anwser for:' + this.expectedResultAsNumber + ' => ' + recordedText + ' is ' + this.isResolved);
+
+      if (this.isResolved){        
+        this.stars++;
           localStorage.stars = this.stars;
           this.text =
             this.correct_phases[
@@ -435,21 +443,21 @@ export default {
             " star" +
             (this.stars == 1 ? "" : "s") +
             ".";
-        } else {
-          this.text =
-            this.incorrect_phases[
-              Math.floor(Math.random() * this.incorrect_phases.length)
-            ] +
-            ", the correct answer is " +
-            this.expectedResultAsNumber +
-            ".";
-        }
-      } else {
-        this.text = "Not answer found.";
-        this.showToast("Not answer found.", "danger");
+      } else if (isFinalResult == true) {
+            this.text =
+              this.incorrect_phases[
+                Math.floor(Math.random() * this.incorrect_phases.length)
+              ] +
+              ", the correct answer is " +
+              this.expectedResultAsNumber +
+              ".";
+              
       }
-      this.greetingSpeech.text = this.text;
-      this.synth.speak(this.greetingSpeech);
+
+      if (isFinalResult == true){
+        this.speak();
+      }
+
     },
     getWordAt(str, pos) {
       // Perform type conversions.
@@ -486,12 +494,13 @@ export default {
   },
   mounted() {
     var self = this;
-     navigator.mediaDevices.getUserMedia({ audio: true })
-      .then(function() {
+    navigator.mediaDevices
+      .getUserMedia({ audio: true })
+      .then(function () {
         self.isMicrophoneEnabled = true;
       })
-      .catch(function() {
-        console.log('No mic for you!')
+      .catch(function () {
+        console.log("No mic for you!");
       });
 
     this.listenForSpeechEvents();
