@@ -128,7 +128,7 @@ export default {
         "Incorrect",
       ],
       voiceList: [],
-      greetingSpeech: {},
+      greetingSpeech: new window.SpeechSynthesisUtterance(),
       audioConfig: null,
       speechConfig: null,
       speechRecognizer: null,
@@ -200,6 +200,8 @@ export default {
       }
     },
     async askQuestion() {
+      debugger;
+      this.audioConfig = AudioConfig.fromDefaultMicrophoneInput();
       var self = this;
       this.isComputing = true;
 
@@ -275,9 +277,7 @@ export default {
               " " +
               self.number2 +
               "?";
-            //self.speak();
-             self.greetingSpeech.text = self.text;
-            self.synth.speak(self.greetingSpeech);
+            self.speak();
             
           }else{
             self.speech_phrases = "microphone not available";
@@ -296,7 +296,6 @@ export default {
      * Shout at the user
      */
     speak() {
-      console.log('speak event66666666666666666');
       this.audioConfig = AudioConfig.fromDefaultMicrophoneInput(); 
       // it should be 'craic', but it doesn't sound right
       this.greetingSpeech.text = this.text;
@@ -308,6 +307,7 @@ export default {
       this.showToast("Connecting...", "warning");
       this.isComputing = true;
       this.isListening = false;
+      this.audioConfig = AudioConfig.fromDefaultMicrophoneInput(); 
       var sc = SpeechConfig.fromAuthorizationToken(
         // eslint-disable-next-line no-undef
         this.token,
@@ -488,7 +488,7 @@ export default {
     var self = this;
      navigator.mediaDevices.getUserMedia({ audio: true })
       .then(function() {
-        self.greetingSpeech = new window.SpeechSynthesisUtterance();
+        self.isMicrophoneEnabled = true;
       })
       .catch(function() {
         console.log('No mic for you!')
