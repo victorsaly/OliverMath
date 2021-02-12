@@ -2,7 +2,7 @@
   <ion-page>
     <ion-header>
       <ion-toolbar>
-        <ion-title>Math Game V1.0.4</ion-title>
+        <ion-title>Math Game V1.0.6</ion-title>
         <ion-chip slot="end">
           <ion-icon :icon="star" color="dark"></ion-icon>
           <ion-label>{{ stars }}</ion-label>
@@ -128,7 +128,7 @@ export default {
         "Incorrect",
       ],
       voiceList: [],
-      greetingSpeech: new window.SpeechSynthesisUtterance(),
+      greetingSpeech: {},
       audioConfig: null,
       speechConfig: null,
       speechRecognizer: null,
@@ -141,7 +141,6 @@ export default {
       previousPosition: -1,
       stars: 0,
       isMicrophoneEnabled: false,
-      microphoneDeviceId:null,
     };
   },
   computed: {
@@ -171,6 +170,7 @@ export default {
   },
   methods: {
     async showToast(text, color) {
+
       const toast = await toastController.create({
         message: text,
         duration: 5000,
@@ -183,14 +183,13 @@ export default {
       var self = this;
       if (!this.isMicrophoneEnabled) {
         self.speech_phrases = "enabling microphone..";
+        self.isMicrophoneEnabled = true;
         await navigator.mediaDevices
           .getUserMedia({ audio: true, video: false })
           .then(function (e) {
-            console.log("microphone enabled", e)
-            self.microphoneDeviceId = e.id;
+            
             self.audioConfig = AudioConfig.fromMicrophoneInput(e.id);
             self.speech_phrases = "microphone enabled";
-            self.isMicrophoneEnabled = true;
           })
           .catch(function () {
             self.speech_phrases = "microphone disabled";
@@ -268,7 +267,6 @@ export default {
             }
             self.number1 = self.getRandomInt(min1, max1);
             self.number2 = self.getRandomInt(min2, max2);
-
             self.text =
               "What's " +
               self.number1 +
@@ -277,10 +275,18 @@ export default {
               " " +
               self.number2 +
               "?";
-            self.speak();
+            //self.speak();
+             self.greetingSpeech.text = self.text;
+            self.synth.speak(self.greetingSpeech);
+            
+          }else{
+            self.speech_phrases = "microphone not available";
+            self.isError = true;
+            self.showToast("Microphone not available", "danger");
           }
         })
-        .catch(function () {
+        .catch(function (e) {
+          console.log('internal server error', e)
           self.isError = true;
           self.text = "internal error";
           self.showToast(self.text);
@@ -290,10 +296,13 @@ export default {
      * Shout at the user
      */
     speak() {
+      console.log('speak event66666666666666666');
+      this.audioConfig = AudioConfig.fromDefaultMicrophoneInput(); 
       // it should be 'craic', but it doesn't sound right
       this.greetingSpeech.text = this.text;
       // this.greetingSpeech.voice = this.voiceList.filter(s => s.name.includes('Male'))[0]
       this.synth.speak(this.greetingSpeech);
+      
     },
     listen() {
       this.showToast("Connecting...", "warning");
@@ -354,17 +363,17 @@ export default {
      * React to speech events
      */
     listenForSpeechEvents() {
-      this.greetingSpeech.onstart = () => {
-        // console.log(
-        //   e.name + " onstart reached after " + e.elapsedTime + " milliseconds."
-        // );
+      this.greetingSpeech.onstart = (e) => {
+         console.log(
+           e.name + " onstart reached after " + e.elapsedTime + " milliseconds."
+         );
         this.isTalking = true;
       };
 
-      this.greetingSpeech.onend = () => {
-        // console.log(
-        //   e.name + " onend reached after " + e.elapsedTime + " milliseconds."
-        // );
+      this.greetingSpeech.onend = (e) => {
+         console.log(
+           e.name + " onend reached after " + e.elapsedTime + " milliseconds."
+         );
         this.isTalking = false;
         if (this.isQuery) {
           this.isQuery = false;
@@ -373,7 +382,7 @@ export default {
       };
 
       this.greetingSpeech.onboundary = (e) => {
-        // console.log('boundary', e);
+         console.log('boundary', e);
 
         if (e.name == "word") {
           var word = this.getWordAt(this.text, e.charIndex).toLowerCase();
@@ -476,6 +485,14 @@ export default {
     },
   },
   mounted() {
+    var self = this;
+     navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(function() {
+        self.greetingSpeech = new window.SpeechSynthesisUtterance();
+      })
+      .catch(function() {
+        console.log('No mic for you!')
+      });
 
     this.listenForSpeechEvents();
 
