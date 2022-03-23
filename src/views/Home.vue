@@ -2,7 +2,7 @@
   <ion-page>
     <ion-header>
       <ion-toolbar>
-        <ion-title>Math Game V1.0.6</ion-title>
+        <ion-title>Math Game V1.0.7</ion-title>
         <ion-chip slot="end">
           <ion-icon :icon="star" color="dark"></ion-icon>
           <ion-label>{{ stars }}</ion-label>
@@ -43,15 +43,16 @@
         :text="speech_phrases"
         v-on:ask_question="askQuestion"
       />
-      <div style="display: block">
-        <ion-button
+    </ion-content>
+    
+      <ion-footer no-padding>
+          <ion-button
           v-if="isPlayMode && botState != 'broken'"
           expand="full"
           @click="askQuestion"
           >Play Math</ion-button
         >
-      </div>
-    </ion-content>
+      </ion-footer>
   </ion-page>
 </template>
 
@@ -70,6 +71,7 @@ import {
   IonSelect,
   IonSelectOption,
   IonButton,
+  IonFooter
 } from "@ionic/vue";
 import BotFace from "@/components/BotFace.vue";
 import {
@@ -95,9 +97,11 @@ export default {
     IonSelect,
     IonSelectOption,
     IonButton,
+    IonFooter
   },
   data() {
     return {
+      typeText:[],
       isLoading: true,
       isTalking: false,
       isListening: false,
@@ -174,6 +178,22 @@ export default {
     },
   },
   methods: {
+    keyDownHandler(e) {
+      let value = e.key * 1;
+      if (!isNaN(parseFloat(value)) && isFinite(value)){
+        this.typeText.push(value);
+        if (this.timeout) 
+          clearTimeout(this.timeout); 
+          this.timeout = setTimeout(() => {
+            if (this.typeText.length > 0){
+              var typeText = this.typeText.join('');
+              this.showToast("Your writing response is : " + typeText, "secondary");
+              this.validateWord(typeText);
+              this.typeText = [];
+            }
+          }, 400); // delay
+      }
+    },
     async showToast(text, color) {
       const toast = await toastController.create({
         message: text,
@@ -300,7 +320,9 @@ export default {
     speak() {
         if (!this.synth.speaking){
           this.greetingSpeech.text = this.text;
-          // this.greetingSpeech.voice = this.voiceList.filter(s => s.name.includes('Male'))[0]
+          if (this.greetingSpeech.volume < 0){
+            this.speech_phrases = this.text;
+          }
           this.synth.speak(this.greetingSpeech);
         }
     },
@@ -379,8 +401,12 @@ export default {
         }
       };
 
+      this.greetingSpeech.onerror = (event) => { 
+        console.log('error', event);
+      };
+
       this.greetingSpeech.onboundary = (e) => {
-        
+
         if (e.name == "word") {
           var word = this.getWordAt(this.text, e.charIndex).toLowerCase();
           // console.log(word);
@@ -417,13 +443,22 @@ export default {
       
     },
     validateSpeechRecording(recordedText, isFinalResult) {
+      let isSilent = recordedText == undefined ? true : false;
       // Perform type conversions.
+      
       recordedText = String(
         recordedText == undefined ? "(silent)" : recordedText
       );
 
-      this.showToast("Your response is : " + recordedText, "secondary");
-      this.validateWord(recordedText);
+      if (isSilent && this.typeText.length >= 0)
+      {
+        // keep it silent
+      }
+      else
+      {
+        this.showToast("Your response is : " + recordedText, "secondary");
+        this.validateWord(recordedText);
+      }
 
       console.log('Correct anwser for:' + this.expectedResultAsNumber + ' => ' + recordedText + ' is ' + this.isResolved);
 
@@ -451,11 +486,11 @@ export default {
               ", the correct answer is " +
               this.expectedResultAsNumber +
               ".";
-              
       }
-
+      
       if (isFinalResult == true){
         this.speak();
+        this.isPlayMode = true;
       }
 
     },
@@ -524,6 +559,12 @@ export default {
     return {
       star,
     };
+  },
+  created(){
+    window.addEventListener('keydown', this.keyDownHandler)
+  },
+  unmounted() {
+    window.removeEventListener('keydown', this.keyDownHandler)
   },
 };
 </script>
