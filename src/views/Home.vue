@@ -103,6 +103,7 @@ export default {
     return {
       typeText:[],
       isLoading: true,
+      isOnBoundary: false,
       isTalking: false,
       isListening: false,
       isComputing: false,
@@ -320,9 +321,6 @@ export default {
     speak() {
         if (!this.synth.speaking){
           this.greetingSpeech.text = this.text;
-          if (this.greetingSpeech.volume < 0){
-            this.speech_phrases = this.text;
-          }
           this.synth.speak(this.greetingSpeech);
         }
     },
@@ -391,6 +389,15 @@ export default {
     listenForSpeechEvents() {
       this.greetingSpeech.onstart = () => {
         this.isTalking = true;
+        this.isOnBoundary = false;
+         if (this.timeout) 
+          clearTimeout(this.timeout); 
+          this.timeout = setTimeout(() => {
+            if (!this.isOnBoundary){
+              this.speech_phrases = this.text;
+              this.isOnBoundary = true;
+            }
+          }, 600); // delay
       };
 
       this.greetingSpeech.onend = () => {
@@ -401,12 +408,8 @@ export default {
         }
       };
 
-      this.greetingSpeech.onerror = (event) => { 
-        console.log('error', event);
-      };
-
       this.greetingSpeech.onboundary = (e) => {
-
+        this.isOnBoundary = true;
         if (e.name == "word") {
           var word = this.getWordAt(this.text, e.charIndex).toLowerCase();
           // console.log(word);
