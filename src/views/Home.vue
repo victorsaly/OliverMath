@@ -322,8 +322,11 @@ export default {
           this.greetingSpeech.text = this.text;
           if (this.greetingSpeech.volume < 0){
             this.speech_phrases = this.text;
+            self.showToast("Not volume found.", "danger");
+          }else{
+            this.synth.speak(this.greetingSpeech);
           }
-          this.synth.speak(this.greetingSpeech);
+          
         }
     },
     listen() {
