@@ -42,6 +42,7 @@
         :isPlayMode="isPlayMode"
         :text="speech_phrases"
         v-on:ask_question="askQuestion"
+        @click="changeStatus('laughing')"
       />
     </ion-content>
     
@@ -107,6 +108,7 @@ export default {
       isTalking: false,
       isListening: false,
       isComputing: false,
+      isLaughing: false,
       isError: false,
       isQuery: false,
       isPlayMode: true,
@@ -158,6 +160,9 @@ export default {
       if (this.isError) {
         return "broken";
       }
+      if (this.isLaughing){
+        return "laughing";
+      }
       if (this.isTalking) {
         return "speaking";
       } else if (this.isListening) {
@@ -179,6 +184,16 @@ export default {
     },
   },
   methods: {
+    changeStatus(status) {
+      if (this.timeout) 
+          if (status == "laughing"){
+            this.isLaughing = true;
+          }
+          clearTimeout(this.timeout); 
+          this.timeout = setTimeout(() => {
+            this.isLaughing = false;
+          }, 1500); // delay
+    },
     keyDownHandler(e) {
       let value = e.key * 1;
       if (!isNaN(parseFloat(value)) && isFinite(value)){

@@ -380,6 +380,68 @@ p.thought:after {
   }
 }
 
+/* laughing */
+#bot.laughing #left-eye, #bot.laughing #right-eye
+{
+  background-color: lightgreen;
+  border-radius: 1em;
+  height: 35% !important;
+  transition : border-radius 0.25s linear;
+  animation: blink-eyes 1s infinite ease-in alternate;
+}
+
+#bot.laughing
+{
+  animation: MoveUpDown 0.3s infinite ease-in alternate;
+}
+
+#bot.laughing #mouth
+{
+  border: 0.5em solid #FFF;
+  width: 30%;
+  left: 35%;
+}
+
+@keyframes MoveUpDown {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+#bot.laughing #left-ear, #bot.laughing #right-ear,
+#bot.laughing #left-ear-inner, #bot.laughing #right-ear-inner
+{
+  background-color: lightgreen;
+}
+
+#bot.laughing #face, 
+#bot.laughing #left-ear, #bot.laughing #right-ear
+{
+   border-color: lightgreen;
+   transition : border-color 0.25s linear;
+}
+
+#bot.laughing #left-ear-inner,
+#bot.laughing #right-ear-inner
+{
+  /*outline: 0.4em dotted lightgreen;*/
+  animation: border-bump 0.4s infinite ease alternate;
+  animation-delay: 0.5s;
+}
+
+@keyframes border-bump {
+  0% {
+    outline: 0.4em dotted lightgreen;
+  }
+  
+  100% {
+    outline: 0.2em dotted black;
+  }
+}
+
 
 /* Broken */
 
