@@ -46,7 +46,7 @@
       />
     </ion-content>
     
-      <ion-footer no-padding>
+      <ion-footer no-padding style="margin-bottom:5px;">
           <ion-button
           v-if="isPlayMode && botState != 'broken'"
           expand="full"
@@ -56,7 +56,13 @@
       </ion-footer>
   </ion-page>
 </template>
+<style>
+.toast-custom-position
+{
+  top: -45px;
 
+}
+</style>
 <script>
 import {
   IonPage,
@@ -187,6 +193,8 @@ export default {
     changeStatus(status) {
       if (this.timeout) 
           if (status == "laughing"){
+            var audio = new Audio('./assets/sound/laugh.wav');
+            audio.play();
             this.isLaughing = true;
           }
           clearTimeout(this.timeout); 
@@ -213,9 +221,10 @@ export default {
     async showToast(text, color) {
       const toast = await toastController.create({
         message: text,
-        duration: 5000,
+        duration: 500000,
         color: color,
         translucent: true,
+        cssClass:"toast-custom-position"
       });
       return toast.present();
     },
@@ -546,6 +555,7 @@ export default {
     },
   },
   mounted() {
+    this.showToast("this is a test.");
     var self = this;
     navigator.mediaDevices
       .getUserMedia({ audio: true })
