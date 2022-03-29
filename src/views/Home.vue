@@ -9,9 +9,7 @@
         </ion-chip>
       </ion-toolbar>
     </ion-header>
-    <ion-row responsive-xs>
-    
-    <ion-item style="width:50%">
+    <ion-item>
       <ion-label>Level</ion-label>
       <ion-select
         interface="popover"
@@ -23,7 +21,7 @@
         <ion-select-option value="expert">Expert</ion-select-option>
       </ion-select>
     </ion-item>
-    <ion-item style="width:50%">
+    <ion-item>
       <ion-label>Operator</ion-label>
       <ion-select
         interface="popover"
@@ -38,7 +36,6 @@
         <ion-select-option value="minus">Substraction (-)</ion-select-option>
       </ion-select>
     </ion-item>
-    </ion-row>
     <ion-content :fullscreen="true">
       <BotFace
         :botState="botState"
@@ -63,7 +60,6 @@
 .toast-custom-position
 {
   top: -45px;
-
 }
 </style>
 <script>
@@ -78,7 +74,6 @@ import {
   IonIcon,
   toastController,
   IonItem,
-  IonRow,
   IonSelect,
   IonSelectOption,
   IonButton,
@@ -105,7 +100,6 @@ export default {
     IonLabel,
     IonIcon,
     IonItem,
-    IonRow,
     IonSelect,
     IonSelectOption,
     IonButton,
@@ -229,7 +223,7 @@ export default {
         message: text,
         duration: 5000,
         color: color,
-        translucent: true,
+        translucent: false,
         cssClass:"toast-custom-position"
       });
       return toast.present();
