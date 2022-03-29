@@ -2,7 +2,7 @@
   <ion-page>
     <ion-header>
       <ion-toolbar>
-        <ion-title>Math Game V1.0.11</ion-title>
+        <ion-title>Math Game V1.0.12</ion-title>
         <ion-chip slot="end">
           <ion-icon :icon="star" color="dark"></ion-icon>
           <ion-label>{{ stars }}</ion-label>
@@ -56,12 +56,6 @@
       </ion-footer>
   </ion-page>
 </template>
-<style>
-.toast-custom-position
-{
-  top: -45px;
-}
-</style>
 <script>
 import {
   IonPage,
@@ -224,7 +218,8 @@ export default {
         duration: 5000,
         color: color,
         translucent: false,
-        cssClass:"toast-custom-position"
+        cssClass:"toast-custom-position",
+        animated:false,
       });
       return toast.present();
     },
@@ -349,7 +344,7 @@ export default {
         }
     },
     listen() {
-      this.showToast("Connecting...", "warning");
+      this.showToast("Listening...", "warning");
       this.isComputing = true;
       this.isListening = false;
       var sc = SpeechConfig.fromAuthorizationToken(
