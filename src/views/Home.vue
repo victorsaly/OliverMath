@@ -2,14 +2,16 @@
   <ion-page>
     <ion-header>
       <ion-toolbar>
-        <ion-title>Math Game V1.0.8</ion-title>
+        <ion-title>Math Game V1.0.9</ion-title>
         <ion-chip slot="end">
           <ion-icon :icon="star" color="dark"></ion-icon>
           <ion-label>{{ stars }}</ion-label>
         </ion-chip>
       </ion-toolbar>
     </ion-header>
-    <ion-item>
+    <ion-row responsive-xs>
+    
+    <ion-item style="width:50%">
       <ion-label>Level</ion-label>
       <ion-select
         interface="popover"
@@ -21,7 +23,7 @@
         <ion-select-option value="expert">Expert</ion-select-option>
       </ion-select>
     </ion-item>
-    <ion-item>
+    <ion-item style="width:50%">
       <ion-label>Operator</ion-label>
       <ion-select
         interface="popover"
@@ -36,6 +38,7 @@
         <ion-select-option value="minus">Substraction (-)</ion-select-option>
       </ion-select>
     </ion-item>
+    </ion-row>
     <ion-content :fullscreen="true">
       <BotFace
         :botState="botState"
@@ -75,6 +78,7 @@ import {
   IonIcon,
   toastController,
   IonItem,
+  IonRow,
   IonSelect,
   IonSelectOption,
   IonButton,
@@ -101,6 +105,7 @@ export default {
     IonLabel,
     IonIcon,
     IonItem,
+    IonRow,
     IonSelect,
     IonSelectOption,
     IonButton,
@@ -120,7 +125,7 @@ export default {
       isPlayMode: true,
       isResolved: false,
       text: "",
-      selectedLevel: "beginner",
+      selectedLevel: "medium",
       selectedOperator: "times",
       speech_phrases:
         "Click play, listen the question and respond back by talking your answer.",
@@ -221,7 +226,7 @@ export default {
     async showToast(text, color) {
       const toast = await toastController.create({
         message: text,
-        duration: 500000,
+        duration: 5000,
         color: color,
         translucent: true,
         cssClass:"toast-custom-position"
@@ -555,7 +560,6 @@ export default {
     },
   },
   mounted() {
-    this.showToast("this is a test.");
     var self = this;
     navigator.mediaDevices
       .getUserMedia({ audio: true })
