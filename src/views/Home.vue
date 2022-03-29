@@ -2,14 +2,16 @@
   <ion-page>
     <ion-header>
       <ion-toolbar>
-        <ion-title>Math Game V1.0.8</ion-title>
+        <ion-title>Math Game V1.0.9</ion-title>
         <ion-chip slot="end">
           <ion-icon :icon="star" color="dark"></ion-icon>
           <ion-label>{{ stars }}</ion-label>
         </ion-chip>
       </ion-toolbar>
     </ion-header>
-    <ion-item>
+    <ion-row responsive-xs>
+    
+    <ion-item style="width:50%">
       <ion-label>Level</ion-label>
       <ion-select
         interface="popover"
@@ -21,7 +23,7 @@
         <ion-select-option value="expert">Expert</ion-select-option>
       </ion-select>
     </ion-item>
-    <ion-item>
+    <ion-item style="width:50%">
       <ion-label>Operator</ion-label>
       <ion-select
         interface="popover"
@@ -36,6 +38,7 @@
         <ion-select-option value="minus">Substraction (-)</ion-select-option>
       </ion-select>
     </ion-item>
+    </ion-row>
     <ion-content :fullscreen="true">
       <BotFace
         :botState="botState"
@@ -46,7 +49,7 @@
       />
     </ion-content>
     
-      <ion-footer no-padding>
+      <ion-footer no-padding style="margin-bottom:5px;">
           <ion-button
           v-if="isPlayMode && botState != 'broken'"
           expand="full"
@@ -56,7 +59,13 @@
       </ion-footer>
   </ion-page>
 </template>
+<style>
+.toast-custom-position
+{
+  top: -45px;
 
+}
+</style>
 <script>
 import {
   IonPage,
@@ -69,6 +78,7 @@ import {
   IonIcon,
   toastController,
   IonItem,
+  IonRow,
   IonSelect,
   IonSelectOption,
   IonButton,
@@ -95,6 +105,7 @@ export default {
     IonLabel,
     IonIcon,
     IonItem,
+    IonRow,
     IonSelect,
     IonSelectOption,
     IonButton,
@@ -114,7 +125,7 @@ export default {
       isPlayMode: true,
       isResolved: false,
       text: "",
-      selectedLevel: "beginner",
+      selectedLevel: "medium",
       selectedOperator: "times",
       speech_phrases:
         "Click play, listen the question and respond back by talking your answer.",
@@ -187,6 +198,8 @@ export default {
     changeStatus(status) {
       if (this.timeout) 
           if (status == "laughing"){
+            var audio = new Audio('./assets/sound/laugh.wav');
+            audio.play();
             this.isLaughing = true;
           }
           clearTimeout(this.timeout); 
@@ -216,6 +229,7 @@ export default {
         duration: 5000,
         color: color,
         translucent: true,
+        cssClass:"toast-custom-position"
       });
       return toast.present();
     },
