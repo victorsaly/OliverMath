@@ -198,7 +198,7 @@ export default {
     changeStatus(status) {
       if (this.timeout) 
           if (status == "laughing"){
-            var audio = new Audio('./assets/sound/laugh.wav');
+            var audio = new Audio(window.location.origin + this.$route.path + '/assets/sound/laugh.wav');
             audio.play();
             this.isLaughing = true;
           }
