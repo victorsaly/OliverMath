@@ -2,7 +2,7 @@
   <ion-page>
     <ion-header>
       <ion-toolbar>
-        <ion-title>Math Game V1.0.12</ion-title>
+        <ion-title>Speech Grammar 11+ Game V1.0</ion-title>
         <ion-chip slot="end">
           <ion-icon :icon="star" color="dark"></ion-icon>
           <ion-label>{{ stars }}</ion-label>
@@ -10,30 +10,15 @@
       </ion-toolbar>
     </ion-header>
     <ion-item>
-      <ion-label>Level</ion-label>
+      <ion-label>Test Type</ion-label>
       <ion-select
         interface="popover"
         :value="selectedLevel"
         @ionChange="selectedLevel = $event.target.value"
       >
-        <ion-select-option value="beginner">Beginners</ion-select-option>
-        <ion-select-option value="medium">Medium</ion-select-option>
-        <ion-select-option value="expert">Expert</ion-select-option>
-      </ion-select>
-    </ion-item>
-    <ion-item>
-      <ion-label>Operator</ion-label>
-      <ion-select
-        interface="popover"
-        :value="selectedOperator"
-        @ionChange="
-          selectedOperator = $event.target.value;
-          askQuestion;
-        "
-        >>
-        <ion-select-option value="times">multiply (x)</ion-select-option>
-        <ion-select-option value="plus">Addition (+)</ion-select-option>
-        <ion-select-option value="minus">Substraction (-)</ion-select-option>
+        <ion-select-option value="word">Sentence to Word</ion-select-option>
+        <ion-select-option value="synonyms">Synonyms</ion-select-option>
+        <ion-select-option value="antonyms">Antonyms</ion-select-option>
       </ion-select>
     </ion-item>
     <ion-content :fullscreen="true">
@@ -44,6 +29,7 @@
         v-on:ask_question="askQuestion"
         @click="changeStatus('laughing')"
       />
+      <div class="hintWord" v-if="isResolved == false && !isPlayMode">{{ hintWord }}</div>
     </ion-content>
     
       <ion-footer no-padding style="margin-bottom:5px;">
@@ -51,7 +37,7 @@
           v-if="isPlayMode && botState != 'broken'"
           expand="full"
           @click="askQuestion"
-          >Play Math</ion-button
+          >Play</ion-button
         >
       </ion-footer>
   </ion-page>
@@ -113,11 +99,255 @@ export default {
       isPlayMode: true,
       isResolved: false,
       text: "",
-      selectedLevel: "medium",
-      selectedOperator: "times",
+      selectedLevel: "word",
+      // selectedOperator: "times",
       speech_phrases:
         "Click play, listen the question and respond back by talking your answer.",
       synth: window.speechSynthesis,
+      dictionary:[
+        {
+          words:["swindled", "swindle"],
+          sentences:["Deceived someone to take their money or possessions"],          
+          antonyms:["conned", "cheated", "cheat", "scammed", "dupe", "duped"],
+          synonyms:[""]
+        },
+        {
+          words:["absurd"],
+          sentences:["Without any sense or reason", "Ridiculous, often in a humorous way"],
+          antonyms:["nonsensical", "preposterous", "ludicrous", "silly", "comical", "foolish"],
+          synonyms:["reasonable", "sensible", "normal", "logical", "rational"]
+        },
+        {
+          words:["feign"],
+          sentences:["To pretend to feel or think something"],
+          antonyms:[],
+          synonyms:["fake", "simulate"]
+        },
+        {
+          words:["noxious"],
+          sentences:["Poisonous or dangerous to living things"],
+          antonyms:["false", "harmless", "innocuous"],
+          synonyms:["harmful", "deadly", "toxic"]
+        },
+        {
+          words:["turmoil"],
+          sentences:["A state of disruption or confusion"],          
+          synonyms:["chaos", "confusion", "unrest"],
+          antonyms:["calm", "composure", "peace"]
+        },
+        {
+          words:["threadbare"],
+          sentences:["Looking old, thin or damaged due to being used a lot"],          
+          synonyms:["warn", "tattered", "ragged", "frayed"],
+          antonyms:["pristine", "immaculate", "unused"]
+        },
+        {
+          words:["jocular"],
+          sentences:["Cheerful and joking, usually making people laugh"],          
+          synonyms:["jovial", "jolly", "droll", "comical", "playful"],
+          antonyms:["serious", "solemn", "humorless"]
+        },
+        {
+          words:["seldom"],
+          sentences:["Almost never"],          
+          synonyms:["rarely", "infrequently", "sporadically"],
+          antonyms:["often", "frequently", "regularly"]
+        },
+        {
+          words:["abundance"],
+          sentences:["A large quantity or supplier of something"],          
+          synonyms:["wealth", "mass", "profusion", "bounty"],
+          antonyms:["shortage", "scarcity", "deficiency"]
+        },
+        {
+          words:["vicinity"],
+          sentences:["The area around a place"],          
+          synonyms:["surroundings", "region", "district", "proximity"],
+          antonyms:[]
+        },
+        {
+          words:["quaint"],
+          sentences:["Pleasantly old fashioned or unusual"],          
+          synonyms:["charming", "antiquated", "whimsical"],
+          antonyms:["modern", "contemporary", "ordinary"]
+        },
+        {
+          words:["quench"],
+          sentences:["To satisfy thirst or a desire", "To put out a fire or candle"],          
+          synonyms:["assuage", "alleviate", "extinguish", "smother", "douse", "quell"],
+          antonyms:["intensify", "exacerbate", "light", "start"]
+        },
+        {
+          words:["asunder"],
+          sentences:["Into pieces, usually by force"],          
+          synonyms:["apart"],
+          antonyms:[]
+        },
+        {
+          words:["tedium"],
+          sentences:["The state of being boring or bored"],          
+          synonyms:["monotony", "boredom", "dullness"],
+          antonyms:["excitement"]
+        },
+        {
+          words:["inkling"],
+          sentences:["A vague suspicion or idea about something"],          
+          synonyms:["hunch", "notion", "suggestion", "hint", "whisper"],
+          antonyms:[]
+        },
+        {
+          words:["entice"],
+          sentences:["To attract or tempt someone"],          
+          synonyms:["allure", "invite", "persuade"],
+          antonyms:["repel", "repulse", "discourage"]
+        },
+        {
+          words:["elude"],
+          sentences:["To avoid something or someone"],          
+          synonyms:["evade", "dodge"],
+          antonyms:["approach", "attract", "confront"]
+        },
+        {
+          words:["wretched", "wretch"],
+          sentences:["Unfortunate or in a bad situation", "Poor quality"],          
+          synonyms:["pitiable", "miserable", "hopeless", "unhappy", "worthless", "pathetic", "terrible"],
+          antonyms:["fortunate", "blessed", "excellent", "decent", "worthy"]
+        },
+        {
+          words:["obstinate"],
+          sentences:["Inflexible, despite persuasion or reason", "Difficult to move, remove or change"],          
+          synonyms:["stubborn", "determined", "obdurate", "tenacious", "unyielding", "persistent"],
+          antonyms:["complaint", "submissive", "amenable", "yielding", "unresisting", "pliant"]
+        },
+        {
+          words:["procure"],
+          sentences:["To gain possession of something, usually with effort or determination."],          
+          synonyms:["obtain", "get", "acquire"],
+          antonyms:["lose"]
+        },
+        {
+          words:["placid"],
+          sentences:["Calm and peaceful in nature or appearance"],          
+          synonyms:["tranquil", "mild", "serene"],
+          antonyms:["wild", "agitated", "turbulent", "stormy"]
+        },
+        {
+          words:["uncouth"],
+          sentences:["Rude or lacking decency"],          
+          synonyms:["coarse", "vulgar", "boorish", "uncivilized"],
+          antonyms:["polite", "dignified", "refined", "courteous"]
+        },
+        {
+          words:["idyllic"],
+          sentences:["Peaceful, safe and scenic"],          
+          synonyms:["heavenly", "picturesque", "charming", "utopian"],
+          antonyms:["hellish", "chaotic", "frightening", "appalling"]
+        },
+        {
+          words:["remedy"],
+          sentences:["A cure or resolution for something", "To cure or resolve something"],          
+          synonyms:["antidote", "solution", "solve", "rectify"],
+          antonyms:["worsen", "aggravate"]
+        },
+        {
+          words:["flippant"],
+          sentences:["Thoughtless and disrespectful in attitude"],          
+          synonyms:["glib", "frivolous", "insincere"],
+          antonyms:["respectful", "earnest", "sincere", "serious"]
+        },
+        {
+          words:["divulge"],
+          sentences:["To reveal something secret or private"],          
+          synonyms:["disclose", "make known", "reveal"],
+          antonyms:["conceal", "hide", "withhold"]
+        },
+        {
+          words:["cumbersome"],
+          sentences:["Heavy, large and difficult to move or use"],          
+          synonyms:["unwieldy", "bulky", "awkward", "weighty"],
+          antonyms:["manageable", "light", "practical", "compact"]
+        },
+        {
+          words:["oppress"],
+          sentences:["To treat cruelly and deprive of opportunities"],          
+          synonyms:["exploit", "subjugate", "persecute", "maltreat", "torment", "burden", "daunt"],
+          antonyms:["emancipate", "liberate", "comfort", "cheer", "calm"]
+        },
+        {
+          words:["diligence"],
+          sentences:["Thorough and careful effort"],          
+          synonyms:["attentiveness", "assiduousness"],
+          antonyms:["neglect", "inattention"]
+        },
+        {
+          words:["contort"],
+          sentences:["To twist or bend in an abnormal way"],          
+          synonyms:["distort", "deform"],
+          antonyms:["straighten", "uncoil"]
+        },
+        {
+          words:["ostentatious"],
+          sentences:["Excessively grand or luxurious, usually designed to impress"],          
+          synonyms:["pretentious", "flamboyant", "extravagant"],
+          antonyms:["understated", "modest", "conservative"]
+        },
+        {
+          words:["barren"],
+          sentences:["Having a dry and bare landscape that is unable to support life"],          
+          synonyms:["desolate", "arid"],
+          antonyms:["fertile", "lush"]
+        },
+        {
+          words:["thwart"],
+          sentences:["To stop someone succeeding at something"],          
+          synonyms:["defeat", "hinder", "foil", "prevent"],
+          antonyms:["aid", "help", "support"]
+        },
+        {
+          words:["exquisite"],
+          sentences:["Particularly beautiful or fine"],          
+          synonyms:["gorgeous", "striking"],
+          antonyms:["ugly", "imperfect", "unrefined"]
+        },
+        {
+          words:["contradict"],
+          sentences:["To suggest that something is wrong by offering an alternative idea or statement"],          
+          synonyms:["refute", "dispute", "counter"],
+          antonyms:["agree", "verify", "concur", "endorse"]
+        },
+        {
+          words:["prominent"],
+          sentences:["Important or significant", "Sticking out or standing out noticeably"],          
+          synonyms:["leading", "distinguished", "notable", "obvious", "evident", "conspicuous"],
+          antonyms:["Unimportant", "insignificant", "ordinary", "obscure", "inconspicuous"]
+        },
+        {
+          words:["frugal"],
+          sentences:["Careful not to spend much money or be wasteful in any way"],          
+          synonyms:["thrifty", "economical"],
+          antonyms:["wasteful", "extravagant", "lavish"]
+        },
+        {
+          words:["discrepancy"],
+          sentences:["A difference between things that should match"],          
+          synonyms:["inconsistency", "disparity"],
+          antonyms:["similarity", "resemblance"]
+        },
+        {
+          words:["magnitude"],
+          sentences:["Extreme size or scale"],          
+          synonyms:["vastness", "immensity", "enormity", "importance", "weight", "eminence", "distinction"],
+          antonyms:["smallness", "minuteness", "diminutiveness", "insignificance", "triviality"]
+        },
+        {
+          words:["audition"],
+          sentences:["A trial performance used to assess how suitable someone is for a role. E.g. in a play", "To take part in a trial performance to show how suitable you are for a role."],          
+          synonyms:["reading", "tryout"],
+          antonyms:[]
+        }
+      ],
+      dictionarySelected: null,
+      expectedResultAsValue: null,
       encourage_phases: [
         "Well done!",
         "Great work!",
@@ -144,11 +374,8 @@ export default {
       speechConfig: null,
       speechRecognizer: null,
       speechRecording: null,
-      number1: 2,
-      number2: 3,
       // eslint-disable-next-line no-undef
-      token: null,
-      tokenUrl: process.env.VUE_APP_TOKEN_URL,
+      tokenUrl: "https://olivermathapi.azurewebsites.net/api/token?code=C9h1wAidBXQfUAo9dYBaYgozqdLJdvmmEZqTiZJ2yqKuRl3QEowQaA==",
       previousPosition: -1,
       stars: 0,
       isMicrophoneEnabled: false,
@@ -156,6 +383,23 @@ export default {
     };
   },
   computed: {
+    hintWord() {
+      var _hintWord = "";
+      if (this.expectedResultAsValue != null && this.expectedResultAsValue.length > 0){
+        var wordLength = this.expectedResultAsValue.length;
+        const randomChar = Math.floor(Math.random() * wordLength);
+        for (let index = 0; index < wordLength; index++) {
+          if (index == randomChar || index == 0){
+            _hintWord += this.expectedResultAsValue.charAt(index);
+          } else {
+            _hintWord += "_";
+          }
+          _hintWord += " ";
+        }
+      }
+
+      return _hintWord;
+    },
     botState() {
       if (this.isError) {
         return "broken";
@@ -172,16 +416,7 @@ export default {
       } else {
         return "thinking";
       }
-    },
-    expectedResultAsNumber() {
-      if (this.selectedOperator == "plus") {
-        return this.number1 + this.number2;
-      }
-      if (this.selectedOperator == "minus") {
-        return this.number1 - this.number2;
-      }
-      return this.number1 * this.number2;
-    },
+    }
   },
   methods: {
     changeStatus(status) {
@@ -255,71 +490,14 @@ export default {
             self.isQuery = true;
             self.isPlayMode = false;
             self.speech_phrases = "";
-            var min1 = 1;
-            var max1 = 12;
-            var min2 = 1;
-            var max2 = 12;
-            if (self.selectedOperator == "plus") {
-              max1 = 50;
-              max2 = 50;
+            const random = Math.floor(Math.random() * self.dictionary.length);
+            self.dictionarySelected = self.dictionary[random];
 
-              if (self.selectedLevel == "medium") {
-                max1 = 100;
-                max2 = 100;
-              }
-
-              if (self.selectedLevel == "expert") {
-                max1 = 1000;
-                max2 = 1000;
-              }
+            if (self.selectedLevel == "word") {
+              self.expectedResultAsValue = self.dictionarySelected.words[0];
+              // apply the question based on the selected level.
+              self.text = 'What word describes, "' + self.dictionarySelected.sentences[0] + '"?';
             }
-
-            if (self.selectedOperator == "minus") {
-              min1 = 10;
-              max1 = 20;
-              min2 = 1;
-              max2 = 10;
-
-              if (self.selectedLevel == "medium") {
-                min1 = 20;
-                max1 = 100;
-                min2 = 1;
-                max2 = 20;
-              }
-
-              if (self.selectedLevel == "expert") {
-                min1 = 100;
-                max1 = 500;
-                min2 = 1;
-                max2 = 100;
-              }
-            }
-
-            if (self.selectedOperator == "times") {
-              if (self.selectedLevel == "medium") {
-                min1 = 3;
-                max1 = 12;
-                min2 = 3;
-                max2 = 12;
-              }
-
-              if (self.selectedLevel == "expert") {
-                min1 = 5;
-                max1 = 20;
-                min2 = 5;
-                max2 = 20;
-              }
-            }
-            self.number1 = self.getRandomInt(min1, max1);
-            self.number2 = self.getRandomInt(min2, max2);
-            self.text =
-              "What's " +
-              self.number1 +
-              " " +
-              self.selectedOperator +
-              " " +
-              self.number2 +
-              "?";
             self.speak();
           } else {
             self.speech_phrases = "microphone not available";
@@ -339,6 +517,9 @@ export default {
      */
     speak() {
         if (!this.synth.speaking){
+          var voices = this.synth.getVoices();
+          console.log(voices);
+          this.greetingSpeech.voice = voices[1];
           this.greetingSpeech.text = this.text;
           this.synth.speak(this.greetingSpeech);
         }
@@ -453,15 +634,19 @@ export default {
         return;
       }
 
-      var match = word.match(/\d+/);
+      if (word && word.length > 0){
+        var cleanedWord = word.replace(/\W/g, "").toLowerCase().trim();
 
-      if (match) {
-        var validate = String(this.expectedResultAsNumber) == String(word.match(/\d+/)[0]);
-        if (!this.isResolved && validate){
+        if(this.selectedLevel=='word' && this.dictionarySelected.words.includes(cleanedWord)){
+          //debugger;
+          this.expectedResultAsValue = this.dictionarySelected.words[this.dictionarySelected.words.indexOf(cleanedWord)];
           this.isResolved = true;
         }
       }
       
+      
+      
+      return;
       
     },
     validateSpeechRecording(recordedText, isFinalResult) {
@@ -482,7 +667,7 @@ export default {
         this.validateWord(recordedText);
       }
 
-      console.log('Correct anwser for:' + this.expectedResultAsNumber + ' => ' + recordedText + ' is ' + this.isResolved);
+      // console.log('Correct anwser for:' + this.expectedResultAsNumber + ' => ' + recordedText + ' is ' + this.isResolved);
 
       if (this.isResolved){        
         this.stars++;
@@ -506,7 +691,7 @@ export default {
                 Math.floor(Math.random() * this.incorrect_phases.length)
               ] +
               ", the correct answer is " +
-              this.expectedResultAsNumber +
+              this.expectedResultAsValue +
               ".";
       }
       
@@ -590,3 +775,11 @@ export default {
   },
 };
 </script>
+<style scoped>
+.hintWord{
+  text-align: center;
+  font-size: 30px;
+  padding: 40px;
+  text-transform: capitalize;
+}
+</style>

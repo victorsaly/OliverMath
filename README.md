@@ -1,12 +1,12 @@
-# OliverMath
+# Oliver Speech Grammar 11+ tool
 
-Oliver's math game is a tool created by my son. He wanted to have a robot that talks and accept answer similar to Alexa.
+Oliver's 11+ exam is coming soon, and Oliver and dad decided to create a dictionary library with all the words he's practicing at the moment. The robot will ask a sentence and oliver needs to answer with the correct word, synonyms or antonyms.
 
-This tool allows kids between 7+ years old to practice math and use azure speech API to interpret the answer and compare it with the question.
+## Oliver's ideas
 
-Any correct answers are praised with a start and wrong answer are responded with the correct answer and ask to try again, so give it a go and allow your kid to play around with math in a fun way.
+ - [ ] To add a hint button that cost points and show some key characthers of the missing word.
+ 
 
-[Available in Gighub Pages](https://victorsaly.github.io/OliverMath/)
+[Available in Gighub Pages](https://victorsaly.github.io/Oliver11+/)
 
-![image](https://user-images.githubusercontent.com/2436675/159779323-b3d9bcd6-2b58-466f-a0c6-58b1c8845a51.png)
 
