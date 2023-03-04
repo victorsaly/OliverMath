@@ -1,6 +1,6 @@
 {
   "appId": "io.ionic.starter",
-  "appName": "OliverMath",
+  "appName": "OliverVocabulary",
   "bundledWebRuntime": false,
   "npmClient": "npm",
   "webDir": "dist",

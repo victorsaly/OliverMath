@@ -2,38 +2,38 @@
   <ion-page>
     <ion-header>
       <ion-toolbar>
-        <ion-title>Math Game V1.0.12</ion-title>
+        <ion-title>Vocabulary Game V1.0</ion-title>
         <ion-chip slot="end">
           <ion-icon :icon="star" color="dark"></ion-icon>
           <ion-label>{{ stars }}</ion-label>
         </ion-chip>
       </ion-toolbar>
     </ion-header>
-    <ion-item>
+    <ion-item v-show="false">
       <ion-label>Level</ion-label>
       <ion-select
         interface="popover"
+        
         :value="selectedLevel"
         @ionChange="selectedLevel = $event.target.value"
       >
-        <ion-select-option value="beginner">Beginners</ion-select-option>
-        <ion-select-option value="medium">Medium</ion-select-option>
-        <ion-select-option value="expert">Expert</ion-select-option>
+        <ion-select-option value="11+">11+</ion-select-option>
       </ion-select>
     </ion-item>
-    <ion-item>
+    <ion-item v-show="false">
       <ion-label>Operator</ion-label>
       <ion-select
         interface="popover"
         :value="selectedOperator"
+        
         @ionChange="
           selectedOperator = $event.target.value;
           askQuestion;
         "
         >>
-        <ion-select-option value="times">multiply (x)</ion-select-option>
-        <ion-select-option value="plus">Addition (+)</ion-select-option>
-        <ion-select-option value="minus">Substraction (-)</ion-select-option>
+        <ion-select-option value="vocabulary">Vocabulary</ion-select-option>
+        <ion-select-option value="synonyms">Synonyms</ion-select-option>
+        <ion-select-option value="antonyms">Antonyms</ion-select-option>
       </ion-select>
     </ion-item>
     <ion-content :fullscreen="true">
@@ -51,7 +51,7 @@
           v-if="isPlayMode && botState != 'broken'"
           expand="full"
           @click="askQuestion"
-          >Play Math</ion-button
+          >Start new vocabulary</ion-button
         >
       </ion-footer>
   </ion-page>
@@ -113,10 +113,10 @@ export default {
       isPlayMode: true,
       isResolved: false,
       text: "",
-      selectedLevel: "medium",
-      selectedOperator: "times",
+      selectedLevel: "11+",
+      selectedOperator: "vocabulary",
       speech_phrases:
-        "Click play, listen the question and respond back by talking your answer.",
+        "Click play, listen the word and respond with back by talking your answer.",
       synth: window.speechSynthesis,
       encourage_phases: [
         "Well done!",
@@ -144,6 +144,7 @@ export default {
       speechConfig: null,
       speechRecognizer: null,
       speechRecording: null,
+      word:null,
       number1: 2,
       number2: 3,
       // eslint-disable-next-line no-undef
@@ -174,10 +175,10 @@ export default {
       }
     },
     expectedResultAsNumber() {
-      if (this.selectedOperator == "plus") {
+      if (this.selectedOperator == "synonyms") {
         return this.number1 + this.number2;
       }
-      if (this.selectedOperator == "minus") {
+      if (this.selectedOperator == "antonyms") {
         return this.number1 - this.number2;
       }
       return this.number1 * this.number2;
@@ -206,7 +207,7 @@ export default {
             if (this.typeText.length > 0){
               var typeText = this.typeText.join('');
               this.showToast("Your writing response is : " + typeText, "secondary");
-              this.validateWord(typeText);
+              //this.validateWord(typeText);
               this.typeText = [];
             }
           }, 400); // delay
@@ -255,72 +256,26 @@ export default {
             self.isQuery = true;
             self.isPlayMode = false;
             self.speech_phrases = "";
-            var min1 = 1;
-            var max1 = 12;
-            var min2 = 1;
-            var max2 = 12;
-            if (self.selectedOperator == "plus") {
-              max1 = 50;
-              max2 = 50;
 
-              if (self.selectedLevel == "medium") {
-                max1 = 100;
-                max2 = 100;
-              }
-
-              if (self.selectedLevel == "expert") {
-                max1 = 1000;
-                max2 = 1000;
-              }
+            if (self.selectedOperator == "vocabulary")
+            {
+              // step 1 find a randon word
+              axios
+              .get('https://localhost:7284/Vocabulary')
+              .then((response) => {
+                self.word = response.data[0];
+                self.text =
+              "What '" +
+              self.word +
+              "' means?";
+              self.speak();
+              })
+              .catch(() => {
+                self.isError = true;
+                self.speech_phrases = "Server is unavailable.";
+                self.showToast(this.speech_phrases, "danger");
+              });
             }
-
-            if (self.selectedOperator == "minus") {
-              min1 = 10;
-              max1 = 20;
-              min2 = 1;
-              max2 = 10;
-
-              if (self.selectedLevel == "medium") {
-                min1 = 20;
-                max1 = 100;
-                min2 = 1;
-                max2 = 20;
-              }
-
-              if (self.selectedLevel == "expert") {
-                min1 = 100;
-                max1 = 500;
-                min2 = 1;
-                max2 = 100;
-              }
-            }
-
-            if (self.selectedOperator == "times") {
-              if (self.selectedLevel == "medium") {
-                min1 = 3;
-                max1 = 12;
-                min2 = 3;
-                max2 = 12;
-              }
-
-              if (self.selectedLevel == "expert") {
-                min1 = 5;
-                max1 = 20;
-                min2 = 5;
-                max2 = 20;
-              }
-            }
-            self.number1 = self.getRandomInt(min1, max1);
-            self.number2 = self.getRandomInt(min2, max2);
-            self.text =
-              "What's " +
-              self.number1 +
-              " " +
-              self.selectedOperator +
-              " " +
-              self.number2 +
-              "?";
-            self.speak();
           } else {
             self.speech_phrases = "microphone not available";
             self.isError = true;
@@ -363,7 +318,7 @@ export default {
     /**
      * React to speech recording events
      */
-    listenForSpeechRecordingEvents() {
+    async listenForSpeechRecordingEvents() {
       const self = this;
 
       // Signals that a new session has started with the speech service
@@ -376,12 +331,12 @@ export default {
 
       this.speechRecording.recognizing  = function (s, e) {
         window.console.log('recognizing ', e.result.text);
-        self.validateSpeechRecording(e.result.text, false);
+        // self.validateSpeechRecording(e.result.text, false);
       };
 
       this.speechRecording.recognizeOnceAsync(
-        function (result) {
-          self.validateSpeechRecording(result.text, true);
+        async function (result) {
+          await self.validateSpeechRecording(result.text, true);
           self.isListening = false;
           self.isComputing = false;
           self.speechRecording.close();
@@ -396,7 +351,6 @@ export default {
           self.isError = true;
           self.text = "Unable to recognized the voice. Internal error";
           self.showToast(self.text);
-
           self.speechRecording.close();
           self.speechRecording = null;
         }
@@ -431,40 +385,11 @@ export default {
         this.isOnBoundary = true;
         if (e.name == "word") {
           var word = this.getWordAt(this.text, e.charIndex).toLowerCase();
-          // console.log(word);
-          if (word == "times") {
-            word = "x";
-          }
-
-          if (word == "plus") {
-            word = "+";
-          }
-
-          if (word == "minus") {
-            word = "-";
-          }
-
           this.speech_phrases += word + " ";
         }
       };
     },
-    validateWord(word) {
-      if (word == null || word == undefined || this.isResolved) {
-        return;
-      }
-
-      var match = word.match(/\d+/);
-
-      if (match) {
-        var validate = String(this.expectedResultAsNumber) == String(word.match(/\d+/)[0]);
-        if (!this.isResolved && validate){
-          this.isResolved = true;
-        }
-      }
-      
-      
-    },
-    validateSpeechRecording(recordedText, isFinalResult) {
+    async validateSpeechRecording(recordedText, isFinalResult) {
       let isSilent = recordedText == undefined ? true : false;
       // Perform type conversions.
       
@@ -479,42 +404,50 @@ export default {
       else
       {
         this.showToast("Your response is : " + recordedText, "secondary");
-        this.validateWord(recordedText);
+        // this.validateWord(recordedText);
       }
 
-      console.log('Correct anwser for:' + this.expectedResultAsNumber + ' => ' + recordedText + ' is ' + this.isResolved);
+      //console.log('Correct anwser for:' + this.expectedResultAsNumber + ' => ' + recordedText + ' is ' + this.isResolved);
 
-      if (this.isResolved){        
-        this.stars++;
-          localStorage.stars = this.stars;
-          this.text =
-            this.correct_phases[
-              Math.floor(Math.random() * this.correct_phases.length)
-            ] +
-            ", " +
-            this.encourage_phases[
-              Math.floor(Math.random() * this.encourage_phases.length)
-            ] +
-            "; You earned " +
-            this.stars +
-            " star" +
-            (this.stars == 1 ? "" : "s") +
-            ".";
-      } else if (isFinalResult == true) {
-            this.text =
-              this.incorrect_phases[
-                Math.floor(Math.random() * this.incorrect_phases.length)
-              ] +
-              ", the correct answer is " +
-              this.expectedResultAsNumber +
-              ".";
+      if (isFinalResult)
+      {
+        let self = this;
+        try {
+          var res = await axios.get('https://localhost:7284/OpenAI?word=' + self.word + '&answer=' + recordedText);
+          
+          let aiResponse = res.data;
+            if (aiResponse != null && aiResponse.includes('Yes'))
+            {
+              self.stars++;
+                localStorage.stars = self.stars;
+                self.text = aiResponse + "." +
+                self.correct_phases[
+                    Math.floor(Math.random() * self.correct_phases.length)
+                  ] +
+                  ", " +
+                  self.encourage_phases[
+                    Math.floor(Math.random() * self.encourage_phases.length)
+                  ] +
+                  "; You earned " +
+                  self.stars +
+                  " star" +
+                  (self.stars == 1 ? "" : "s");
+            } else {
+              self.text =
+              self.incorrect_phases[
+                  Math.floor(Math.random() * self.incorrect_phases.length)
+                ] +
+                aiResponse +
+                ".";
+            }
+            self.speak();
+            self.isPlayMode = true;
+        } catch {
+          self.isError = true;
+          self.speech_phrases = "Server is unavailable.";
+          self.showToast(this.speech_phrases, "danger");
+        }
       }
-      
-      if (isFinalResult == true){
-        this.speak();
-        this.isPlayMode = true;
-      }
-
     },
     getWordAt(str, pos) {
       // Perform type conversions.
