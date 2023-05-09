@@ -2,7 +2,7 @@
   <ion-page>
     <ion-header>
       <ion-toolbar>
-        <ion-title>Math Game V1.0.12</ion-title>
+        <ion-title>Math Game V1.0.13</ion-title>
         <ion-chip slot="end">
           <ion-icon :icon="star" color="dark"></ion-icon>
           <ion-label>{{ stars }}</ion-label>
@@ -148,11 +148,13 @@ export default {
       number2: 3,
       // eslint-disable-next-line no-undef
       token: null,
-      tokenUrl: process.env.VUE_APP_TOKEN_URL,
+      baseUrl: process.env.VUE_APP_BASE_URL,      
+      openAi_apiKey : process.env.VUE_APP_TOKEN_AI,
       previousPosition: -1,
       stars: 0,
       isMicrophoneEnabled: false,
-      publicPath: process.env.BASE_URL
+      publicPath: process.env.BASE_URL,
+      axiosClient: null,
     };
   },
   computed: {
@@ -551,6 +553,14 @@ export default {
   },
   mounted() {
     var self = this;
+
+    self.axiosClient = axios.create({
+      baseURL: self.baseUrl,
+      headers: {
+        "Ocp-Apim-Subscription-Key":  self.openAi_apiKey,
+      },
+    });
+
     navigator.mediaDevices
       .getUserMedia({ audio: true })
       .then(function () {
@@ -566,12 +576,8 @@ export default {
       this.stars = localStorage.stars;
     }
 
-    axios
-      .get(this.tokenUrl)
-      .then((response) => {
-        this.token = response.data;
-      })
-      .catch(() => {
+    this.axiosClient.get("speechAPI")
+    .then(response => {this.token = response.data;}).catch(() => {
         this.isError = true;
         this.speech_phrases = "Server is unavailable.";
         this.showToast(this.speech_phrases, "danger");
