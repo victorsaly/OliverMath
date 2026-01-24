@@ -64,13 +64,23 @@
               </ion-col>
               <ion-col size="auto">
                 <ion-chip color="success" outline class="stat-chip">
-                  <ion-label>⭐ Best: {{ bestStreak }}</ion-label>
+                  <ion-label>🎯 {{ accuracy }}%</ion-label>
                 </ion-chip>
               </ion-col>
             </ion-row>
           </ion-grid>
         </ion-card-content>
       </ion-card>
+
+      <!-- Action Buttons (when not in play mode) -->
+      <div class="action-buttons" v-if="!isPlayMode && !isComputing">
+        <ion-button fill="clear" size="small" @click="repeatQuestion" :disabled="!currentQuestion || isTalking">
+          <ion-icon :icon="refreshIcon" slot="icon-only"></ion-icon>
+        </ion-button>
+        <ion-button fill="clear" size="small" @click="handleToggleMute">
+          <ion-icon :icon="isMuted ? muteIcon : volumeIcon" slot="icon-only"></ion-icon>
+        </ion-button>
+      </div>
 
       <!-- Bot Container -->
       <div class="bot-container">
@@ -142,10 +152,12 @@ import {
   SpeechConfig,
   SpeechRecognizer,
 } from "microsoft-cognitiveservices-speech-sdk";
-import { star, play, speedometer, calculator, mic, volumeHigh, sync, alertCircle } from "ionicons/icons";
+import { star, play, speedometer, calculator, mic, volumeHigh, sync, alertCircle, refresh, volumeMute } from "ionicons/icons";
 import { OPERATORS, LEVELS, NUMBER_RANGES, PHRASES, SCORING } from "@/config/gameConfig";
 import { getRandomInt, getRandomItem, formatStars } from "@/utils/helpers";
 import { getSpeechToken, getCachedAudio, validateAnswer } from "@/services/apiService";
+import { preloadSounds, playCorrectSound, playIncorrectSound, toggleMute, getMuteState } from "@/services/soundService";
+import { celebrateConfetti, celebrateStreak, showStar } from "@/utils/confetti";
 
 export default {
   name: "Math",
@@ -180,7 +192,9 @@ export default {
       micIcon: mic,
       volumeIcon: volumeHigh,
       syncIcon: sync,
-      alertIcon: alertCircle
+      alertIcon: alertCircle,
+      refreshIcon: refresh,
+      muteIcon: volumeMute
     };
   },
   data() {
@@ -219,6 +233,9 @@ export default {
       previousPosition: -1,
       consecutiveCorrect: 0,
       totalQuestionsAnswered: 0,
+      totalCorrectAnswers: 0,
+      isMuted: false,
+      currentQuestion: "",  // Store current question for repeat
       
       // Speech
       synth: window.speechSynthesis,
@@ -292,6 +309,10 @@ export default {
         return this.number1 / this.number2;
       }
       return this.number1 * this.number2;
+    },
+    accuracy() {
+      if (this.totalQuestionsAnswered === 0) return 0;
+      return Math.round((this.totalCorrectAnswers / this.totalQuestionsAnswered) * 100);
     },
     statusColor() {
       switch (this.botState) {
@@ -579,6 +600,7 @@ export default {
             // Format operator for speech
             const operatorWord = self.selectedOperator === 'divide' ? 'divided by' : self.selectedOperator;
             self.text = `What's ${self.number1} ${operatorWord} ${self.number2}?`;
+            self.currentQuestion = self.text; // Store for repeat
             self.speak();
           } else {
             self.speech_phrases = "microphone not available";
@@ -776,6 +798,32 @@ export default {
       return Math.round(SCORING.BASE_POINTS * levelMultiplier * streakBonus);
     },
     /**
+     * Check if difficulty should be auto-adjusted based on performance
+     */
+    checkDifficultyAdjustment() {
+      // If 5+ correct in a row at current level, suggest upgrading
+      if (this.consecutiveCorrect >= 5 && this.selectedLevel !== LEVELS.EXPERT) {
+        const nextLevel = this.selectedLevel === LEVELS.BEGINNER ? LEVELS.MEDIUM : LEVELS.EXPERT;
+        this.showToast(`Great job! Consider trying ${nextLevel} level! 🚀`, "success");
+      }
+    },
+    /**
+     * Repeat the current question
+     */
+    repeatQuestion() {
+      if (this.currentQuestion && !this.isTalking) {
+        this.text = this.currentQuestion;
+        this.speak();
+      }
+    },
+    /**
+     * Toggle sound mute
+     */
+    handleToggleMute() {
+      this.isMuted = toggleMute();
+      this.showToast(this.isMuted ? "Sound muted 🔇" : "Sound on 🔊", "medium");
+    },
+    /**
      * Trigger haptic feedback if available
      */
     triggerHaptic(type = 'light') {
@@ -851,12 +899,29 @@ export default {
 
       if (isFinalResult) {
         this.totalQuestionsAnswered++;
+        localStorage.totalQuestions = this.totalQuestionsAnswered;
       }
 
       if (this.isResolved) {
         this.consecutiveCorrect++;
+        this.totalCorrectAnswers++;
+        localStorage.totalCorrect = this.totalCorrectAnswers;
+        
         const points = this.calculatePoints();
         this.stars += points;
+        
+        // Play sound and show celebration
+        playCorrectSound(this.consecutiveCorrect);
+        
+        // Show confetti for correct answers
+        if (this.consecutiveCorrect >= 5) {
+          celebrateStreak(this.consecutiveCorrect);
+        } else if (this.consecutiveCorrect >= 3) {
+          celebrateConfetti(40);
+        } else {
+          // Small celebration - show star at center
+          showStar(window.innerWidth / 2, window.innerHeight / 2);
+        }
         
         // Update best streak
         if (this.consecutiveCorrect > this.bestStreak) {
@@ -871,7 +936,6 @@ export default {
         }
         
         localStorage.stars = this.stars;
-        localStorage.totalQuestions = this.totalQuestionsAnswered;
         
         // Haptic feedback for correct answer
         this.triggerHaptic(this.consecutiveCorrect >= 5 ? 'success' : 'light');
@@ -895,8 +959,16 @@ export default {
         }
         
         this.text = message;
+        
+        // Auto-adjust difficulty
+        this.checkDifficultyAdjustment();
+        
       } else if (isFinalResult) {
         this.consecutiveCorrect = 0;
+        
+        // Play incorrect sound
+        playIncorrectSound();
+        
         this.triggerHaptic('error');
         const incorrect = getRandomItem(PHRASES.INCORRECT);
         const hint = getRandomItem(PHRASES.HINTS);
@@ -970,6 +1042,14 @@ export default {
     if (savedTotalQuestions) {
       this.totalQuestionsAnswered = parseInt(savedTotalQuestions, 10) || 0;
     }
+    
+    const savedTotalCorrect = localStorage.getItem('totalCorrect');
+    if (savedTotalCorrect) {
+      this.totalCorrectAnswers = parseInt(savedTotalCorrect, 10) || 0;
+    }
+    
+    // Preload sounds
+    preloadSounds().catch(err => console.warn('Sound preload failed:', err));
 
     // Get speech token from API
     try {
@@ -1100,6 +1180,22 @@ ion-footer ion-toolbar {
 .stat-chip {
   font-size: 12px;
   margin: 2px;
+}
+
+/* Action buttons */
+.action-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.action-buttons ion-button {
+  --color: var(--ion-color-medium);
+}
+
+.action-buttons ion-button:hover {
+  --color: var(--ion-color-primary);
 }
 
 @media (min-width: 768px) {
