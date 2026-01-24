@@ -45,8 +45,27 @@
                     <ion-select-option value="times">× Multiply</ion-select-option>
                     <ion-select-option value="plus">+ Addition</ion-select-option>
                     <ion-select-option value="minus">− Subtract</ion-select-option>
+                    <ion-select-option value="divide">÷ Division</ion-select-option>
                   </ion-select>
                 </ion-item>
+              </ion-col>
+            </ion-row>
+            <!-- Stats Row -->
+            <ion-row class="stats-row ion-align-items-center ion-justify-content-center">
+              <ion-col size="auto">
+                <ion-chip color="tertiary" outline class="stat-chip">
+                  <ion-label>🏆 Best: {{ highScore }}</ion-label>
+                </ion-chip>
+              </ion-col>
+              <ion-col size="auto">
+                <ion-chip color="secondary" outline class="stat-chip">
+                  <ion-label>🔥 Streak: {{ consecutiveCorrect }}</ion-label>
+                </ion-chip>
+              </ion-col>
+              <ion-col size="auto">
+                <ion-chip color="success" outline class="stat-chip">
+                  <ion-label>⭐ Best: {{ bestStreak }}</ion-label>
+                </ion-chip>
               </ion-col>
             </ion-row>
           </ion-grid>
@@ -124,9 +143,9 @@ import {
   SpeechRecognizer,
 } from "microsoft-cognitiveservices-speech-sdk";
 import { star, play, speedometer, calculator, mic, volumeHigh, sync, alertCircle } from "ionicons/icons";
-import { OPERATORS, LEVELS, NUMBER_RANGES, PHRASES } from "@/config/gameConfig";
-import { getRandomInt, getRandomItem, formatStars, extractNumber } from "@/utils/helpers";
-import { getSpeechToken, getCachedAudio } from "@/services/apiService";
+import { OPERATORS, LEVELS, NUMBER_RANGES, PHRASES, SCORING } from "@/config/gameConfig";
+import { getRandomInt, getRandomItem, formatStars } from "@/utils/helpers";
+import { getSpeechToken, getCachedAudio, validateAnswer } from "@/services/apiService";
 
 export default {
   name: "Math",
@@ -195,8 +214,11 @@ export default {
       number1: 2,
       number2: 3,
       stars: 0,
+      highScore: 0,
+      bestStreak: 0,
       previousPosition: -1,
       consecutiveCorrect: 0,
+      totalQuestionsAnswered: 0,
       
       // Speech
       synth: window.speechSynthesis,
@@ -265,6 +287,9 @@ export default {
       }
       if (this.selectedOperator == "minus") {
         return this.number1 - this.number2;
+      }
+      if (this.selectedOperator == "divide") {
+        return this.number1 / this.number2;
       }
       return this.number1 * this.number2;
     },
@@ -411,26 +436,29 @@ export default {
      * Analyze audio amplitude for lip sync
      */
     analyzeAudio() {
-      if (!this.isTalking) {
+      if (!this.isTalking || !this.audioAnalyser) {
         this.audioLevel = 0;
         return;
       }
       
-      const dataArray = new Uint8Array(this.audioAnalyser.frequencyBinCount);
-      this.audioAnalyser.getByteFrequencyData(dataArray);
-      
-      // Calculate average amplitude from frequency data
-      // Focus on voice frequency range (roughly 80Hz - 3000Hz)
-      const voiceStart = Math.floor(80 / (this.audioContext.sampleRate / this.audioAnalyser.fftSize));
-      const voiceEnd = Math.floor(3000 / (this.audioContext.sampleRate / this.audioAnalyser.fftSize));
-      
-      let sum = 0;
-      let count = 0;
-      for (let i = voiceStart; i < Math.min(voiceEnd, dataArray.length); i++) {
-        sum += dataArray[i];
-        count++;
+      // Reuse buffer to reduce GC pressure
+      if (!this._audioDataArray || this._audioDataArray.length !== this.audioAnalyser.frequencyBinCount) {
+        this._audioDataArray = new Uint8Array(this.audioAnalyser.frequencyBinCount);
+        // Pre-calculate voice frequency range bounds (cache these)
+        this._voiceStart = Math.floor(80 / (this.audioContext.sampleRate / this.audioAnalyser.fftSize));
+        this._voiceEnd = Math.floor(3000 / (this.audioContext.sampleRate / this.audioAnalyser.fftSize));
       }
       
+      this.audioAnalyser.getByteFrequencyData(this._audioDataArray);
+      
+      // Calculate average amplitude from voice frequency range
+      let sum = 0;
+      const end = Math.min(this._voiceEnd, this._audioDataArray.length);
+      for (let i = this._voiceStart; i < end; i++) {
+        sum += this._audioDataArray[i];
+      }
+      
+      const count = end - this._voiceStart;
       const average = count > 0 ? sum / count : 0;
       // Normalize to 0-1 range with some amplification
       this.audioLevel = Math.min(1, (average / 128) * 1.5);
@@ -447,6 +475,10 @@ export default {
         this.animationFrameId = null;
       }
       this.audioLevel = 0;
+      // Clear cached analysis buffers
+      this._audioDataArray = null;
+      this._voiceStart = null;
+      this._voiceEnd = null;
     },
     changeStatus(status) {
       if (this.timeout) 
@@ -466,11 +498,16 @@ export default {
         this.typeText.push(value);
         if (this.timeout) 
           clearTimeout(this.timeout); 
-          this.timeout = setTimeout(() => {
+          this.timeout = setTimeout(async () => {
             if (this.typeText.length > 0){
               var typeText = this.typeText.join('');
-              this.showToast("Your writing response is : " + typeText, "secondary");
-              this.validateWord(typeText);
+              this.showToast("Your typed response: " + typeText, "secondary");
+              // For typed numbers, we can do simple validation
+              const number = parseInt(typeText, 10);
+              if (!isNaN(number) && number === this.expectedResultAsNumber) {
+                this.isResolved = true;
+                await this.validateSpeechRecording(typeText, true);
+              }
               this.typeText = [];
             }
           }, 400); // delay
@@ -527,9 +564,21 @@ export default {
             const ranges = NUMBER_RANGES[self.selectedOperator]?.[self.selectedLevel] 
               || NUMBER_RANGES[OPERATORS.TIMES][LEVELS.BEGINNER];
             
-            self.number1 = getRandomInt(ranges.min1, ranges.max1);
-            self.number2 = getRandomInt(ranges.min2, ranges.max2);
-            self.text = `What's ${self.number1} ${self.selectedOperator} ${self.number2}?`;
+            // For division, generate numbers that result in whole number answers
+            if (self.selectedOperator === 'divide') {
+              // Generate divisor and quotient, then calculate dividend
+              const divisor = getRandomInt(ranges.min2, ranges.max2);
+              const quotient = getRandomInt(ranges.min1, ranges.max1);
+              self.number1 = divisor * quotient; // dividend
+              self.number2 = divisor;
+            } else {
+              self.number1 = getRandomInt(ranges.min1, ranges.max1);
+              self.number2 = getRandomInt(ranges.min2, ranges.max2);
+            }
+            
+            // Format operator for speech
+            const operatorWord = self.selectedOperator === 'divide' ? 'divided by' : self.selectedOperator;
+            self.text = `What's ${self.number1} ${operatorWord} ${self.number2}?`;
             self.speak();
           } else {
             self.speech_phrases = "microphone not available";
@@ -710,51 +759,148 @@ export default {
       };
     },
     /**
-     * Validate if the spoken/typed word matches the expected answer
+     * Calculate points based on streak and level
      */
-    validateWord(word) {
+    calculatePoints() {
+      const levelMultiplier = SCORING.LEVEL_MULTIPLIER[this.selectedLevel] || 1;
+      let streakBonus = 1;
+      
+      if (this.consecutiveCorrect >= SCORING.STREAK_BONUS_THRESHOLD) {
+        const streakLevel = this.consecutiveCorrect - SCORING.STREAK_BONUS_THRESHOLD + 1;
+        streakBonus = Math.min(
+          1 + (streakLevel * SCORING.STREAK_BONUS_MULTIPLIER),
+          SCORING.MAX_STREAK_BONUS
+        );
+      }
+      
+      return Math.round(SCORING.BASE_POINTS * levelMultiplier * streakBonus);
+    },
+    /**
+     * Trigger haptic feedback if available
+     */
+    triggerHaptic(type = 'light') {
+      if ('vibrate' in navigator) {
+        const patterns = {
+          light: [10],
+          medium: [20],
+          heavy: [50],
+          success: [10, 50, 10],
+          error: [50, 30, 50]
+        };
+        navigator.vibrate(patterns[type] || patterns.light);
+      }
+    },
+    /**
+     * Validate if the spoken/typed word matches the expected answer using LLM
+     */
+    async validateWordWithLLM(word) {
       if (!word || this.isResolved) return;
       
-      const number = extractNumber(word);
-      if (number !== null && number === this.expectedResultAsNumber) {
-        this.isResolved = true;
+      try {
+        const result = await validateAnswer(
+          word, 
+          this.expectedResultAsNumber,
+          this.text // The question
+        );
+        
+        if (result.correct) {
+          this.isResolved = true;
+        }
+        
+        // Show what the LLM interpreted
+        if (result.understood && result.interpretedNumber !== null) {
+          console.log(`LLM interpreted "${word}" as ${result.interpretedNumber} (confidence: ${result.confidence})`);
+        }
+        
+        return result;
+      } catch (error) {
+        console.error('LLM validation failed:', error);
+        // Fall back to simple extraction
+        const match = String(word).match(/\d+/);
+        const number = match ? parseInt(match[0], 10) : null;
+        if (number !== null && number === this.expectedResultAsNumber) {
+          this.isResolved = true;
+        }
+        return { correct: this.isResolved, understood: number !== null };
       }
     },
     /**
      * Process speech recognition result
      */
-    validateSpeechRecording(recordedText, isFinalResult) {
-      const isSilent = recordedText === undefined;
+    async validateSpeechRecording(recordedText, isFinalResult) {
+      const isSilent = recordedText === undefined || recordedText === '';
       const displayText = isSilent ? "(silent)" : String(recordedText);
 
+      let validationResult = null;
+      
       if (!isSilent) {
-        this.showToast(`Your response: ${displayText}`, "secondary");
-        this.validateWord(recordedText);
+        this.showToast(`I heard: "${displayText}"`, "secondary");
+        this.isComputing = true;
+        validationResult = await this.validateWordWithLLM(recordedText);
+        this.isComputing = false;
+        
+        // Show interpreted number if different from what was heard
+        if (validationResult?.understood && validationResult.interpretedNumber !== null) {
+          const interpreted = validationResult.interpretedNumber;
+          this.showToast(`Interpreted as: ${interpreted}`, validationResult.correct ? "success" : "warning");
+        }
       } else if (isFinalResult) {
         // Show confused when no speech detected
         this.showExpression('confused', 2000);
       }
 
-      if (this.isResolved) {        
-        this.stars++;
+      if (isFinalResult) {
+        this.totalQuestionsAnswered++;
+      }
+
+      if (this.isResolved) {
         this.consecutiveCorrect++;
-        localStorage.stars = this.stars;
-        const correct = getRandomItem(PHRASES.CORRECT);
-        const encourage = getRandomItem(PHRASES.ENCOURAGEMENT);
-        this.text = `${correct}, ${encourage}; You earned ${formatStars(this.stars)}.`;
+        const points = this.calculatePoints();
+        this.stars += points;
         
-        // Show expression based on streak
+        // Update best streak
+        if (this.consecutiveCorrect > this.bestStreak) {
+          this.bestStreak = this.consecutiveCorrect;
+          localStorage.bestStreak = this.bestStreak;
+        }
+        
+        // Update high score
+        if (this.stars > this.highScore) {
+          this.highScore = this.stars;
+          localStorage.highScore = this.highScore;
+        }
+        
+        localStorage.stars = this.stars;
+        localStorage.totalQuestions = this.totalQuestionsAnswered;
+        
+        // Haptic feedback for correct answer
+        this.triggerHaptic(this.consecutiveCorrect >= 5 ? 'success' : 'light');
+        
+        const correct = getRandomItem(PHRASES.CORRECT);
+        let message = '';
+        
+        // Special messages for streaks
         if (this.consecutiveCorrect >= 5) {
+          const streak = getRandomItem(PHRASES.STREAK);
+          message = `${correct}! ${streak} ${this.consecutiveCorrect} in a row! +${points} stars!`;
           this.showExpression('excited', 3000);
         } else if (this.consecutiveCorrect >= 3) {
+          const encourage = getRandomItem(PHRASES.ENCOURAGEMENT);
+          message = `${correct}! ${encourage} Streak of ${this.consecutiveCorrect}! +${points} stars!`;
           this.showExpression('proud', 2500);
         } else {
+          const encourage = getRandomItem(PHRASES.ENCOURAGEMENT);
+          message = `${correct}, ${encourage} You earned ${formatStars(this.stars)}.`;
           this.showExpression('happy', 2000);
         }
+        
+        this.text = message;
       } else if (isFinalResult) {
         this.consecutiveCorrect = 0;
+        this.triggerHaptic('error');
         const incorrect = getRandomItem(PHRASES.INCORRECT);
-        this.text = `${incorrect}, the correct answer is ${this.expectedResultAsNumber}.`;
+        const hint = getRandomItem(PHRASES.HINTS);
+        this.text = `${incorrect}, the correct answer is ${this.expectedResultAsNumber}. ${hint}`;
         // Show sad for wrong answer, confused was already shown for silence
         if (!isSilent) {
           this.showExpression('sad', 2000);
@@ -804,10 +950,25 @@ export default {
 
     this.listenForSpeechEvents();
 
-    // Load saved stars
+    // Load saved game data
     const savedStars = localStorage.getItem('stars');
     if (savedStars) {
       this.stars = parseInt(savedStars, 10) || 0;
+    }
+    
+    const savedHighScore = localStorage.getItem('highScore');
+    if (savedHighScore) {
+      this.highScore = parseInt(savedHighScore, 10) || 0;
+    }
+    
+    const savedBestStreak = localStorage.getItem('bestStreak');
+    if (savedBestStreak) {
+      this.bestStreak = parseInt(savedBestStreak, 10) || 0;
+    }
+    
+    const savedTotalQuestions = localStorage.getItem('totalQuestions');
+    if (savedTotalQuestions) {
+      this.totalQuestionsAnswered = parseInt(savedTotalQuestions, 10) || 0;
     }
 
     // Get speech token from API
@@ -918,6 +1079,27 @@ ion-footer ion-toolbar {
   .bot-container {
     min-height: 300px;
   }
+  
+  .stats-row {
+    flex-wrap: wrap;
+  }
+  
+  .stat-chip {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+}
+
+/* Stats row styling */
+.stats-row {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--ion-color-step-100);
+}
+
+.stat-chip {
+  font-size: 12px;
+  margin: 2px;
 }
 
 @media (min-width: 768px) {

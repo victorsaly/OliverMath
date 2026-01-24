@@ -78,6 +78,40 @@ export async function textToSpeech(text, voice = 'en-GB-RyanNeural', style = 'de
 }
 
 /**
+ * Validate a spoken answer using LLM
+ * @param {string} spokenText - The transcribed speech
+ * @param {number} expectedAnswer - The correct answer
+ * @param {string} question - The original question
+ * @returns {Promise<{correct: boolean, understood: boolean, interpretedNumber: number|null, confidence: string}>}
+ */
+export async function validateAnswer(spokenText, expectedAnswer, question) {
+  if (!spokenText) {
+    return { correct: false, understood: false, interpretedNumber: null, confidence: 'low' };
+  }
+  
+  const response = await fetchWithTimeout(`${getBaseUrl()}/api/validateAnswer`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ spokenText, expectedAnswer, question })
+  });
+  
+  if (!response.ok) {
+    // Fall back to simple number extraction if API fails
+    console.warn('validateAnswer API failed, falling back to simple extraction');
+    const match = String(spokenText).match(/\d+/);
+    const number = match ? parseInt(match[0], 10) : null;
+    return {
+      correct: number === expectedAnswer,
+      understood: number !== null,
+      interpretedNumber: number,
+      confidence: 'low'
+    };
+  }
+  
+  return response.json();
+}
+
+/**
  * Send chat message to LLM
  * @param {Array<{role: string, content: string}>} messages - Chat messages
  * @returns {Promise<{reply: string}>}

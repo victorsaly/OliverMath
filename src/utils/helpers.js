@@ -27,7 +27,7 @@ export function getRandomItem(arr) {
  * Calculate the expected result based on operator
  * @param {number} num1 - First number
  * @param {number} num2 - Second number
- * @param {string} operator - The operator (times, plus, minus)
+ * @param {string} operator - The operator (times, plus, minus, divide)
  * @returns {number}
  */
 export function calculateResult(num1, num2, operator) {
@@ -36,6 +36,8 @@ export function calculateResult(num1, num2, operator) {
       return num1 + num2;
     case 'minus':
       return num1 - num2;
+    case 'divide':
+      return num1 / num2;
     case 'times':
     default:
       return num1 * num2;

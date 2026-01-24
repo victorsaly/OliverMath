@@ -2,3 +2,4 @@
 import './chat/index.js';
 import './speechToken/index.js';
 import './speak/index.js';
+import './validateAnswer/index.js';
