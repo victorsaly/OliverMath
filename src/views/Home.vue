@@ -1,61 +1,95 @@
 <template>
   <ion-page>
     <ion-header>
-      <ion-toolbar>
+      <ion-toolbar color="primary">
         <ion-title>Math Game</ion-title>
-        <ion-chip slot="end" aria-label="Stars earned">
-          <ion-icon :icon="star" color="warning" aria-hidden="true"></ion-icon>
+        <ion-chip slot="end" color="warning" aria-label="Stars earned">
+          <ion-icon :icon="star" aria-hidden="true"></ion-icon>
           <ion-label>{{ stars }}</ion-label>
         </ion-chip>
       </ion-toolbar>
     </ion-header>
-    <ion-item>
-      <ion-label id="level-label">Difficulty</ion-label>
-      <ion-select
-        interface="popover"
-        :value="selectedLevel"
-        @ionChange="selectedLevel = $event.target.value"
-        aria-labelledby="level-label"
-      >
-        <ion-select-option value="beginner">Beginner</ion-select-option>
-        <ion-select-option value="medium">Medium</ion-select-option>
-        <ion-select-option value="expert">Expert</ion-select-option>
-      </ion-select>
-    </ion-item>
-    <ion-item>
-      <ion-label id="operator-label">Operator</ion-label>
-      <ion-select
-        interface="popover"
-        :value="selectedOperator"
-        @ionChange="selectedOperator = $event.target.value"
-        aria-labelledby="operator-label"
-      >
-        <ion-select-option value="times">Multiply (×)</ion-select-option>
-        <ion-select-option value="plus">Addition (+)</ion-select-option>
-        <ion-select-option value="minus">Subtraction (−)</ion-select-option>
-      </ion-select>
-    </ion-item>
-    <ion-content :fullscreen="true" role="main">
-      <BotFace
-        :botState="botState"
-        :isPlayMode="isPlayMode"
-        :text="speech_phrases"
-        v-on:ask_question="askQuestion"
-        @click="changeStatus('laughing')"
-        aria-live="polite"
-      />
+    
+    <ion-content :fullscreen="true" class="ion-padding" role="main">
+      <!-- Settings Card -->
+      <ion-card class="settings-card">
+        <ion-card-content>
+          <ion-grid>
+            <ion-row class="ion-align-items-center">
+              <ion-col size="6">
+                <ion-item lines="none" class="setting-item">
+                  <ion-icon :icon="speedometerIcon" slot="start" color="primary"></ion-icon>
+                  <ion-select
+                    interface="popover"
+                    :value="selectedLevel"
+                    @ionChange="selectedLevel = $event.target.value"
+                    label="Level"
+                    label-placement="stacked"
+                  >
+                    <ion-select-option value="beginner">Beginner</ion-select-option>
+                    <ion-select-option value="medium">Medium</ion-select-option>
+                    <ion-select-option value="expert">Expert</ion-select-option>
+                  </ion-select>
+                </ion-item>
+              </ion-col>
+              <ion-col size="6">
+                <ion-item lines="none" class="setting-item">
+                  <ion-icon :icon="calculatorIcon" slot="start" color="secondary"></ion-icon>
+                  <ion-select
+                    interface="popover"
+                    :value="selectedOperator"
+                    @ionChange="selectedOperator = $event.target.value"
+                    label="Operator"
+                    label-placement="stacked"
+                  >
+                    <ion-select-option value="times">× Multiply</ion-select-option>
+                    <ion-select-option value="plus">+ Addition</ion-select-option>
+                    <ion-select-option value="minus">− Subtract</ion-select-option>
+                  </ion-select>
+                </ion-item>
+              </ion-col>
+            </ion-row>
+          </ion-grid>
+        </ion-card-content>
+      </ion-card>
+
+      <!-- Bot Container -->
+      <div class="bot-container">
+        <BotFace
+          :botState="botState"
+          :isPlayMode="isPlayMode"
+          :text="speech_phrases"
+          v-on:ask_question="askQuestion"
+          @click="changeStatus('laughing')"
+          aria-live="polite"
+        />
+      </div>
+
+      <!-- Status Indicator -->
+      <div class="status-indicator" v-if="botState !== 'thinking'">
+        <ion-chip :color="statusColor" outline>
+          <ion-icon :icon="statusIcon" aria-hidden="true"></ion-icon>
+          <ion-label>{{ statusText }}</ion-label>
+        </ion-chip>
+      </div>
     </ion-content>
     
-    <ion-footer no-padding style="margin-bottom:5px;">
-      <ion-button
-        v-if="isPlayMode && botState !== 'broken'"
-        expand="full"
-        @click="askQuestion"
-        :disabled="isComputing"
-        aria-label="Start a new math question"
-      >
-        {{ isComputing ? 'Loading...' : 'Play Math' }}
-      </ion-button>
+    <ion-footer class="ion-no-border">
+      <ion-toolbar>
+        <ion-button
+          v-if="isPlayMode && botState !== 'broken'"
+          expand="block"
+          size="large"
+          @click="askQuestion"
+          :disabled="isComputing"
+          class="play-button"
+          aria-label="Start a new math question"
+        >
+          <ion-icon :icon="playIcon" slot="start" v-if="!isComputing"></ion-icon>
+          <ion-spinner name="crescent" v-if="isComputing"></ion-spinner>
+          {{ isComputing ? 'Thinking...' : 'Play Math!' }}
+        </ion-button>
+      </ion-toolbar>
     </ion-footer>
   </ion-page>
 </template>
@@ -74,7 +108,13 @@ import {
   IonSelect,
   IonSelectOption,
   IonButton,
-  IonFooter
+  IonFooter,
+  IonCard,
+  IonCardContent,
+  IonGrid,
+  IonRow,
+  IonCol,
+  IonSpinner
 } from "@ionic/vue";
 import BotFace from "@/components/BotFace.vue";
 import {
@@ -82,7 +122,7 @@ import {
   SpeechConfig,
   SpeechRecognizer,
 } from "microsoft-cognitiveservices-speech-sdk";
-import { star } from "ionicons/icons";
+import { star, play, speedometer, calculator, mic, volumeHigh, sync, alertCircle } from "ionicons/icons";
 import { OPERATORS, LEVELS, NUMBER_RANGES, PHRASES } from "@/config/gameConfig";
 import { getRandomInt, getRandomItem, formatStars, extractNumber } from "@/utils/helpers";
 import { getSpeechToken, getCachedAudio } from "@/services/apiService";
@@ -103,7 +143,25 @@ export default {
     IonSelect,
     IonSelectOption,
     IonButton,
-    IonFooter
+    IonFooter,
+    IonCard,
+    IonCardContent,
+    IonGrid,
+    IonRow,
+    IonCol,
+    IonSpinner
+  },
+  setup() {
+    return {
+      star,
+      playIcon: play,
+      speedometerIcon: speedometer,
+      calculatorIcon: calculator,
+      micIcon: mic,
+      volumeIcon: volumeHigh,
+      syncIcon: sync,
+      alertIcon: alertCircle
+    };
   },
   data() {
     return {
@@ -174,6 +232,35 @@ export default {
       }
       return this.number1 * this.number2;
     },
+    statusColor() {
+      switch (this.botState) {
+        case 'speaking': return 'primary';
+        case 'listening': return 'success';
+        case 'computing': return 'warning';
+        case 'broken': return 'danger';
+        case 'laughing': return 'tertiary';
+        default: return 'medium';
+      }
+    },
+    statusText() {
+      switch (this.botState) {
+        case 'speaking': return 'Speaking...';
+        case 'listening': return 'Listening...';
+        case 'computing': return 'Processing...';
+        case 'broken': return 'Error';
+        case 'laughing': return 'Haha!';
+        default: return 'Ready';
+      }
+    },
+    statusIcon() {
+      switch (this.botState) {
+        case 'speaking': return this.volumeIcon;
+        case 'listening': return this.micIcon;
+        case 'computing': return this.syncIcon;
+        case 'broken': return this.alertIcon;
+        default: return this.syncIcon;
+      }
+    }
   },
   methods: {
     changeStatus(status) {
@@ -519,11 +606,6 @@ export default {
       this.showToast(this.speech_phrases, "danger");
     }
   },
-  setup() {
-    return {
-      star,
-    };
-  },
   created() {
     window.addEventListener('keydown', this.keyDownHandler);
   },
@@ -541,3 +623,112 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+.settings-card {
+  margin: 8px;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.settings-card ion-card-content {
+  padding: 8px;
+}
+
+.setting-item {
+  --background: transparent;
+  --padding-start: 0;
+  --inner-padding-end: 0;
+}
+
+.setting-item ion-icon {
+  font-size: 24px;
+  margin-right: 8px;
+}
+
+.bot-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 350px;
+  padding: 16px;
+}
+
+.status-indicator {
+  display: flex;
+  justify-content: center;
+  margin: 16px 0;
+}
+
+.status-indicator ion-chip {
+  font-size: 14px;
+  padding: 8px 16px;
+}
+
+ion-footer ion-toolbar {
+  padding: 8px 16px 16px;
+  --background: transparent;
+}
+
+.play-button {
+  --border-radius: 16px;
+  font-size: 18px;
+  font-weight: 600;
+  height: 56px;
+  text-transform: none;
+}
+
+.play-button ion-icon {
+  font-size: 24px;
+  margin-right: 8px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 400px) {
+  .settings-card ion-grid ion-col {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+  
+  .bot-container {
+    min-height: 300px;
+  }
+}
+
+@media (min-width: 768px) {
+  .settings-card {
+    max-width: 600px;
+    margin: 16px auto;
+  }
+  
+  .bot-container {
+    min-height: 400px;
+  }
+  
+  ion-footer ion-toolbar {
+    max-width: 400px;
+    margin: 0 auto;
+  }
+}
+
+/* Animation for status chip */
+.status-indicator ion-chip {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .settings-card {
+    --background: var(--ion-color-step-100);
+  }
+}
+</style>

@@ -44,6 +44,6 @@ export default [
     }
   },
   {
-    ignores: ['docs/**', 'node_modules/**', '*.config.js']
+    ignores: ['docs/**', 'node_modules/**', '*.config.js', '**/*.d.ts']
   }
 ];

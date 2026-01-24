@@ -44,27 +44,40 @@ export default {
 
 p.bubble {
 	position: relative;
-	width: 300px;
+	width: min(300px, 80vw);
 	text-align: center;
-	margin: 5px 40px 30px 20px;
+	margin: 5px auto 30px;
 	background-color: #fff;
   color: #428cff;
-	border: 8px solid #333;
-	border-radius: 30px;
-	font-family: sans-serif;
-	padding: 15px;
-  font-size: 18px;
+	border: 6px solid var(--ion-color-primary, #3880ff);
+	border-radius: 24px;
+	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+	padding: 16px 20px;
+  font-size: clamp(16px, 4vw, 20px);
+  line-height: 1.4;
   vertical-align: middle;
-  min-height: 110px;
+  min-height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
 }
 
 div.broken p.bubble {
-  border: 8px solid darkred;
-  color:darkred;
+  border-color: var(--ion-color-danger, #eb445a);
+  color: var(--ion-color-danger, #eb445a);
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
 }
 
 p.thought {
-	width: 300px;
+	width: min(300px, 80vw);
 	border-radius: 200px;
 	padding: 30px;	
 }
@@ -79,23 +92,23 @@ p.bubble:after {
 
 p.speech:before {
 	left: 30px;
-	bottom: -50px;
-	border: 25px solid;
-	border-color: #333 transparent transparent #333;
+	bottom: -40px;
+	border: 20px solid;
+	border-color: var(--ion-color-primary, #3880ff) transparent transparent var(--ion-color-primary, #3880ff);
 }
 
 div.broken p.speech:before {
 	left: 30px;
-	bottom: -50px;
-	border: 25px solid;
-	border-color: darkred transparent transparent darkred;
+	bottom: -40px;
+	border: 20px solid;
+	border-color: var(--ion-color-danger, #eb445a) transparent transparent var(--ion-color-danger, #eb445a);
 }
 
 
 p.speech:after {
-	left: 38px;
-	bottom: -30px;
-	border: 15px solid;
+	left: 36px;
+	bottom: -24px;
+	border: 14px solid;
 	border-color: #fff transparent transparent #fff;
 }
 
@@ -127,26 +140,26 @@ p.thought:after {
 #bot
 {
   position: relative;
-  padding: 20px;
+  padding: 16px;
   padding-top: 0;
-  text-align: left;
-  width: 24em;
-  height: 24em;
+  text-align: center;
+  width: min(24em, 90vw);
+  height: auto;
   min-width: 10em;
   min-height: 10em;
-  /*border: 1px solid lightblue;*/
-  margin: 0 auto 20px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 #head
 {
   position: relative;
   display: block;
-  margin-top: 5%;
-  margin-left: 10%;
-  width: 80%;
-  height: 70%;
-  /*border : 1px solid yellow;*/
+  width: min(200px, 60vw);
+  height: min(200px, 60vw);
+  margin-top: 16px;
 }
 
 #face
@@ -525,5 +538,44 @@ p.thought:after {
   100% { 
       transform: rotateZ(360deg); 
     }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  p.bubble {
+    background-color: var(--ion-color-step-100, #1e1e1e);
+    color: var(--ion-color-primary, #428cff);
+    border-color: var(--ion-color-primary, #428cff);
+  }
+  
+  p.speech:after {
+    border-color: var(--ion-color-step-100, #1e1e1e) transparent transparent var(--ion-color-step-100, #1e1e1e);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 400px) {
+  p.bubble {
+    padding: 12px 16px;
+    min-height: 80px;
+    border-width: 4px;
+    border-radius: 20px;
+  }
+  
+  p.speech:before {
+    border-width: 16px;
+    bottom: -32px;
+  }
+  
+  p.speech:after {
+    border-width: 10px;
+    bottom: -18px;
+    left: 34px;
+  }
+  
+  #head {
+    width: min(160px, 55vw);
+    height: min(160px, 55vw);
+  }
 }
 </style>
