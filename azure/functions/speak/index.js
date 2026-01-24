@@ -1,35 +1,30 @@
 import { app } from '@azure/functions';
 
-export default app.http('speak', {
+app.http('speak', {
   methods: ['POST', 'OPTIONS'],
   authLevel: 'anonymous',
   handler: async (request, context) => {
+    const origin = request.headers.get('origin') || '*';
+    const corsHeaders = {
+      'Access-Control-Allow-Origin': origin,
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    };
+
     // Handle CORS preflight
     if (request.method === 'OPTIONS') {
-      return {
-        status: 204,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type'
-        }
-      };
+      return { status: 204, headers: corsHeaders };
     }
-
-    const corsHeaders = {
-      'Access-Control-Allow-Origin': '*',
-      'Content-Type': 'audio/mpeg'
-    };
 
     try {
       const body = await request.json();
-      const { text, voice = 'en-US-JennyNeural', style = 'friendly' } = body;
+      const { text, voice = 'en-US-AnaNeural', style = 'friendly' } = body;
 
       if (!text) {
         return {
           status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ error: 'Text is required' })
+          headers: { 'Content-Type': 'application/json', ...corsHeaders },
+          jsonBody: { error: 'Text is required' }
         };
       }
 
@@ -39,8 +34,8 @@ export default app.http('speak', {
       if (!speechKey) {
         return {
           status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ error: 'Speech service not configured' })
+          headers: { 'Content-Type': 'application/json', ...corsHeaders },
+          jsonBody: { error: 'Speech service not configured' }
         };
       }
 
@@ -77,8 +72,8 @@ export default app.http('speak', {
         context.log('TTS API error:', response.status, errorText);
         return {
           status: response.status,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ error: 'Speech synthesis failed', details: errorText })
+          headers: { 'Content-Type': 'application/json', ...corsHeaders },
+          jsonBody: { error: 'Speech synthesis failed', details: errorText }
         };
       }
 
@@ -88,19 +83,19 @@ export default app.http('speak', {
 
       return {
         status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        jsonBody: { 
           audio: base64Audio,
           format: 'audio/mpeg'
-        })
+        }
       };
 
     } catch (error) {
       context.log('TTS error:', error);
       return {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ error: 'Internal server error' })
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        jsonBody: { error: 'Internal server error' }
       };
     }
   }

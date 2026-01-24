@@ -2,58 +2,61 @@
   <ion-page>
     <ion-header>
       <ion-toolbar>
-        <ion-title>Math Game V1.0.13</ion-title>
-        <ion-chip slot="end">
-          <ion-icon :icon="star" color="dark"></ion-icon>
+        <ion-title>Math Game</ion-title>
+        <ion-chip slot="end" aria-label="Stars earned">
+          <ion-icon :icon="star" color="warning" aria-hidden="true"></ion-icon>
           <ion-label>{{ stars }}</ion-label>
         </ion-chip>
       </ion-toolbar>
     </ion-header>
     <ion-item>
-      <ion-label>Level</ion-label>
+      <ion-label id="level-label">Difficulty</ion-label>
       <ion-select
         interface="popover"
         :value="selectedLevel"
         @ionChange="selectedLevel = $event.target.value"
+        aria-labelledby="level-label"
       >
-        <ion-select-option value="beginner">Beginners</ion-select-option>
+        <ion-select-option value="beginner">Beginner</ion-select-option>
         <ion-select-option value="medium">Medium</ion-select-option>
         <ion-select-option value="expert">Expert</ion-select-option>
       </ion-select>
     </ion-item>
     <ion-item>
-      <ion-label>Operator</ion-label>
+      <ion-label id="operator-label">Operator</ion-label>
       <ion-select
         interface="popover"
         :value="selectedOperator"
-        @ionChange="
-          selectedOperator = $event.target.value;
-          askQuestion;
-        "
-        >>
-        <ion-select-option value="times">multiply (x)</ion-select-option>
+        @ionChange="selectedOperator = $event.target.value"
+        aria-labelledby="operator-label"
+      >
+        <ion-select-option value="times">Multiply (×)</ion-select-option>
         <ion-select-option value="plus">Addition (+)</ion-select-option>
-        <ion-select-option value="minus">Substraction (-)</ion-select-option>
+        <ion-select-option value="minus">Subtraction (−)</ion-select-option>
       </ion-select>
     </ion-item>
-    <ion-content :fullscreen="true">
+    <ion-content :fullscreen="true" role="main">
       <BotFace
         :botState="botState"
         :isPlayMode="isPlayMode"
         :text="speech_phrases"
         v-on:ask_question="askQuestion"
         @click="changeStatus('laughing')"
+        aria-live="polite"
       />
     </ion-content>
     
-      <ion-footer no-padding style="margin-bottom:5px;">
-          <ion-button
-          v-if="isPlayMode && botState != 'broken'"
-          expand="full"
-          @click="askQuestion"
-          >Play Math</ion-button
-        >
-      </ion-footer>
+    <ion-footer no-padding style="margin-bottom:5px;">
+      <ion-button
+        v-if="isPlayMode && botState !== 'broken'"
+        expand="full"
+        @click="askQuestion"
+        :disabled="isComputing"
+        aria-label="Start a new math question"
+      >
+        {{ isComputing ? 'Loading...' : 'Play Math' }}
+      </ion-button>
+    </ion-footer>
   </ion-page>
 </template>
 <script>
@@ -79,8 +82,11 @@ import {
   SpeechConfig,
   SpeechRecognizer,
 } from "microsoft-cognitiveservices-speech-sdk";
-import axios from "axios";
 import { star } from "ionicons/icons";
+import { OPERATORS, LEVELS, NUMBER_RANGES, PHRASES } from "@/config/gameConfig";
+import { getRandomInt, getRandomItem, formatStars, extractNumber } from "@/utils/helpers";
+import { getSpeechToken, getCachedAudio } from "@/services/apiService";
+
 export default {
   name: "Math",
   components: {
@@ -101,7 +107,8 @@ export default {
   },
   data() {
     return {
-      typeText:[],
+      // UI state
+      typeText: [],
       isLoading: true,
       isOnBoundary: false,
       isTalking: false,
@@ -112,52 +119,32 @@ export default {
       isQuery: false,
       isPlayMode: true,
       isResolved: false,
+      
+      // Game state
       text: "",
-      selectedLevel: "medium",
-      selectedOperator: "times",
-      speech_phrases:
-        "Click play, listen the question and respond back by talking your answer.",
+      selectedLevel: LEVELS.MEDIUM,
+      selectedOperator: OPERATORS.TIMES,
+      speech_phrases: "Click play, listen the question and respond back by talking your answer.",
+      number1: 2,
+      number2: 3,
+      stars: 0,
+      previousPosition: -1,
+      
+      // Speech
       synth: window.speechSynthesis,
-      encourage_phases: [
-        "Well done!",
-        "Great work!",
-        "Good job!",
-        "Keep up the good work!",
-        "You've really got this!",
-      ],
-      correct_phases: [
-        "That's correct",
-        "That's right",
-        "That's true",
-        "Flawless",
-        "Perfect",
-      ],
-      incorrect_phases: [
-        "Not quite",
-        "Maybe next time",
-        "I'm sure you can get the next one right",
-        "Incorrect",
-      ],
-      voiceList: [],
       greetingSpeech: new window.SpeechSynthesisUtterance(),
       audioConfig: null,
       speechConfig: null,
       speechRecognizer: null,
       speechRecording: null,
-      number1: 2,
-      number2: 3,
-      // eslint-disable-next-line no-undef
       token: null,
       speechRegion: null,
-      apiBaseUrl: process.env.VUE_APP_API_BASE_URL,
-      baseUrl: process.env.VUE_APP_BASE_URL,      
-      openAi_apiKey : process.env.VUE_APP_TOKEN_AI,
-      previousPosition: -1,
-      stars: 0,
+      audioPlayer: null,
+      
+      // Config
       isMicrophoneEnabled: false,
       publicPath: process.env.BASE_URL,
-      axiosClient: null,
-      audioPlayer: null,
+      timeout: null,
     };
   },
   computed: {
@@ -260,71 +247,14 @@ export default {
             self.isQuery = true;
             self.isPlayMode = false;
             self.speech_phrases = "";
-            var min1 = 1;
-            var max1 = 12;
-            var min2 = 1;
-            var max2 = 12;
-            if (self.selectedOperator == "plus") {
-              max1 = 50;
-              max2 = 50;
-
-              if (self.selectedLevel == "medium") {
-                max1 = 100;
-                max2 = 100;
-              }
-
-              if (self.selectedLevel == "expert") {
-                max1 = 1000;
-                max2 = 1000;
-              }
-            }
-
-            if (self.selectedOperator == "minus") {
-              min1 = 10;
-              max1 = 20;
-              min2 = 1;
-              max2 = 10;
-
-              if (self.selectedLevel == "medium") {
-                min1 = 20;
-                max1 = 100;
-                min2 = 1;
-                max2 = 20;
-              }
-
-              if (self.selectedLevel == "expert") {
-                min1 = 100;
-                max1 = 500;
-                min2 = 1;
-                max2 = 100;
-              }
-            }
-
-            if (self.selectedOperator == "times") {
-              if (self.selectedLevel == "medium") {
-                min1 = 3;
-                max1 = 12;
-                min2 = 3;
-                max2 = 12;
-              }
-
-              if (self.selectedLevel == "expert") {
-                min1 = 5;
-                max1 = 20;
-                min2 = 5;
-                max2 = 20;
-              }
-            }
-            self.number1 = self.getRandomInt(min1, max1);
-            self.number2 = self.getRandomInt(min2, max2);
-            self.text =
-              "What's " +
-              self.number1 +
-              " " +
-              self.selectedOperator +
-              " " +
-              self.number2 +
-              "?";
+            
+            // Get number ranges from config
+            const ranges = NUMBER_RANGES[self.selectedOperator]?.[self.selectedLevel] 
+              || NUMBER_RANGES[OPERATORS.TIMES][LEVELS.BEGINNER];
+            
+            self.number1 = getRandomInt(ranges.min1, ranges.max1);
+            self.number2 = getRandomInt(ranges.min2, ranges.max2);
+            self.text = `What's ${self.number1} ${self.selectedOperator} ${self.number2}?`;
             self.speak();
           } else {
             self.speech_phrases = "microphone not available";
@@ -333,14 +263,14 @@ export default {
           }
         })
         .catch(function (e) {
-          console.log("internal server error", e);
+          console.error("Failed to ask question:", e);
           self.isError = true;
-          self.text = "internal error";
-          self.showToast(self.text);
+          self.text = "Something went wrong. Please try again.";
+          self.showToast(self.text, "danger");
         });
     },
     /**
-     * Shout at the user using Azure Neural TTS for realistic voice
+     * Speak text using Azure Neural TTS with caching
      */
     async speak() {
         // Prevent overlapping audio
@@ -348,39 +278,19 @@ export default {
           return;
         }
         
-        // Use localhost for dev if no apiBaseUrl set
-        const baseUrl = this.apiBaseUrl || 'http://localhost:7071';
-        
         // Show text immediately
         this.speech_phrases = this.text;
         this.isTalking = true;
         this.isOnBoundary = true;
 
         try {
-          // Call Azure TTS API
-          const response = await fetch(`${baseUrl}/api/speak`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              text: this.text,
-              voice: 'en-US-AnaNeural',
-              style: 'friendly'
-            })
-          });
-
-          if (!response.ok) {
-            throw new Error('TTS API failed');
-          }
-
-          const data = await response.json();
-          
-          // Play the audio
-          const audio = new Audio(`data:audio/mpeg;base64,${data.audio}`);
+          // Use cached audio service for better performance
+          const audio = await getCachedAudio(this.text);
           this.audioPlayer = audio;
           
           audio.onended = () => {
             this.isTalking = false;
-            // Trigger listening after speech ends (same as greetingSpeech.onend)
+            // Trigger listening after speech ends
             if (this.isQuery) {
               this.isQuery = false;
               this.listen();
@@ -389,7 +299,6 @@ export default {
           
           audio.onerror = () => {
             this.isTalking = false;
-            // Fallback to browser synthesis
             this.speakWithBrowser();
           };
           
@@ -398,7 +307,6 @@ export default {
         } catch (error) {
           console.error('Azure TTS error:', error);
           this.isTalking = false;
-          // Fallback to browser synthesis
           this.speakWithBrowser();
         }
     },
@@ -516,90 +424,61 @@ export default {
         }
       };
     },
+    /**
+     * Validate if the spoken/typed word matches the expected answer
+     */
     validateWord(word) {
-      if (word == null || word == undefined || this.isResolved) {
-        return;
-      }
-
-      var match = word.match(/\d+/);
-
-      if (match) {
-        var validate = String(this.expectedResultAsNumber) == String(word.match(/\d+/)[0]);
-        if (!this.isResolved && validate){
-          this.isResolved = true;
-        }
-      }
+      if (!word || this.isResolved) return;
       
-      
+      const number = extractNumber(word);
+      if (number !== null && number === this.expectedResultAsNumber) {
+        this.isResolved = true;
+      }
     },
+    /**
+     * Process speech recognition result
+     */
     validateSpeechRecording(recordedText, isFinalResult) {
-      let isSilent = recordedText == undefined ? true : false;
-      // Perform type conversions.
-      
-      recordedText = String(
-        recordedText == undefined ? "(silent)" : recordedText
-      );
+      const isSilent = recordedText === undefined;
+      const displayText = isSilent ? "(silent)" : String(recordedText);
 
-      if (isSilent && this.typeText.length >= 0)
-      {
-        // keep it silent
-      }
-      else
-      {
-        this.showToast("Your response is : " + recordedText, "secondary");
+      if (!isSilent) {
+        this.showToast(`Your response: ${displayText}`, "secondary");
         this.validateWord(recordedText);
       }
 
-      console.log('Correct anwser for:' + this.expectedResultAsNumber + ' => ' + recordedText + ' is ' + this.isResolved);
-
-      if (this.isResolved){        
+      if (this.isResolved) {        
         this.stars++;
-          localStorage.stars = this.stars;
-          this.text =
-            this.correct_phases[
-              Math.floor(Math.random() * this.correct_phases.length)
-            ] +
-            ", " +
-            this.encourage_phases[
-              Math.floor(Math.random() * this.encourage_phases.length)
-            ] +
-            "; You earned " +
-            this.stars +
-            " star" +
-            (this.stars == 1 ? "" : "s") +
-            ".";
-      } else if (isFinalResult == true) {
-            this.text =
-              this.incorrect_phases[
-                Math.floor(Math.random() * this.incorrect_phases.length)
-              ] +
-              ", the correct answer is " +
-              this.expectedResultAsNumber +
-              ".";
+        localStorage.stars = this.stars;
+        const correct = getRandomItem(PHRASES.CORRECT);
+        const encourage = getRandomItem(PHRASES.ENCOURAGEMENT);
+        this.text = `${correct}, ${encourage}; You earned ${formatStars(this.stars)}.`;
+      } else if (isFinalResult) {
+        const incorrect = getRandomItem(PHRASES.INCORRECT);
+        this.text = `${incorrect}, the correct answer is ${this.expectedResultAsNumber}.`;
       }
       
-      if (isFinalResult == true){
+      if (isFinalResult) {
         this.speak();
         this.isPlayMode = true;
       }
-
     },
+    /**
+     * Get word at position in string
+     */
     getWordAt(str, pos) {
-      // Perform type conversions.
       str = String(str);
       pos = Number(pos) >>> 0;
 
-      // console.log('previousPosition', this.previousPosition)
-      if (this.previousPosition == pos) {
+      if (this.previousPosition === pos) {
         this.isTalking = false;
         return "";
       }
       this.previousPosition = pos;
 
-      // Search for the word's beginning and end.
-      var left = str.slice(0, pos + 1).search(/\S+$/),
-        right = str.slice(pos).search(/\s/);
-      // The last word in the string is a special case.
+      const left = str.slice(0, pos + 1).search(/\S+$/);
+      const right = str.slice(pos).search(/\s/);
+      
       if (right < 0) {
         if (!this.isQuery) {
           this.isPlayMode = true;
@@ -608,61 +487,57 @@ export default {
         return str.slice(left);
       }
 
-      // Return the word, using the located bounds to extract it from the string.
       return str.slice(left, right + pos);
     },
-    getRandomInt(min, max) {
-      min = Math.ceil(min);
-      max = Math.floor(max);
-      return Math.floor(Math.random() * (max - min + 1)) + min;
-    },
   },
-  mounted() {
-    var self = this;
-
-    self.axiosClient = axios.create({
-      baseURL: self.baseUrl,
-      headers: {
-        "Ocp-Apim-Subscription-Key":  self.openAi_apiKey,
-      },
-    });
-
-    navigator.mediaDevices
-      .getUserMedia({ audio: true })
-      .then(function () {
-        self.isMicrophoneEnabled = true;
-      })
-      .catch(function () {
-        console.log("No mic for you!");
-      });
+  async mounted() {
+    // Check microphone availability
+    try {
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+      this.isMicrophoneEnabled = true;
+    } catch {
+      console.warn("Microphone not available");
+    }
 
     this.listenForSpeechEvents();
 
-    if (localStorage.stars) {
-      this.stars = localStorage.stars;
+    // Load saved stars
+    const savedStars = localStorage.getItem('stars');
+    if (savedStars) {
+      this.stars = parseInt(savedStars, 10) || 0;
     }
 
-    // Use Azure Functions endpoint for speech token
-    axios.get(this.apiBaseUrl + '/api/speechToken')
-    .then(response => {
-        this.token = response.data.token;
-        this.speechRegion = response.data.region;
-      }).catch(() => {
-        this.isError = true;
-        this.speech_phrases = "Server is unavailable.";
-        this.showToast(this.speech_phrases, "danger");
-      });
+    // Get speech token from API
+    try {
+      const { token, region } = await getSpeechToken();
+      this.token = token;
+      this.speechRegion = region;
+    } catch (error) {
+      console.error("Failed to get speech token:", error);
+      this.isError = true;
+      this.speech_phrases = "Server is unavailable. Please refresh the page.";
+      this.showToast(this.speech_phrases, "danger");
+    }
   },
   setup() {
     return {
       star,
     };
   },
-  created(){
-    window.addEventListener('keydown', this.keyDownHandler)
+  created() {
+    window.addEventListener('keydown', this.keyDownHandler);
   },
   unmounted() {
-    window.removeEventListener('keydown', this.keyDownHandler)
+    window.removeEventListener('keydown', this.keyDownHandler);
+    // Cleanup audio player
+    if (this.audioPlayer) {
+      this.audioPlayer.pause();
+      this.audioPlayer = null;
+    }
+    // Clear any pending timeouts
+    if (this.timeout) {
+      clearTimeout(this.timeout);
+    }
   },
 };
 </script>
