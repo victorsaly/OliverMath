@@ -385,7 +385,7 @@ export default {
       if (this.audioSource) {
         try {
           this.audioSource.disconnect();
-        } catch (e) {
+        } catch {
           // Ignore disconnect errors
         }
       }
