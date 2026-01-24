@@ -95,10 +95,13 @@ export default defineConfig({
   build: {
     outDir: 'docs',
     sourcemap: false,
+    chunkSizeWarningLimit: 600,
     rollupOptions: {
       output: {
         manualChunks: {
-          vendor: ['vue', 'vue-router', '@ionic/vue']
+          'vue-vendor': ['vue', 'vue-router'],
+          'ionic-core': ['@ionic/vue', '@ionic/vue-router'],
+          'speech-sdk': ['microsoft-cognitiveservices-speech-sdk']
         }
       }
     }

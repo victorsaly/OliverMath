@@ -1,15 +1,18 @@
 {
   "name": "OliverMath",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build --outDir docs",
     "preview": "vite preview",
+    "test": "vitest run && cypress run",
     "test:unit": "vitest run",
     "test:e2e": "cypress run",
-    "lint": "eslint src --ext .vue,.js,.ts"
+    "test:e2e:open": "cypress open",
+    "lint": "eslint src --ext .vue,.js,.ts",
+    "typecheck": "vue-tsc --noEmit"
   },
   "dependencies": {
     "@capacitor/core": "^8.0.1",
@@ -28,9 +31,11 @@
     "eslint": "^9.17.0",
     "eslint-plugin-vue": "^9.32.0",
     "jsdom": "^26.0.0",
+    "typescript": "^5.9.3",
     "vite": "^6.2.0",
     "vite-plugin-pwa": "^0.21.1",
     "vitest": "^3.1.0",
+    "vue-tsc": "^2.2.12",
     "workbox-window": "^7.3.0"
   },
   "overrides": {
