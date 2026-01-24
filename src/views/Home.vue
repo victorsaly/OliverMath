@@ -148,6 +148,8 @@ export default {
       number2: 3,
       // eslint-disable-next-line no-undef
       token: null,
+      speechRegion: null,
+      apiBaseUrl: process.env.VUE_APP_API_BASE_URL,
       baseUrl: process.env.VUE_APP_BASE_URL,      
       openAi_apiKey : process.env.VUE_APP_TOKEN_AI,
       previousPosition: -1,
@@ -352,7 +354,7 @@ export default {
       var sc = SpeechConfig.fromAuthorizationToken(
         // eslint-disable-next-line no-undef
         this.token,
-        "uksouth"
+        this.speechRegion
       );
       sc.speechRecognitionLanguage = "en-GB";
       this.speechConfig = sc;
@@ -576,8 +578,12 @@ export default {
       this.stars = localStorage.stars;
     }
 
-    this.axiosClient.get("speechAPI")
-    .then(response => {this.token = response.data;}).catch(() => {
+    // Use Azure Functions endpoint for speech token
+    axios.get(this.apiBaseUrl + '/api/speechToken')
+    .then(response => {
+        this.token = response.data.token;
+        this.speechRegion = response.data.region;
+      }).catch(() => {
         this.isError = true;
         this.speech_phrases = "Server is unavailable.";
         this.showToast(this.speech_phrases, "danger");
