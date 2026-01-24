@@ -228,12 +228,12 @@ import {
   SpeechRecognizer,
 } from "microsoft-cognitiveservices-speech-sdk";
 import { star, play, speedometer, calculator, mic, volumeHigh, sync, alertCircle, refresh, volumeMute, timeOutline, trashOutline, globe } from "ionicons/icons";
-import { OPERATORS, LEVELS, NUMBER_RANGES, PHRASES, SCORING } from "@/config/gameConfig";
-import { getRandomInt, getRandomItem, formatStars } from "@/utils/helpers";
+import { OPERATORS, LEVELS, NUMBER_RANGES, SCORING } from "@/config/gameConfig";
+import { getRandomInt } from "@/utils/helpers";
 import { getSpeechToken, getCachedAudio, validateAnswer } from "@/services/apiService";
-import { LANGUAGES, translations, SPEECH_VOICES, getPreferredLanguage, setLanguage, t, getRandomPhrase } from "@/config/i18n";
+import { LANGUAGES, SPEECH_VOICES, getPreferredLanguage, setLanguage, t, getRandomPhrase } from "@/config/i18n";
 import { addToHistory, getHistory, clearHistory as clearHistoryService, formatTimestamp, getOperatorSymbol } from "@/services/historyService";
-import { preloadSounds, playCorrectSound, playIncorrectSound, toggleMute, getMuteState } from "@/services/soundService";
+import { preloadSounds, playCorrectSound, playIncorrectSound, toggleMute } from "@/services/soundService";
 import { celebrateConfetti, celebrateStreak, showStar } from "@/utils/confetti";
 
 export default {
