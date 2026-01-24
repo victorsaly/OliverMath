@@ -74,13 +74,85 @@
 
       <!-- Action Buttons (when not in play mode) -->
       <div class="action-buttons" v-if="!isPlayMode && !isComputing">
-        <ion-button fill="clear" size="small" @click="repeatQuestion" :disabled="!currentQuestion || isTalking">
+        <ion-button fill="clear" size="small" @click="repeatQuestion" :disabled="!currentQuestion || isTalking" title="Repeat question">
           <ion-icon :icon="refreshIcon" slot="icon-only"></ion-icon>
         </ion-button>
-        <ion-button fill="clear" size="small" @click="handleToggleMute">
+        <ion-button fill="clear" size="small" @click="handleToggleMute" title="Toggle sound">
           <ion-icon :icon="isMuted ? muteIcon : volumeIcon" slot="icon-only"></ion-icon>
         </ion-button>
+        <ion-button fill="clear" size="small" @click="openHistoryModal" title="Problem history">
+          <ion-icon :icon="historyIcon" slot="icon-only"></ion-icon>
+        </ion-button>
       </div>
+
+      <!-- Language Selector -->
+      <div class="language-selector">
+        <ion-button fill="clear" size="small" id="language-trigger">
+          <span class="language-flag">{{ availableLanguages[selectedLanguage]?.flag }}</span>
+        </ion-button>
+        <ion-popover trigger="language-trigger" trigger-action="click">
+          <ion-content class="ion-padding">
+            <ion-list>
+              <ion-item 
+                v-for="(lang, code) in availableLanguages" 
+                :key="code" 
+                button 
+                @click="changeLanguage(code)"
+                :class="{ 'selected-language': code === selectedLanguage }"
+              >
+                <span class="language-flag">{{ lang.flag }}</span>
+                <ion-label>{{ lang.name }}</ion-label>
+              </ion-item>
+            </ion-list>
+          </ion-content>
+        </ion-popover>
+      </div>
+
+      <!-- Problem History Modal -->
+      <ion-modal :is-open="showHistoryModal" @didDismiss="showHistoryModal = false">
+        <ion-header>
+          <ion-toolbar color="primary">
+            <ion-title>{{ t('problemHistory') }}</ion-title>
+            <ion-button slot="end" fill="clear" @click="showHistoryModal = false">
+              <ion-icon :icon="alertIcon" slot="icon-only" style="color: white;"></ion-icon>
+            </ion-button>
+          </ion-toolbar>
+        </ion-header>
+        <ion-content class="ion-padding">
+          <div v-if="problemHistory.length === 0" class="no-history">
+            <p>{{ t('noHistory') }}</p>
+          </div>
+          <ion-list v-else>
+            <ion-item v-for="problem in problemHistory" :key="problem.id" :class="problem.isCorrect ? 'correct-item' : 'incorrect-item'">
+              <ion-label>
+                <h2 class="problem-equation">
+                  {{ problem.num1 }} {{ getOperatorSymbol(problem.operator) }} {{ problem.num2 }} = {{ problem.correctAnswer }}
+                </h2>
+                <p v-if="!problem.isCorrect" class="user-answer">
+                  {{ t('yourAnswer') }}: {{ problem.userAnswer || '?' }}
+                </p>
+                <p class="problem-time">{{ formatTimestamp(problem.timestamp) }}</p>
+              </ion-label>
+              <ion-icon 
+                slot="end" 
+                :icon="problem.isCorrect ? star : alertIcon" 
+                :color="problem.isCorrect ? 'success' : 'danger'"
+              ></ion-icon>
+            </ion-item>
+          </ion-list>
+          <ion-button 
+            v-if="problemHistory.length > 0" 
+            expand="block" 
+            color="danger" 
+            fill="outline"
+            @click="handleClearHistory"
+            class="clear-history-btn"
+          >
+            <ion-icon :icon="trashIcon" slot="start"></ion-icon>
+            {{ t('clearHistory') }}
+          </ion-button>
+        </ion-content>
+      </ion-modal>
 
       <!-- Bot Container -->
       <div class="bot-container">
@@ -144,7 +216,10 @@ import {
   IonGrid,
   IonRow,
   IonCol,
-  IonSpinner
+  IonSpinner,
+  IonModal,
+  IonPopover,
+  IonList
 } from "@ionic/vue";
 import BotFace from "@/components/BotFace.vue";
 import {
@@ -152,10 +227,12 @@ import {
   SpeechConfig,
   SpeechRecognizer,
 } from "microsoft-cognitiveservices-speech-sdk";
-import { star, play, speedometer, calculator, mic, volumeHigh, sync, alertCircle, refresh, volumeMute } from "ionicons/icons";
+import { star, play, speedometer, calculator, mic, volumeHigh, sync, alertCircle, refresh, volumeMute, timeOutline, trashOutline, globe } from "ionicons/icons";
 import { OPERATORS, LEVELS, NUMBER_RANGES, PHRASES, SCORING } from "@/config/gameConfig";
 import { getRandomInt, getRandomItem, formatStars } from "@/utils/helpers";
 import { getSpeechToken, getCachedAudio, validateAnswer } from "@/services/apiService";
+import { LANGUAGES, translations, SPEECH_VOICES, getPreferredLanguage, setLanguage, t, getRandomPhrase } from "@/config/i18n";
+import { addToHistory, getHistory, clearHistory as clearHistoryService, formatTimestamp, getOperatorSymbol } from "@/services/historyService";
 import { preloadSounds, playCorrectSound, playIncorrectSound, toggleMute, getMuteState } from "@/services/soundService";
 import { celebrateConfetti, celebrateStreak, showStar } from "@/utils/confetti";
 
@@ -181,7 +258,10 @@ export default {
     IonGrid,
     IonRow,
     IonCol,
-    IonSpinner
+    IonSpinner,
+    IonModal,
+    IonPopover,
+    IonList
   },
   setup() {
     return {
@@ -194,7 +274,10 @@ export default {
       syncIcon: sync,
       alertIcon: alertCircle,
       refreshIcon: refresh,
-      muteIcon: volumeMute
+      muteIcon: volumeMute,
+      historyIcon: timeOutline,
+      trashIcon: trashOutline,
+      globeIcon: globe
     };
   },
   data() {
@@ -224,6 +307,7 @@ export default {
       text: "",
       selectedLevel: LEVELS.MEDIUM,
       selectedOperator: OPERATORS.TIMES,
+      selectedLanguage: 'en',
       speech_phrases: "Click play, listen the question and respond back by talking your answer.",
       number1: 2,
       number2: 3,
@@ -236,6 +320,9 @@ export default {
       totalCorrectAnswers: 0,
       isMuted: false,
       currentQuestion: "",  // Store current question for repeat
+      showHistoryModal: false,
+      problemHistory: [],
+      availableLanguages: LANGUAGES,
       
       // Speech
       synth: window.speechSynthesis,
@@ -824,6 +911,49 @@ export default {
       this.showToast(this.isMuted ? "Sound muted 🔇" : "Sound on 🔊", "medium");
     },
     /**
+     * Open the problem history modal
+     */
+    openHistoryModal() {
+      this.problemHistory = getHistory();
+      this.showHistoryModal = true;
+    },
+    /**
+     * Clear all problem history
+     */
+    handleClearHistory() {
+      clearHistoryService();
+      this.problemHistory = [];
+      this.showToast(this.t('clearHistory') + " ✓", "success");
+    },
+    /**
+     * Change language
+     */
+    changeLanguage(langCode) {
+      setLanguage(langCode);
+      this.selectedLanguage = langCode;
+      this.showToast(`${this.availableLanguages[langCode].flag} ${this.availableLanguages[langCode].name}`, "success");
+    },
+    /**
+     * Get translation for current language
+     */
+    t(key, params = {}) {
+      return t(this.selectedLanguage, key, params);
+    },
+    /**
+     * Get a random phrase from the current language
+     */
+    getPhrase(key, params = {}) {
+      return getRandomPhrase(this.selectedLanguage, key, params);
+    },
+    /**
+     * Get operator symbol for display
+     */
+    getOperatorSymbol,
+    /**
+     * Format timestamp for display
+     */
+    formatTimestamp,
+    /**
      * Trigger haptic feedback if available
      */
     triggerHaptic(type = 'light') {
@@ -979,10 +1109,38 @@ export default {
         }
       }
       
+      // Save to problem history
+      if (isFinalResult) {
+        addToHistory({
+          question: this.currentQuestion,
+          num1: this.number1,
+          operator: this.getOperatorSymbolForHistory(this.selectedOperator),
+          num2: this.number2,
+          correctAnswer: this.expectedResultAsNumber,
+          userAnswer: recordedText || '',
+          interpretedAnswer: validationResult?.interpretedNumber ?? null,
+          isCorrect: this.isResolved,
+          difficulty: this.selectedLevel,
+          timestamp: Date.now()
+        });
+      }
+      
       if (isFinalResult) {
         this.speak();
         this.isPlayMode = true;
       }
+    },
+    /**
+     * Get operator symbol for history storage
+     */
+    getOperatorSymbolForHistory(operator) {
+      const symbols = {
+        plus: '+',
+        minus: '-',
+        times: '×',
+        divide: '÷'
+      };
+      return symbols[operator] || operator;
     },
     /**
      * Get word at position in string
@@ -1047,6 +1205,12 @@ export default {
     if (savedTotalCorrect) {
       this.totalCorrectAnswers = parseInt(savedTotalCorrect, 10) || 0;
     }
+    
+    // Load language preference
+    this.selectedLanguage = getPreferredLanguage();
+    
+    // Load problem history
+    this.problemHistory = getHistory();
     
     // Preload sounds
     preloadSounds().catch(err => console.warn('Sound preload failed:', err));
@@ -1196,6 +1360,57 @@ ion-footer ion-toolbar {
 
 .action-buttons ion-button:hover {
   --color: var(--ion-color-primary);
+}
+
+/* Language selector */
+.language-selector {
+  position: absolute;
+  top: 60px;
+  right: 8px;
+  z-index: 10;
+}
+
+.language-flag {
+  font-size: 24px;
+}
+
+.selected-language {
+  --background: var(--ion-color-primary-tint);
+}
+
+/* Problem History Modal */
+.no-history {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--ion-color-medium);
+}
+
+.correct-item {
+  --border-left: 4px solid var(--ion-color-success);
+}
+
+.incorrect-item {
+  --border-left: 4px solid var(--ion-color-danger);
+}
+
+.problem-equation {
+  font-size: 18px;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+}
+
+.user-answer {
+  color: var(--ion-color-danger);
+  font-size: 13px;
+}
+
+.problem-time {
+  font-size: 11px;
+  color: var(--ion-color-medium);
+}
+
+.clear-history-btn {
+  margin-top: 20px;
 }
 
 @media (min-width: 768px) {
