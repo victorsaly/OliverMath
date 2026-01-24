@@ -4,7 +4,7 @@
  */
 
 export const LANGUAGES = {
-  en: { name: 'English', flag: '🇺🇸' },
+  en: { name: 'English', flag: '�🇧' },
   es: { name: 'Español', flag: '🇪🇸' },
   fr: { name: 'Français', flag: '🇫🇷' },
   de: { name: 'Deutsch', flag: '🇩🇪' },
@@ -480,7 +480,7 @@ export const translations = {
 
 // Language-specific speech voices
 export const SPEECH_VOICES = {
-  en: 'en-US',
+  en: 'en-GB',
   es: 'es-ES',
   fr: 'fr-FR',
   de: 'de-DE',

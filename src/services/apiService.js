@@ -141,13 +141,31 @@ export async function sendChatMessage(messages) {
 const audioCache = new Map();
 const MAX_CACHE_SIZE = 20;
 
+// Voice map for different languages
+const VOICE_MAP = {
+  'en-GB': 'en-GB-RyanNeural',
+  'en-US': 'en-US-GuyNeural',
+  'es-ES': 'es-ES-AlvaroNeural',
+  'fr-FR': 'fr-FR-HenriNeural',
+  'de-DE': 'de-DE-ConradNeural',
+  'pt-BR': 'pt-BR-AntonioNeural',
+};
+
+/**
+ * Get voice for language
+ */
+export function getVoiceForLanguage(lang) {
+  return VOICE_MAP[lang] || VOICE_MAP['en-GB'];
+}
+
 /**
  * Get cached audio or fetch new
  * @param {string} text - Text to speak
+ * @param {string} lang - Language code (e.g., 'en-GB')
  * @returns {Promise<HTMLAudioElement>}
  */
-export async function getCachedAudio(text) {
-  const cacheKey = text.toLowerCase().trim();
+export async function getCachedAudio(text, lang = 'en-GB') {
+  const cacheKey = `${lang}:${text.toLowerCase().trim()}`;
   
   if (audioCache.has(cacheKey)) {
     const audio = audioCache.get(cacheKey);
@@ -155,7 +173,8 @@ export async function getCachedAudio(text) {
     return audio;
   }
   
-  const data = await textToSpeech(text);
+  const voice = getVoiceForLanguage(lang);
+  const data = await textToSpeech(text, voice);
   const audio = new Audio(`data:audio/mpeg;base64,${data.audio}`);
   
   // Manage cache size

@@ -2,7 +2,7 @@
   <ion-page>
     <ion-header>
       <ion-toolbar color="primary">
-        <ion-title>Math Game</ion-title>
+        <ion-title>{{ t('title') }}</ion-title>
         <ion-chip slot="end" color="warning" aria-label="Stars earned">
           <ion-icon :icon="star" aria-hidden="true"></ion-icon>
           <ion-label>{{ stars }}</ion-label>
@@ -23,12 +23,12 @@
                     interface="popover"
                     :value="selectedLevel"
                     @ionChange="selectedLevel = $event.target.value"
-                    label="Level"
+                    :label="t('level')"
                     label-placement="stacked"
                   >
-                    <ion-select-option value="beginner">Beginner</ion-select-option>
-                    <ion-select-option value="medium">Medium</ion-select-option>
-                    <ion-select-option value="expert">Expert</ion-select-option>
+                    <ion-select-option value="beginner">{{ t('easy') }}</ion-select-option>
+                    <ion-select-option value="medium">{{ t('medium') }}</ion-select-option>
+                    <ion-select-option value="expert">{{ t('hard') }}</ion-select-option>
                   </ion-select>
                 </ion-item>
               </ion-col>
@@ -39,13 +39,13 @@
                     interface="popover"
                     :value="selectedOperator"
                     @ionChange="selectedOperator = $event.target.value"
-                    label="Operator"
+                    :label="t('operators')"
                     label-placement="stacked"
                   >
-                    <ion-select-option value="times">× Multiply</ion-select-option>
-                    <ion-select-option value="plus">+ Addition</ion-select-option>
-                    <ion-select-option value="minus">− Subtract</ion-select-option>
-                    <ion-select-option value="divide">÷ Division</ion-select-option>
+                    <ion-select-option value="times">× {{ t('multiplication') }}</ion-select-option>
+                    <ion-select-option value="plus">+ {{ t('addition') }}</ion-select-option>
+                    <ion-select-option value="minus">− {{ t('subtraction') }}</ion-select-option>
+                    <ion-select-option value="divide">÷ {{ t('division') }}</ion-select-option>
                   </ion-select>
                 </ion-item>
               </ion-col>
@@ -54,17 +54,17 @@
             <ion-row class="stats-row ion-align-items-center ion-justify-content-center">
               <ion-col size="auto">
                 <ion-chip color="tertiary" outline class="stat-chip">
-                  <ion-label>🏆 Best: {{ highScore }}</ion-label>
+                  <ion-label>🏆 {{ t('best') }}: {{ highScore }}</ion-label>
                 </ion-chip>
               </ion-col>
               <ion-col size="auto">
                 <ion-chip color="secondary" outline class="stat-chip">
-                  <ion-label>🔥 Streak: {{ consecutiveCorrect }}</ion-label>
+                  <ion-label>🔥 {{ t('streak') }}: {{ consecutiveCorrect }}</ion-label>
                 </ion-chip>
               </ion-col>
               <ion-col size="auto">
                 <ion-chip color="success" outline class="stat-chip">
-                  <ion-label>🎯 {{ accuracy }}%</ion-label>
+                  <ion-label>🎯 {{ t('accuracy') }}: {{ accuracy }}%</ion-label>
                 </ion-chip>
               </ion-col>
             </ion-row>
@@ -189,7 +189,7 @@
         >
           <ion-icon :icon="playIcon" slot="start" v-if="!isComputing"></ion-icon>
           <ion-spinner name="crescent" v-if="isComputing"></ion-spinner>
-          {{ isComputing ? 'Thinking...' : 'Play Math!' }}
+          {{ isComputing ? t('thinking') : t('play') + ' Math!' }}
         </ion-button>
       </ion-toolbar>
     </ion-footer>
@@ -419,18 +419,18 @@ export default {
     },
     statusText() {
       switch (this.botState) {
-        case 'speaking': return 'Speaking...';
-        case 'listening': return 'Listening...';
-        case 'computing': return 'Processing...';
+        case 'speaking': return this.t('speaking');
+        case 'listening': return this.t('listening');
+        case 'computing': return this.t('thinking');
         case 'broken': return 'Error';
         case 'laughing': return 'Haha!';
-        case 'happy': return 'Correct! 🎉';
-        case 'sad': return 'Try again...';
-        case 'excited': return 'Amazing!';
-        case 'proud': return 'Great streak!';
-        case 'surprised': return 'Wow!';
-        case 'confused': return 'Hmm...';
-        default: return 'Ready';
+        case 'happy': return this.t('correct') + '! 🎉';
+        case 'sad': return '...';
+        case 'excited': return '🎉';
+        case 'proud': return '⭐';
+        case 'surprised': return '!';
+        case 'confused': return '?';
+        default: return this.t('ready');
       }
     },
     statusIcon() {
@@ -684,9 +684,15 @@ export default {
               self.number2 = getRandomInt(ranges.min2, ranges.max2);
             }
             
-            // Format operator for speech
-            const operatorWord = self.selectedOperator === 'divide' ? 'divided by' : self.selectedOperator;
-            self.text = `What's ${self.number1} ${operatorWord} ${self.number2}?`;
+            // Get translated operator word
+            const operatorWords = {
+              'plus': self.t('plus'),
+              'minus': self.t('minus'),
+              'times': self.t('times'),
+              'divide': self.t('dividedBy')
+            };
+            const operatorWord = operatorWords[self.selectedOperator] || self.selectedOperator;
+            self.text = `${self.t('whatIs')} ${self.number1} ${operatorWord} ${self.number2}?`;
             self.currentQuestion = self.text; // Store for repeat
             self.speak();
           } else {
@@ -717,8 +723,9 @@ export default {
         this.isOnBoundary = true;
 
         try {
-          // Use cached audio service for better performance
-          const audio = await getCachedAudio(this.text);
+          // Use cached audio service with language-specific voice
+          const speechLang = SPEECH_VOICES[this.selectedLanguage] || 'en-GB';
+          const audio = await getCachedAudio(this.text, speechLang);
           this.audioPlayer = audio;
           
           // Set up audio analysis for lip sync
@@ -763,7 +770,7 @@ export default {
       }
     },
     listen() {
-      this.showToast("Listening...", "warning");
+      this.showToast(this.t('listening'), "warning");
       this.isComputing = true;
       this.isListening = false;
       var sc = SpeechConfig.fromAuthorizationToken(
@@ -771,7 +778,8 @@ export default {
         this.token,
         this.speechRegion
       );
-      sc.speechRecognitionLanguage = "en-GB";
+      // Use language-specific speech recognition
+      sc.speechRecognitionLanguage = SPEECH_VOICES[this.selectedLanguage] || 'en-GB';
       this.speechConfig = sc;
       this.speechRecording = new SpeechRecognizer(
         this.speechConfig,
@@ -1070,21 +1078,19 @@ export default {
         // Haptic feedback for correct answer
         this.triggerHaptic(this.consecutiveCorrect >= 5 ? 'success' : 'light');
         
-        const correct = getRandomItem(PHRASES.CORRECT);
+        const correct = this.getPhrase('correctPhrases');
         let message = '';
         
         // Special messages for streaks
         if (this.consecutiveCorrect >= 5) {
-          const streak = getRandomItem(PHRASES.STREAK);
-          message = `${correct}! ${streak} ${this.consecutiveCorrect} in a row! +${points} stars!`;
+          const streak = this.getPhrase('streakPhrases', { count: this.consecutiveCorrect });
+          message = `${correct}! ${streak} +${points} ⭐!`;
           this.showExpression('excited', 3000);
         } else if (this.consecutiveCorrect >= 3) {
-          const encourage = getRandomItem(PHRASES.ENCOURAGEMENT);
-          message = `${correct}! ${encourage} Streak of ${this.consecutiveCorrect}! +${points} stars!`;
+          message = `${correct}! ${this.t('streak')}: ${this.consecutiveCorrect}! +${points} ⭐!`;
           this.showExpression('proud', 2500);
         } else {
-          const encourage = getRandomItem(PHRASES.ENCOURAGEMENT);
-          message = `${correct}, ${encourage} You earned ${formatStars(this.stars)}.`;
+          message = `${correct}! +${points} ⭐`;
           this.showExpression('happy', 2000);
         }
         
@@ -1100,9 +1106,9 @@ export default {
         playIncorrectSound();
         
         this.triggerHaptic('error');
-        const incorrect = getRandomItem(PHRASES.INCORRECT);
-        const hint = getRandomItem(PHRASES.HINTS);
-        this.text = `${incorrect}, the correct answer is ${this.expectedResultAsNumber}. ${hint}`;
+        const incorrect = this.getPhrase('incorrectPhrases', { answer: this.expectedResultAsNumber });
+        const hint = this.getPhrase('hintPhrases');
+        this.text = `${incorrect}. ${hint}`;
         // Show sad for wrong answer, confused was already shown for silence
         if (!isSilent) {
           this.showExpression('sad', 2000);
