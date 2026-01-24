@@ -157,6 +157,7 @@ export default {
       isMicrophoneEnabled: false,
       publicPath: process.env.BASE_URL,
       axiosClient: null,
+      audioPlayer: null,
     };
   },
   computed: {
@@ -347,25 +348,22 @@ export default {
           return;
         }
         
-        // Fallback to browser synthesis if API not available
-        if (!this.apiBaseUrl) {
-          if (!this.synth.speaking) {
-            this.greetingSpeech.text = this.text;
-            this.synth.speak(this.greetingSpeech);
-          }
-          return;
-        }
+        // Use localhost for dev if no apiBaseUrl set
+        const baseUrl = this.apiBaseUrl || 'http://localhost:7071';
+        
+        // Show text immediately
+        this.speech_phrases = this.text;
+        this.isTalking = true;
+        this.isOnBoundary = true;
 
         try {
-          this.isTalking = true;
-          
           // Call Azure TTS API
-          const response = await fetch(`${this.apiBaseUrl}/api/speak`, {
+          const response = await fetch(`${baseUrl}/api/speak`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               text: this.text,
-              voice: 'en-US-AnaNeural', // Child-friendly neural voice
+              voice: 'en-US-AnaNeural',
               style: 'friendly'
             })
           });
@@ -382,15 +380,17 @@ export default {
           
           audio.onended = () => {
             this.isTalking = false;
+            // Trigger listening after speech ends (same as greetingSpeech.onend)
+            if (this.isQuery) {
+              this.isQuery = false;
+              this.listen();
+            }
           };
           
           audio.onerror = () => {
             this.isTalking = false;
             // Fallback to browser synthesis
-            if (!this.synth.speaking) {
-              this.greetingSpeech.text = this.text;
-              this.synth.speak(this.greetingSpeech);
-            }
+            this.speakWithBrowser();
           };
           
           await audio.play();
@@ -399,11 +399,17 @@ export default {
           console.error('Azure TTS error:', error);
           this.isTalking = false;
           // Fallback to browser synthesis
-          if (!this.synth.speaking) {
-            this.greetingSpeech.text = this.text;
-            this.synth.speak(this.greetingSpeech);
-          }
+          this.speakWithBrowser();
         }
+    },
+    /**
+     * Fallback to browser speech synthesis
+     */
+    speakWithBrowser() {
+      if (!this.synth.speaking) {
+        this.greetingSpeech.text = this.text;
+        this.synth.speak(this.greetingSpeech);
+      }
     },
     listen() {
       this.showToast("Listening...", "warning");
