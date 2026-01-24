@@ -4,11 +4,11 @@
  */
 
 export const LANGUAGES = {
-  en: { name: 'English', flag: '�🇧' },
-  es: { name: 'Español', flag: '🇪🇸' },
-  fr: { name: 'Français', flag: '🇫🇷' },
-  de: { name: 'Deutsch', flag: '🇩🇪' },
-  pt: { name: 'Português', flag: '🇧🇷' },
+  en: { name: 'English', flag: '\u{1F1EC}\u{1F1E7}' },
+  es: { name: 'Español', flag: '\u{1F1EA}\u{1F1F8}' },
+  fr: { name: 'Français', flag: '\u{1F1EB}\u{1F1F7}' },
+  de: { name: 'Deutsch', flag: '\u{1F1E9}\u{1F1EA}' },
+  pt: { name: 'Português', flag: '\u{1F1E7}\u{1F1F7}' },
 };
 
 export const translations = {
