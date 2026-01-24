@@ -75,8 +75,8 @@ export const PHRASES = {
  */
 export const API_CONFIG = {
   TIMEOUT_MS: 10000,
-  TTS_VOICE: 'en-US-AnaNeural',
-  TTS_STYLE: 'friendly',
+  TTS_VOICE: 'en-GB-RyanNeural',
+  TTS_STYLE: 'default',
   SPEECH_LANGUAGE: 'en-GB'
 };
 

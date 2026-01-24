@@ -1,5 +1,5 @@
 <template>
-    <div id="bot" :class="botState">
+    <div id="bot" :class="[botState, mouthClass]">
       <p class="bubble speech">
         {{text}}
       </p>
@@ -8,11 +8,23 @@
           <div id="left-ear-inner"></div>
         </div>
         <div id="face">
-          <div id="eyes">
-            <div id="left-eye"></div>
-            <div id="right-eye"></div>
+          <div id="eyebrows">
+            <div id="left-eyebrow"></div>
+            <div id="right-eyebrow"></div>
           </div>
-          <div id="mouth"></div>
+          <div id="eyes">
+            <div id="left-eye">
+              <div id="left-pupil"></div>
+            </div>
+            <div id="right-eye">
+              <div id="right-pupil"></div>
+            </div>
+          </div>
+          <div id="cheeks">
+            <div id="left-cheek"></div>
+            <div id="right-cheek"></div>
+          </div>
+          <div id="mouth" :style="mouthStyle"></div>
         </div>
         <div id="right-ear">
           <div id="right-ear-inner"></div>
@@ -36,6 +48,47 @@ export default {
     isPlayMode:{
       type: Boolean,
       default: true
+    },
+    // Audio amplitude for lip sync (0-1)
+    audioLevel: {
+      type: Number,
+      default: 0
+    }
+  },
+  computed: {
+    // Determine mouth shape class based on audio level
+    mouthClass() {
+      if (this.botState !== 'speaking' || this.audioLevel === 0) {
+        return '';
+      }
+      // Map audio level to mouth shapes
+      if (this.audioLevel > 0.7) return 'mouth-wide';
+      if (this.audioLevel > 0.4) return 'mouth-medium';
+      if (this.audioLevel > 0.15) return 'mouth-small';
+      return 'mouth-closed';
+    },
+    // Dynamic mouth style for smooth transitions
+    mouthStyle() {
+      if (this.botState !== 'speaking') {
+        return {};
+      }
+      
+      const level = Math.min(this.audioLevel, 1);
+      const baseHeight = 4;
+      const maxHeight = 12;
+      const height = baseHeight + (level * (maxHeight - baseHeight));
+      
+      const baseWidth = 10;
+      const maxWidth = 25;
+      const width = baseWidth + (level * (maxWidth - baseWidth));
+      
+      return {
+        width: `${width}%`,
+        height: `${height}%`,
+        left: `${50 - width/2}%`,
+        borderRadius: level > 0.3 ? '50%' : '0.5em',
+        transition: 'all 0.05s ease-out'
+      };
     }
   }
 }
@@ -234,11 +287,86 @@ p.thought:after {
   background-color: #428cff;
   border-radius: 0.5em;
   /*border: 0.15em solid #FFF;*/
+  overflow: hidden;
+}
+
+#left-pupil, #right-pupil
+{
+  position: absolute;
+  width: 40%;
+  height: 40%;
+  background-color: #1a1a2e;
+  border-radius: 50%;
+  top: 30%;
+  left: 30%;
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
  #right-eye
 {
   right: 0%;
+}
+
+/* Eyebrows */
+#eyebrows
+{
+  position: absolute;
+  width: 70%;
+  height: 8%;
+  margin-left: 16%;
+  margin-top: 10%;
+}
+
+#left-eyebrow, #right-eyebrow
+{
+  position: absolute;
+  width: 30%;
+  height: 100%;
+  background-color: #ccc;
+  border-radius: 0.3em;
+  transition: all 0.3s ease;
+  opacity: 0;
+}
+
+#right-eyebrow
+{
+  right: 5%;
+}
+
+#left-eyebrow
+{
+  left: 5%;
+}
+
+/* Cheeks */
+#cheeks
+{
+  position: absolute;
+  width: 100%;
+  height: 15%;
+  bottom: 30%;
+}
+
+#left-cheek, #right-cheek
+{
+  position: absolute;
+  width: 15%;
+  height: 100%;
+  background-color: #ffb6c1;
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+#left-cheek
+{
+  left: 5%;
+}
+
+#right-cheek
+{
+  right: 5%;
 }
 
 #mouth
@@ -283,15 +411,36 @@ p.thought:after {
 {
    border-top: 0.2em solid #FFF;
    background-color: #FFF;
-   animation: speak-mouth 1.0s infinite ease alternate;
+   /* Remove animation - now controlled dynamically via audioLevel prop */
 }
 
-@keyframes speak-mouth {
-  0%   { width: 10%; height: 4%; left: 45%;}
-  25% { width: 30%; height: 10%; left: 35%;}
-  50% { width: 6%; height: 4%; left: 47%;}
-  75% { width: 40%; height: 8%; left: 30%;}
-  100% { width: 30%; height: 4%; left: 35%;}
+/* Mouth shapes for lip sync - fallback when no audio analysis */
+#bot.speaking.mouth-closed #mouth {
+  width: 15%;
+  height: 4%;
+  left: 42.5%;
+  border-radius: 0.5em;
+}
+
+#bot.speaking.mouth-small #mouth {
+  width: 15%;
+  height: 6%;
+  left: 42.5%;
+  border-radius: 0.6em;
+}
+
+#bot.speaking.mouth-medium #mouth {
+  width: 20%;
+  height: 9%;
+  left: 40%;
+  border-radius: 50%;
+}
+
+#bot.speaking.mouth-wide #mouth {
+  width: 25%;
+  height: 12%;
+  left: 37.5%;
+  border-radius: 50%;
 }
 
 /* Waiting (Thinking) */
@@ -538,6 +687,418 @@ p.thought:after {
   100% { 
       transform: rotateZ(360deg); 
     }
+}
+
+/* ========== HAPPY (Correct Answer) ========== */
+#bot.happy #left-eye, #bot.happy #right-eye
+{
+  background-color: #ffd700;
+  border-radius: 50%;
+  height: 100%;
+  animation: happy-eyes 0.5s ease-in-out;
+}
+
+#bot.happy #left-cheek, #bot.happy #right-cheek
+{
+  opacity: 0.7;
+  animation: blush 0.5s ease-in-out;
+}
+
+#bot.happy #mouth
+{
+  border: 0.4em solid #FFF;
+  border-top: none;
+  width: 40%;
+  height: 20%;
+  left: 30%;
+  border-radius: 0 0 2em 2em;
+}
+
+#bot.happy #face, 
+#bot.happy #left-ear, #bot.happy #right-ear
+{
+  border-color: #ffd700;
+  transition: border-color 0.25s linear;
+}
+
+#bot.happy #left-ear, #bot.happy #right-ear,
+#bot.happy #left-ear-inner, #bot.happy #right-ear-inner
+{
+  background-color: #ffd700;
+}
+
+#bot.happy
+{
+  animation: celebrate 0.5s ease-in-out;
+}
+
+@keyframes happy-eyes {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+}
+
+@keyframes blush {
+  0% { opacity: 0; transform: scale(0); }
+  100% { opacity: 0.7; transform: scale(1); }
+}
+
+@keyframes celebrate {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-5deg); }
+  75% { transform: rotate(5deg); }
+}
+
+/* ========== SAD (Wrong Answer) ========== */
+#bot.sad #left-eye, #bot.sad #right-eye
+{
+  background-color: #87ceeb;
+  height: 80%;
+  margin-top: 10%;
+}
+
+#bot.sad #left-eyebrow, #bot.sad #right-eyebrow
+{
+  opacity: 1;
+  background-color: #87ceeb;
+}
+
+#bot.sad #left-eyebrow
+{
+  transform: rotate(-15deg);
+}
+
+#bot.sad #right-eyebrow
+{
+  transform: rotate(15deg);
+}
+
+#bot.sad #mouth
+{
+  border: 0.3em solid #FFF;
+  border-bottom: none;
+  width: 30%;
+  height: 15%;
+  left: 35%;
+  bottom: 15%;
+  border-radius: 2em 2em 0 0;
+}
+
+#bot.sad #face, 
+#bot.sad #left-ear, #bot.sad #right-ear
+{
+  border-color: #87ceeb;
+  transition: border-color 0.25s linear;
+}
+
+#bot.sad #left-ear, #bot.sad #right-ear,
+#bot.sad #left-ear-inner, #bot.sad #right-ear-inner
+{
+  background-color: #87ceeb;
+}
+
+#bot.sad
+{
+  animation: droop 1s ease-in-out;
+}
+
+@keyframes droop {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(5px); }
+}
+
+/* ========== EXCITED ========== */
+#bot.excited #left-eye, #bot.excited #right-eye
+{
+  background-color: #ff69b4;
+  border-radius: 50%;
+  animation: sparkle 0.3s infinite alternate;
+}
+
+#bot.excited #left-pupil, #bot.excited #right-pupil
+{
+  opacity: 1;
+  animation: pupil-dance 0.5s infinite alternate;
+}
+
+#bot.excited #left-cheek, #bot.excited #right-cheek
+{
+  opacity: 0.8;
+}
+
+#bot.excited #mouth
+{
+  border: 0.5em solid #FFF;
+  width: 35%;
+  height: 25%;
+  left: 32%;
+  border-radius: 50%;
+  animation: excited-mouth 0.3s infinite alternate;
+}
+
+#bot.excited #face, 
+#bot.excited #left-ear, #bot.excited #right-ear
+{
+  border-color: #ff69b4;
+}
+
+#bot.excited #left-ear, #bot.excited #right-ear,
+#bot.excited #left-ear-inner, #bot.excited #right-ear-inner
+{
+  background-color: #ff69b4;
+  animation: ear-wiggle 0.2s infinite alternate;
+}
+
+#bot.excited
+{
+  animation: bounce 0.3s infinite alternate;
+}
+
+@keyframes sparkle {
+  0% { box-shadow: 0 0 5px #fff; }
+  100% { box-shadow: 0 0 15px #ff69b4; }
+}
+
+@keyframes pupil-dance {
+  0% { transform: translateY(-20%); }
+  100% { transform: translateY(20%); }
+}
+
+@keyframes excited-mouth {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.1); }
+}
+
+@keyframes ear-wiggle {
+  0% { transform: rotate(-5deg); }
+  100% { transform: rotate(5deg); }
+}
+
+@keyframes bounce {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-8px); }
+}
+
+/* ========== SLEEPY ========== */
+#bot.sleepy #left-eye, #bot.sleepy #right-eye
+{
+  background-color: #9370db;
+  height: 30%;
+  margin-top: 35%;
+  border-radius: 0.3em;
+  animation: sleepy-blink 3s infinite ease-in-out;
+}
+
+#bot.sleepy #mouth
+{
+  width: 20%;
+  height: 15%;
+  left: 40%;
+  border: 0.3em solid #FFF;
+  border-radius: 50%;
+  animation: yawn 4s infinite ease-in-out;
+}
+
+#bot.sleepy #face, 
+#bot.sleepy #left-ear, #bot.sleepy #right-ear
+{
+  border-color: #9370db;
+}
+
+#bot.sleepy #left-ear, #bot.sleepy #right-ear,
+#bot.sleepy #left-ear-inner, #bot.sleepy #right-ear-inner
+{
+  background-color: #9370db;
+}
+
+#bot.sleepy
+{
+  animation: sway 3s infinite ease-in-out;
+}
+
+@keyframes sleepy-blink {
+  0%, 90%, 100% { height: 30%; }
+  95% { height: 5%; }
+}
+
+@keyframes yawn {
+  0%, 70%, 100% { width: 20%; height: 15%; }
+  80%, 90% { width: 30%; height: 25%; }
+}
+
+@keyframes sway {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(3deg); }
+}
+
+/* ========== CONFUSED ========== */
+#bot.confused #left-eye
+{
+  background-color: #dda0dd;
+  width: 30%;
+  height: 100%;
+}
+
+#bot.confused #right-eye
+{
+  background-color: #dda0dd;
+  width: 40%;
+  height: 80%;
+  margin-top: 10%;
+}
+
+#bot.confused #left-eyebrow
+{
+  opacity: 1;
+  background-color: #dda0dd;
+  transform: rotate(20deg);
+}
+
+#bot.confused #right-eyebrow
+{
+  opacity: 1;
+  background-color: #dda0dd;
+  transform: rotate(-10deg);
+}
+
+#bot.confused #eyes
+{
+  animation: confused-look 2s infinite ease-in-out;
+}
+
+#bot.confused #mouth
+{
+  width: 25%;
+  left: 40%;
+  border: 0.3em solid #FFF;
+  border-radius: 0.5em;
+  transform: rotate(15deg);
+}
+
+#bot.confused #face, 
+#bot.confused #left-ear, #bot.confused #right-ear
+{
+  border-color: #dda0dd;
+}
+
+#bot.confused #left-ear, #bot.confused #right-ear,
+#bot.confused #left-ear-inner, #bot.confused #right-ear-inner
+{
+  background-color: #dda0dd;
+}
+
+@keyframes confused-look {
+  0%, 100% { margin-left: 16%; }
+  30% { margin-left: 10%; }
+  70% { margin-left: 22%; }
+}
+
+/* ========== SURPRISED ========== */
+#bot.surprised #left-eye, #bot.surprised #right-eye
+{
+  background-color: #00ced1;
+  border-radius: 50%;
+  height: 120%;
+  width: 40%;
+  animation: pop-eyes 0.3s ease-out;
+}
+
+#bot.surprised #left-pupil, #bot.surprised #right-pupil
+{
+  opacity: 1;
+  width: 30%;
+  height: 30%;
+}
+
+#bot.surprised #left-eyebrow, #bot.surprised #right-eyebrow
+{
+  opacity: 1;
+  background-color: #00ced1;
+  transform: translateY(-50%);
+}
+
+#bot.surprised #mouth
+{
+  width: 20%;
+  height: 20%;
+  left: 40%;
+  border: 0.4em solid #FFF;
+  border-radius: 50%;
+}
+
+#bot.surprised #face, 
+#bot.surprised #left-ear, #bot.surprised #right-ear
+{
+  border-color: #00ced1;
+}
+
+#bot.surprised #left-ear, #bot.surprised #right-ear,
+#bot.surprised #left-ear-inner, #bot.surprised #right-ear-inner
+{
+  background-color: #00ced1;
+}
+
+@keyframes pop-eyes {
+  0% { transform: scale(0.8); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+/* ========== PROUD ========== */
+#bot.proud #left-eye, #bot.proud #right-eye
+{
+  background-color: #ffa500;
+  height: 60%;
+  margin-top: 20%;
+  border-radius: 0.3em 0.3em 0.5em 0.5em;
+}
+
+#bot.proud #left-eyebrow, #bot.proud #right-eyebrow
+{
+  opacity: 1;
+  background-color: #ffa500;
+  height: 120%;
+}
+
+#bot.proud #left-eyebrow
+{
+  transform: rotate(-10deg) translateY(-30%);
+}
+
+#bot.proud #right-eyebrow
+{
+  transform: rotate(10deg) translateY(-30%);
+}
+
+#bot.proud #mouth
+{
+  border: 0.3em solid #FFF;
+  border-top: none;
+  width: 35%;
+  height: 15%;
+  left: 32%;
+  border-radius: 0 0 1.5em 1.5em;
+}
+
+#bot.proud #face, 
+#bot.proud #left-ear, #bot.proud #right-ear
+{
+  border-color: #ffa500;
+}
+
+#bot.proud #left-ear, #bot.proud #right-ear,
+#bot.proud #left-ear-inner, #bot.proud #right-ear-inner
+{
+  background-color: #ffa500;
+}
+
+#bot.proud
+{
+  animation: stand-tall 1s ease-in-out;
+}
+
+@keyframes stand-tall {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
 }
 
 /* Dark mode support */

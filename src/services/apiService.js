@@ -55,7 +55,7 @@ export async function getSpeechToken() {
  * @param {string} style - Speaking style (default: friendly)
  * @returns {Promise<{audio: string, format: string}>}
  */
-export async function textToSpeech(text, voice = 'en-US-AnaNeural', style = 'friendly') {
+export async function textToSpeech(text, voice = 'en-GB-RyanNeural', style = 'default') {
   if (!text || text.trim().length === 0) {
     throw new Error('Text is required for speech synthesis');
   }

@@ -59,6 +59,7 @@
           :botState="botState"
           :isPlayMode="isPlayMode"
           :text="speech_phrases"
+          :audioLevel="audioLevel"
           v-on:ask_question="askQuestion"
           @click="changeStatus('laughing')"
           aria-live="polite"
@@ -178,6 +179,14 @@ export default {
       isPlayMode: true,
       isResolved: false,
       
+      // Expression states
+      isHappy: false,
+      isSad: false,
+      isExcited: false,
+      isProud: false,
+      isSurprised: false,
+      isConfused: false,
+      
       // Game state
       text: "",
       selectedLevel: LEVELS.MEDIUM,
@@ -187,6 +196,7 @@ export default {
       number2: 3,
       stars: 0,
       previousPosition: -1,
+      consecutiveCorrect: 0,
       
       // Speech
       synth: window.speechSynthesis,
@@ -199,10 +209,18 @@ export default {
       speechRegion: null,
       audioPlayer: null,
       
+      // Audio analysis for lip sync
+      audioContext: null,
+      audioAnalyser: null,
+      audioSource: null,
+      audioLevel: 0,
+      animationFrameId: null,
+      
       // Config
       isMicrophoneEnabled: false,
       publicPath: import.meta.env.BASE_URL,
       timeout: null,
+      expressionTimeout: null,
     };
   },
   computed: {
@@ -212,6 +230,24 @@ export default {
       }
       if (this.isLaughing){
         return "laughing";
+      }
+      if (this.isHappy) {
+        return "happy";
+      }
+      if (this.isSad) {
+        return "sad";
+      }
+      if (this.isExcited) {
+        return "excited";
+      }
+      if (this.isProud) {
+        return "proud";
+      }
+      if (this.isSurprised) {
+        return "surprised";
+      }
+      if (this.isConfused) {
+        return "confused";
       }
       if (this.isTalking) {
         return "speaking";
@@ -239,6 +275,12 @@ export default {
         case 'computing': return 'warning';
         case 'broken': return 'danger';
         case 'laughing': return 'tertiary';
+        case 'happy': return 'success';
+        case 'sad': return 'primary';
+        case 'excited': return 'secondary';
+        case 'proud': return 'warning';
+        case 'surprised': return 'tertiary';
+        case 'confused': return 'medium';
         default: return 'medium';
       }
     },
@@ -249,6 +291,12 @@ export default {
         case 'computing': return 'Processing...';
         case 'broken': return 'Error';
         case 'laughing': return 'Haha!';
+        case 'happy': return 'Correct! 🎉';
+        case 'sad': return 'Try again...';
+        case 'excited': return 'Amazing!';
+        case 'proud': return 'Great streak!';
+        case 'surprised': return 'Wow!';
+        case 'confused': return 'Hmm...';
         default: return 'Ready';
       }
     },
@@ -258,11 +306,148 @@ export default {
         case 'listening': return this.micIcon;
         case 'computing': return this.syncIcon;
         case 'broken': return this.alertIcon;
+        case 'happy': return this.starIcon;
+        case 'sad': return this.alertIcon;
+        case 'excited': return this.starIcon;
+        case 'proud': return this.starIcon;
+        case 'surprised': return this.starIcon;
+        case 'confused': return this.syncIcon;
         default: return this.syncIcon;
       }
     }
   },
   methods: {
+    /**
+     * Show a temporary expression on the bot face
+     */
+    showExpression(expression, duration = 2000) {
+      // Reset all expression states
+      this.isHappy = false;
+      this.isSad = false;
+      this.isExcited = false;
+      this.isProud = false;
+      this.isSurprised = false;
+      this.isConfused = false;
+      
+      // Set the requested expression
+      switch (expression) {
+        case 'happy':
+          this.isHappy = true;
+          break;
+        case 'sad':
+          this.isSad = true;
+          break;
+        case 'excited':
+          this.isExcited = true;
+          break;
+        case 'proud':
+          this.isProud = true;
+          break;
+        case 'surprised':
+          this.isSurprised = true;
+          break;
+        case 'confused':
+          this.isConfused = true;
+          break;
+      }
+      
+      // Clear expression after duration
+      if (this.expressionTimeout) {
+        clearTimeout(this.expressionTimeout);
+      }
+      this.expressionTimeout = setTimeout(() => {
+        this.isHappy = false;
+        this.isSad = false;
+        this.isExcited = false;
+        this.isProud = false;
+        this.isSurprised = false;
+        this.isConfused = false;
+      }, duration);
+    },
+    /**
+     * Initialize audio context for lip sync analysis
+     */
+    initAudioAnalysis() {
+      if (!this.audioContext) {
+        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        this.audioAnalyser = this.audioContext.createAnalyser();
+        this.audioAnalyser.fftSize = 256;
+        this.audioAnalyser.smoothingTimeConstant = 0.3;
+      }
+    },
+    /**
+     * Start analyzing audio for lip sync
+     */
+    startAudioAnalysis(audioElement) {
+      this.initAudioAnalysis();
+      
+      // Connect audio element to analyser
+      if (this.audioSource) {
+        try {
+          this.audioSource.disconnect();
+        } catch (e) {
+          // Ignore disconnect errors
+        }
+      }
+      
+      try {
+        this.audioSource = this.audioContext.createMediaElementSource(audioElement);
+        this.audioSource.connect(this.audioAnalyser);
+        this.audioAnalyser.connect(this.audioContext.destination);
+      } catch (e) {
+        // Audio element might already be connected, just update the analyser
+        console.warn('Audio source already connected:', e.message);
+      }
+      
+      // Resume audio context if suspended
+      if (this.audioContext.state === 'suspended') {
+        this.audioContext.resume();
+      }
+      
+      // Start the animation loop
+      this.analyzeAudio();
+    },
+    /**
+     * Analyze audio amplitude for lip sync
+     */
+    analyzeAudio() {
+      if (!this.isTalking) {
+        this.audioLevel = 0;
+        return;
+      }
+      
+      const dataArray = new Uint8Array(this.audioAnalyser.frequencyBinCount);
+      this.audioAnalyser.getByteFrequencyData(dataArray);
+      
+      // Calculate average amplitude from frequency data
+      // Focus on voice frequency range (roughly 80Hz - 3000Hz)
+      const voiceStart = Math.floor(80 / (this.audioContext.sampleRate / this.audioAnalyser.fftSize));
+      const voiceEnd = Math.floor(3000 / (this.audioContext.sampleRate / this.audioAnalyser.fftSize));
+      
+      let sum = 0;
+      let count = 0;
+      for (let i = voiceStart; i < Math.min(voiceEnd, dataArray.length); i++) {
+        sum += dataArray[i];
+        count++;
+      }
+      
+      const average = count > 0 ? sum / count : 0;
+      // Normalize to 0-1 range with some amplification
+      this.audioLevel = Math.min(1, (average / 128) * 1.5);
+      
+      // Continue analyzing
+      this.animationFrameId = requestAnimationFrame(() => this.analyzeAudio());
+    },
+    /**
+     * Stop audio analysis
+     */
+    stopAudioAnalysis() {
+      if (this.animationFrameId) {
+        cancelAnimationFrame(this.animationFrameId);
+        this.animationFrameId = null;
+      }
+      this.audioLevel = 0;
+    },
     changeStatus(status) {
       if (this.timeout) 
           if (status == "laughing"){
@@ -326,6 +511,9 @@ export default {
       this.isResolved = false;
       var self = this;
       this.isComputing = true;
+      
+      // Brief surprised expression when starting new question
+      this.showExpression('surprised', 800);
 
       await this.enableMicrophone()
         .then(function () {
@@ -375,8 +563,16 @@ export default {
           const audio = await getCachedAudio(this.text);
           this.audioPlayer = audio;
           
+          // Set up audio analysis for lip sync
+          audio.crossOrigin = "anonymous";
+          
+          audio.onplay = () => {
+            this.startAudioAnalysis(audio);
+          };
+          
           audio.onended = () => {
             this.isTalking = false;
+            this.stopAudioAnalysis();
             // Trigger listening after speech ends
             if (this.isQuery) {
               this.isQuery = false;
@@ -386,6 +582,7 @@ export default {
           
           audio.onerror = () => {
             this.isTalking = false;
+            this.stopAudioAnalysis();
             this.speakWithBrowser();
           };
           
@@ -394,6 +591,7 @@ export default {
         } catch (error) {
           console.error('Azure TTS error:', error);
           this.isTalking = false;
+          this.stopAudioAnalysis();
           this.speakWithBrowser();
         }
     },
@@ -532,17 +730,35 @@ export default {
       if (!isSilent) {
         this.showToast(`Your response: ${displayText}`, "secondary");
         this.validateWord(recordedText);
+      } else if (isFinalResult) {
+        // Show confused when no speech detected
+        this.showExpression('confused', 2000);
       }
 
       if (this.isResolved) {        
         this.stars++;
+        this.consecutiveCorrect++;
         localStorage.stars = this.stars;
         const correct = getRandomItem(PHRASES.CORRECT);
         const encourage = getRandomItem(PHRASES.ENCOURAGEMENT);
         this.text = `${correct}, ${encourage}; You earned ${formatStars(this.stars)}.`;
+        
+        // Show expression based on streak
+        if (this.consecutiveCorrect >= 5) {
+          this.showExpression('excited', 3000);
+        } else if (this.consecutiveCorrect >= 3) {
+          this.showExpression('proud', 2500);
+        } else {
+          this.showExpression('happy', 2000);
+        }
       } else if (isFinalResult) {
+        this.consecutiveCorrect = 0;
         const incorrect = getRandomItem(PHRASES.INCORRECT);
         this.text = `${incorrect}, the correct answer is ${this.expectedResultAsNumber}.`;
+        // Show sad for wrong answer, confused was already shown for silence
+        if (!isSilent) {
+          this.showExpression('sad', 2000);
+        }
       }
       
       if (isFinalResult) {
@@ -616,9 +832,18 @@ export default {
       this.audioPlayer.pause();
       this.audioPlayer = null;
     }
+    // Cleanup audio analysis
+    this.stopAudioAnalysis();
+    if (this.audioContext) {
+      this.audioContext.close();
+      this.audioContext = null;
+    }
     // Clear any pending timeouts
     if (this.timeout) {
       clearTimeout(this.timeout);
+    }
+    if (this.expressionTimeout) {
+      clearTimeout(this.expressionTimeout);
     }
   },
 };

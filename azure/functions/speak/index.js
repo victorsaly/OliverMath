@@ -18,7 +18,7 @@ app.http('speak', {
 
     try {
       const body = await request.json();
-      const { text, voice = 'en-US-AnaNeural', style = 'friendly' } = body;
+      const { text, voice = 'en-GB-RyanNeural', style = 'default' } = body;
 
       if (!text) {
         return {
@@ -45,7 +45,7 @@ app.http('speak', {
                xmlns:mstts="https://www.w3.org/2001/mstts" xml:lang="en-US">
           <voice name="${voice}">
             <mstts:express-as style="${style}">
-              <prosody rate="0.95" pitch="+2%">
+              <prosody rate="0.9" pitch="-5%" contour="(0%,+0Hz)(50%,-2Hz)(100%,+0Hz)">
                 ${escapeXml(text)}
               </prosody>
             </mstts:express-as>
