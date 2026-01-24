@@ -143,7 +143,7 @@ export default {
       
       // Config
       isMicrophoneEnabled: false,
-      publicPath: process.env.BASE_URL,
+      publicPath: import.meta.env.BASE_URL,
       timeout: null,
     };
   },
@@ -324,7 +324,7 @@ export default {
       this.isComputing = true;
       this.isListening = false;
       var sc = SpeechConfig.fromAuthorizationToken(
-        // eslint-disable-next-line no-undef
+         
         this.token,
         this.speechRegion
       );

@@ -9,7 +9,7 @@ const API_TIMEOUT = 10000;
  * @returns {string}
  */
 function getBaseUrl() {
-  return process.env.VUE_APP_API_BASE_URL || 'http://localhost:7071';
+  return import.meta.env.VITE_API_BASE_URL || 'http://localhost:7071';
 }
 
 /**

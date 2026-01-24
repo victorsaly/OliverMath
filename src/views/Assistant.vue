@@ -55,7 +55,7 @@ export default {
         messages.push({ role: 'assistant', content: data.reply || data.choices?.[0]?.message?.content || '(No reply)' });
       } catch (err) {
         messages.push({ role: 'assistant', content: 'Sorry, there was an error. Please try again.' });
-        // eslint-disable-next-line no-console
+         
         console.error(err);
       } finally {
         loading.value = false;
