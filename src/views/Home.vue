@@ -339,12 +339,70 @@ export default {
         });
     },
     /**
-     * Shout at the user
+     * Shout at the user using Azure Neural TTS for realistic voice
      */
-    speak() {
-        if (!this.synth.speaking){
-          this.greetingSpeech.text = this.text;
-          this.synth.speak(this.greetingSpeech);
+    async speak() {
+        // Prevent overlapping audio
+        if (this.audioPlayer && !this.audioPlayer.paused) {
+          return;
+        }
+        
+        // Fallback to browser synthesis if API not available
+        if (!this.apiBaseUrl) {
+          if (!this.synth.speaking) {
+            this.greetingSpeech.text = this.text;
+            this.synth.speak(this.greetingSpeech);
+          }
+          return;
+        }
+
+        try {
+          this.isTalking = true;
+          
+          // Call Azure TTS API
+          const response = await fetch(`${this.apiBaseUrl}/api/speak`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              text: this.text,
+              voice: 'en-US-AnaNeural', // Child-friendly neural voice
+              style: 'friendly'
+            })
+          });
+
+          if (!response.ok) {
+            throw new Error('TTS API failed');
+          }
+
+          const data = await response.json();
+          
+          // Play the audio
+          const audio = new Audio(`data:audio/mpeg;base64,${data.audio}`);
+          this.audioPlayer = audio;
+          
+          audio.onended = () => {
+            this.isTalking = false;
+          };
+          
+          audio.onerror = () => {
+            this.isTalking = false;
+            // Fallback to browser synthesis
+            if (!this.synth.speaking) {
+              this.greetingSpeech.text = this.text;
+              this.synth.speak(this.greetingSpeech);
+            }
+          };
+          
+          await audio.play();
+          
+        } catch (error) {
+          console.error('Azure TTS error:', error);
+          this.isTalking = false;
+          // Fallback to browser synthesis
+          if (!this.synth.speaking) {
+            this.greetingSpeech.text = this.text;
+            this.synth.speak(this.greetingSpeech);
+          }
         }
     },
     listen() {

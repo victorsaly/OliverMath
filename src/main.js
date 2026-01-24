@@ -30,3 +30,27 @@ const app = createApp(App)
 router.isReady().then(() => {
   app.mount('#app');
 });
+
+// Register service worker for PWA
+if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/OliverMath/service-worker.js')
+      .then(registration => {
+        console.log('SW registered:', registration.scope);
+        
+        // Check for updates
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              // New content available, prompt refresh
+              console.log('New content available, please refresh.');
+            }
+          });
+        });
+      })
+      .catch(error => {
+        console.log('SW registration failed:', error);
+      });
+  });
+}
