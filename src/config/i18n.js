@@ -103,6 +103,8 @@ export const translations = {
     minus: "minus",
     times: "times",
     dividedBy: "divided by",
+    
+    initialPrompt: 'Click play, listen to the question and respond back by talking your answer.',
   },
   
   es: {
@@ -196,6 +198,8 @@ export const translations = {
     minus: "menos",
     times: "por",
     dividedBy: "entre",
+    
+    initialPrompt: 'Haz clic en jugar, escucha la pregunta y responde hablando.',
   },
   
   fr: {
@@ -289,6 +293,8 @@ export const translations = {
     minus: "moins",
     times: "fois",
     dividedBy: "divisé par",
+    
+    initialPrompt: 'Cliquez sur jouer, écoutez la question et répondez en parlant.',
   },
   
   de: {
@@ -382,6 +388,8 @@ export const translations = {
     minus: "minus",
     times: "mal",
     dividedBy: "geteilt durch",
+    
+    initialPrompt: 'Klicke auf "Spielen", höre die Frage und antworte, indem du sprichst.',
   },
   
   pt: {
@@ -475,6 +483,8 @@ export const translations = {
     minus: "menos",
     times: "vezes",
     dividedBy: "dividido por",
+    
+    initialPrompt: 'Clique em jogar, ouça a pergunta e responda falando.',
   },
 };
 

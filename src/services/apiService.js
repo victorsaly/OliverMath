@@ -82,9 +82,10 @@ export async function textToSpeech(text, voice = 'en-GB-RyanNeural', style = 'de
  * @param {string} spokenText - The transcribed speech
  * @param {number} expectedAnswer - The correct answer
  * @param {string} question - The original question
+ * @param {string} language - The language code (e.g., 'en', 'es')
  * @returns {Promise<{correct: boolean, understood: boolean, interpretedNumber: number|null, confidence: string}>}
  */
-export async function validateAnswer(spokenText, expectedAnswer, question) {
+export async function validateAnswer(spokenText, expectedAnswer, question, language = 'en') {
   if (!spokenText) {
     return { correct: false, understood: false, interpretedNumber: null, confidence: 'low' };
   }
@@ -92,7 +93,7 @@ export async function validateAnswer(spokenText, expectedAnswer, question) {
   const response = await fetchWithTimeout(`${getBaseUrl()}/api/validateAnswer`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ spokenText, expectedAnswer, question })
+    body: JSON.stringify({ spokenText, expectedAnswer, question, language })
   });
   
   if (!response.ok) {

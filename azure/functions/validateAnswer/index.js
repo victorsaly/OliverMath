@@ -21,14 +21,25 @@ app.http('validateAnswer', {
 
     try {
       const body = await request.json();
-      const { spokenText, expectedAnswer, question } = body;
+      const { spokenText, expectedAnswer, question, language } = body;
 
-      if (!spokenText || expectedAnswer === undefined) {
-        return { 
-          status: 400, 
-          headers: corsHeaders, 
-          jsonBody: { error: 'spokenText and expectedAnswer are required' } 
-        };
+      // Translate spoken text to English if needed
+      let translatedText = spokenText;
+      if (language && language !== 'en') {
+        const translatePrompt = `Translate the following text to English. If it's already in English or is just a number, return it as-is. Only return the translated text, nothing else:\n\n"${spokenText}"`;
+        
+        const translateCompletion = await getClient().chat.completions.create({
+          model: getModel(),
+          messages: [{ role: 'user', content: translatePrompt }],
+          temperature: 0,
+          max_tokens: 50
+        });
+        
+        const translated = translateCompletion.choices?.[0]?.message?.content?.trim();
+        if (translated) {
+          translatedText = translated;
+          context.log(`Translated "${spokenText}" to "${translatedText}"`);
+        }
       }
 
       // Use LLM to interpret the spoken response
@@ -54,7 +65,7 @@ Respond ONLY with a JSON object in this exact format:
 
       const userPrompt = `Question: "${question}"
 Expected answer: ${expectedAnswer}
-Child's spoken response: "${spokenText}"
+Child's spoken response: "${translatedText}" (original: "${spokenText}")
 
 Analyze if the child answered correctly.`;
 

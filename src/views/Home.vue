@@ -3,10 +3,31 @@
     <ion-header>
       <ion-toolbar color="primary">
         <ion-title>{{ t('title') }}</ion-title>
-        <ion-chip slot="end" color="warning" aria-label="Stars earned">
-          <ion-icon :icon="star" aria-hidden="true"></ion-icon>
-          <ion-label>{{ stars }}</ion-label>
-        </ion-chip>
+        <ion-buttons slot="end">
+          <ion-button fill="clear" size="small" id="language-trigger-header" title="Change language">
+            <span class="language-flag-toolbar">{{ availableLanguages[selectedLanguage]?.flag }}</span>
+          </ion-button>
+          <ion-popover trigger="language-trigger-header" trigger-action="click">
+            <ion-content class="ion-padding">
+              <ion-list>
+                <ion-item 
+                  v-for="(lang, code) in availableLanguages" 
+                  :key="code" 
+                  button 
+                  @click="changeLanguage(code)"
+                  :class="{ 'selected-language': code === selectedLanguage }"
+                >
+                  <span class="language-flag">{{ lang.flag }}</span>
+                  <ion-label>{{ lang.name }}</ion-label>
+                </ion-item>
+              </ion-list>
+            </ion-content>
+          </ion-popover>
+          <ion-chip color="warning" aria-label="Stars earned">
+            <ion-icon :icon="star" aria-hidden="true"></ion-icon>
+            <ion-label>{{ stars }}</ion-label>
+          </ion-chip>
+        </ion-buttons>
       </ion-toolbar>
     </ion-header>
     
@@ -50,24 +71,6 @@
                 </ion-item>
               </ion-col>
             </ion-row>
-            <!-- Stats Row -->
-            <ion-row class="stats-row ion-align-items-center ion-justify-content-center">
-              <ion-col size="auto">
-                <ion-chip color="tertiary" outline class="stat-chip">
-                  <ion-label>🏆 {{ t('best') }}: {{ highScore }}</ion-label>
-                </ion-chip>
-              </ion-col>
-              <ion-col size="auto">
-                <ion-chip color="secondary" outline class="stat-chip">
-                  <ion-label>🔥 {{ t('streak') }}: {{ consecutiveCorrect }}</ion-label>
-                </ion-chip>
-              </ion-col>
-              <ion-col size="auto">
-                <ion-chip color="success" outline class="stat-chip">
-                  <ion-label>🎯 {{ t('accuracy') }}: {{ accuracy }}%</ion-label>
-                </ion-chip>
-              </ion-col>
-            </ion-row>
           </ion-grid>
         </ion-card-content>
       </ion-card>
@@ -83,29 +86,6 @@
         <ion-button fill="clear" size="small" @click="openHistoryModal" title="Problem history">
           <ion-icon :icon="historyIcon" slot="icon-only"></ion-icon>
         </ion-button>
-      </div>
-
-      <!-- Language Selector -->
-      <div class="language-selector">
-        <ion-button fill="clear" size="small" id="language-trigger">
-          <span class="language-flag">{{ availableLanguages[selectedLanguage]?.flag }}</span>
-        </ion-button>
-        <ion-popover trigger="language-trigger" trigger-action="click">
-          <ion-content class="ion-padding">
-            <ion-list>
-              <ion-item 
-                v-for="(lang, code) in availableLanguages" 
-                :key="code" 
-                button 
-                @click="changeLanguage(code)"
-                :class="{ 'selected-language': code === selectedLanguage }"
-              >
-                <span class="language-flag">{{ lang.flag }}</span>
-                <ion-label>{{ lang.name }}</ion-label>
-              </ion-item>
-            </ion-list>
-          </ion-content>
-        </ion-popover>
       </div>
 
       <!-- Problem History Modal -->
@@ -189,7 +169,7 @@
         >
           <ion-icon :icon="playIcon" slot="start" v-if="!isComputing"></ion-icon>
           <ion-spinner name="crescent" v-if="isComputing"></ion-spinner>
-          {{ isComputing ? t('thinking') : t('play') + ' Math!' }}
+          {{ isComputing ? t('thinking') : t('play') }}
         </ion-button>
       </ion-toolbar>
     </ion-footer>
@@ -210,6 +190,7 @@ import {
   IonSelect,
   IonSelectOption,
   IonButton,
+  IonButtons,
   IonFooter,
   IonCard,
   IonCardContent,
@@ -252,6 +233,7 @@ export default {
     IonSelect,
     IonSelectOption,
     IonButton,
+    IonButtons,
     IonFooter,
     IonCard,
     IonCardContent,
@@ -308,7 +290,7 @@ export default {
       selectedLevel: LEVELS.MEDIUM,
       selectedOperator: OPERATORS.TIMES,
       selectedLanguage: 'en',
-      speech_phrases: "Click play, listen the question and respond back by talking your answer.",
+      speech_phrases: 'Click play, listen to the question and respond back by talking your answer.',
       number1: 2,
       number2: 3,
       stars: 0,
@@ -624,10 +606,11 @@ export default {
     async showToast(text, color) {
       const toast = await toastController.create({
         message: text,
-        duration: 5000,
+        duration: 4000,
         color: color,
-        translucent: false,
-        cssClass:"toast-custom-position",
+        position: 'top',
+        translucent: true,
+        cssClass:"toast-compact",
         animated:false,
       });
       return toast.present();
@@ -939,6 +922,7 @@ export default {
     changeLanguage(langCode) {
       setLanguage(langCode);
       this.selectedLanguage = langCode;
+      this.speech_phrases = this.t('initialPrompt');
       this.showToast(`${this.availableLanguages[langCode].flag} ${this.availableLanguages[langCode].name}`, "success");
     },
     /**
@@ -986,7 +970,8 @@ export default {
         const result = await validateAnswer(
           word, 
           this.expectedResultAsNumber,
-          this.text // The question
+          this.text, // The question
+          this.selectedLanguage
         );
         
         if (result.correct) {
@@ -1215,6 +1200,9 @@ export default {
     // Load language preference
     this.selectedLanguage = getPreferredLanguage();
     
+    // Update speech_phrases to the selected language
+    this.speech_phrases = this.t('initialPrompt');
+    
     // Load problem history
     this.problemHistory = getHistory();
     
@@ -1380,8 +1368,24 @@ ion-footer ion-toolbar {
   font-size: 24px;
 }
 
+.language-flag-toolbar {
+  font-size: 20px;
+  margin: 0 4px;
+}
+
 .selected-language {
   --background: var(--ion-color-primary-tint);
+}
+
+/* Toast styling */
+.toast-compact::part(container) {
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.toast-compact::part(message) {
+  padding: 0;
 }
 
 /* Problem History Modal */
