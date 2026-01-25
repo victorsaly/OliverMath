@@ -9,45 +9,31 @@
       </ion-toolbar>
     </ion-header>
 
-    <ion-content class="ion-padding">
-      <!-- Overview Stats Card -->
-      <ion-card class="stats-overview-card">
-        <ion-card-header>
-          <ion-card-title>{{ t('overview') }}</ion-card-title>
-        </ion-card-header>
-        <ion-card-content>
-          <ion-grid>
-            <ion-row class="stat-row">
-              <ion-col size="6">
-                <div class="stat-item">
-                  <div class="stat-value">{{ starsDisplay }}</div>
-                  <div class="stat-label">{{ t('totalStars') }}</div>
-                </div>
-              </ion-col>
-              <ion-col size="6">
-                <div class="stat-item">
-                  <div class="stat-value">{{ stats.total }}</div>
-                  <div class="stat-label">{{ t('totalProblems') }}</div>
-                </div>
-              </ion-col>
-            </ion-row>
-            <ion-row class="stat-row">
-              <ion-col size="6">
-                <div class="stat-item">
-                  <div class="stat-value">{{ stats.correct }}</div>
-                  <div class="stat-label">{{ t('correctAnswers') }}</div>
-                </div>
-              </ion-col>
-              <ion-col size="6">
-                <div class="stat-item">
-                  <div class="stat-value">{{ stats.accuracy }}%</div>
-                  <div class="stat-label">{{ t('averageAccuracy') }}</div>
-                </div>
-              </ion-col>
-            </ion-row>
-          </ion-grid>
-        </ion-card-content>
-      </ion-card>
+    <ion-content class="ion-padding stats-content">
+      <!-- Hero Star Display -->
+      <div class="star-hero">
+        <div class="star-circle">
+          <span class="star-emoji">⭐</span>
+          <span class="star-count">{{ starsDisplay }}</span>
+        </div>
+        <p class="star-subtitle">{{ t('totalStars') }}</p>
+      </div>
+
+      <!-- Quick Stats Row -->
+      <div class="quick-stats-row">
+        <div class="quick-stat">
+          <span class="quick-value">{{ stats.total }}</span>
+          <span class="quick-label">{{ t('totalProblems') }}</span>
+        </div>
+        <div class="quick-stat success">
+          <span class="quick-value">{{ stats.correct }}</span>
+          <span class="quick-label">{{ t('correctAnswers') }}</span>
+        </div>
+        <div class="quick-stat accent">
+          <span class="quick-value">{{ stats.accuracy }}%</span>
+          <span class="quick-label">{{ t('accuracy') }}</span>
+        </div>
+      </div>
 
       <!-- Performance by Operator -->
       <ion-card v-if="operatorStats.length > 0" class="performance-section">
@@ -55,22 +41,18 @@
           <ion-card-title>{{ t('performanceByOperator') }}</ion-card-title>
         </ion-card-header>
         <ion-card-content>
-          <ion-grid>
-            <ion-card v-for="op in operatorStats" :key="op.operator" class="operator-card">
-              <ion-card-content>
-                <div class="operator-row">
-                  <div class="operator-label">{{ getOperatorLabel(op.operator) }}</div>
-                  <div class="operator-stats">
-                    <span class="attempts">{{ op.total }} {{ t('attempt') }}{{ op.total !== 1 ? 's' : '' }}</span>
-                    <span class="accuracy">{{ op.accuracy }}%</span>
-                  </div>
-                </div>
-                <div class="accuracy-bar">
-                  <div class="accuracy-fill" :style="{ width: op.accuracy + '%' }"></div>
-                </div>
-              </ion-card-content>
-            </ion-card>
-          </ion-grid>
+          <div class="operator-grid">
+            <div v-for="op in operatorStats" :key="op.operator" class="operator-item">
+              <div class="operator-symbol">{{ op.operator }}</div>
+              <div class="operator-bar-container">
+                <div class="operator-bar" :style="{ width: op.accuracy + '%' }"></div>
+              </div>
+              <div class="operator-info">
+                <span class="operator-accuracy">{{ op.accuracy }}%</span>
+                <span class="operator-attempts">{{ op.total }} {{ op.total === 1 ? t('attempt') : t('attempts') }}</span>
+              </div>
+            </div>
+          </div>
         </ion-card-content>
       </ion-card>
 
@@ -80,24 +62,17 @@
           <ion-card-title>{{ t('recentAnswers') }}</ion-card-title>
         </ion-card-header>
         <ion-card-content>
-          <ion-card v-for="problem in recentHistory" :key="problem.id" class="history-item" :class="problem.isCorrect ? 'correct' : 'incorrect'">
-            <ion-card-content>
-              <div class="history-row">
-                <div class="problem-display">
-                  <div class="problem-equation">{{ problem.num1 }} {{ problem.operator }} {{ problem.num2 }}</div>
-                  <div class="answer-row">
-                    <span class="correct-answer">{{ t('answer') }}: {{ problem.correctAnswer }}</span>
-                    <span class="result-badge" :class="problem.isCorrect ? 'success' : 'danger'">
-                      {{ problem.isCorrect ? t('correct') : t('incorrect') }}
-                    </span>
-                  </div>
-                </div>
+          <div class="recent-problems-list">
+            <div v-for="problem in recentHistory" :key="problem.id" class="recent-problem" :class="problem.isCorrect ? 'correct' : 'incorrect'">
+              <div class="problem-left">
+                <span class="problem-equation">{{ problem.num1 }} {{ problem.operator }} {{ problem.num2 }} = {{ problem.correctAnswer }}</span>
               </div>
-              <div v-if="!problem.isCorrect" class="user-answer-display">
-                <small>{{ t('yourAnswer') }}: <strong>{{ problem.userAnswer || '(No response)' }}</strong></small>
+              <div class="problem-right">
+                <span class="result-icon">{{ problem.isCorrect ? '✓' : '✗' }}</span>
+                <span v-if="!problem.isCorrect" class="wrong-answer">{{ problem.userAnswer }}</span>
               </div>
-            </ion-card-content>
-          </ion-card>
+            </div>
+          </div>
         </ion-card-content>
       </ion-card>
 
@@ -118,9 +93,6 @@ import {
   IonCardHeader,
   IonCardTitle,
   IonCardContent,
-  IonGrid,
-  IonRow,
-  IonCol,
   IonButtons,
   IonBackButton,
 } from '@ionic/vue';
@@ -140,9 +112,6 @@ export default {
     IonCardHeader,
     IonCardTitle,
     IonCardContent,
-    IonGrid,
-    IonRow,
-    IonCol,
     IonButtons,
     IonBackButton,
     Achievements,
@@ -216,203 +185,253 @@ export default {
 </script>
 
 <style scoped>
-.stats-overview-card {
-  margin-bottom: 24px;
-  border-radius: 16px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+.stats-content {
+  --background: linear-gradient(180deg, #f8f9fa 0%, #ffffff 100%);
 }
 
-.stat-row {
+/* Hero Star Display */
+.star-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 0;
   margin-bottom: 16px;
 }
 
-.stat-item {
-  text-align: center;
-  padding: 16px;
-  background: linear-gradient(145deg, #f0f4f8, #ffffff);
-  border-radius: 12px;
-  border-left: 4px solid var(--ion-color-primary);
+.star-circle {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #ffd700, #ffed4a);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 32px rgba(255, 215, 0, 0.4);
+  animation: pulse 2s ease-in-out infinite;
 }
 
-.stat-value {
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+}
+
+.star-emoji {
+  font-size: 28px;
+  margin-bottom: 4px;
+}
+
+.star-count {
   font-size: 32px;
+  font-weight: 800;
+  color: #1a1a1a;
+}
+
+.star-subtitle {
+  margin-top: 12px;
+  font-size: 14px;
+  color: #666;
+  font-weight: 500;
+}
+
+/* Quick Stats Row */
+.quick-stats-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.quick-stat {
+  flex: 1;
+  background: white;
+  border-radius: 12px;
+  padding: 16px 12px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border-top: 3px solid var(--ion-color-primary);
+}
+
+.quick-stat.success {
+  border-top-color: var(--ion-color-success);
+}
+
+.quick-stat.accent {
+  border-top-color: #8b5cf6;
+}
+
+.quick-value {
+  display: block;
+  font-size: 24px;
   font-weight: 700;
-  color: var(--ion-color-primary);
-  line-height: 1;
+  color: #1a1a1a;
 }
 
-.stat-label {
-  font-size: 11px;
-  color: var(--ion-color-medium);
-  margin-top: 8px;
+.quick-label {
+  display: block;
+  font-size: 10px;
+  color: #888;
   text-transform: uppercase;
-  font-weight: 600;
   letter-spacing: 0.5px;
+  margin-top: 4px;
 }
 
+/* Performance Section */
 .performance-section {
   border-radius: 16px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   margin-bottom: 20px;
 }
 
-.operator-card {
-  margin-bottom: 12px;
-  border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-.operator-card ion-card-content {
-  padding: 12px;
-}
-
-.operator-row {
+.operator-grid {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.operator-label {
-  font-size: 16px;
+.operator-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.operator-symbol {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: linear-gradient(145deg, #e0e5ec, #ffffff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
   font-weight: 600;
   color: #2d3748;
-  min-width: 40px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.operator-stats {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-.attempts {
-  font-size: 12px;
-  color: var(--ion-color-medium);
-  background: var(--ion-color-step-100);
-  padding: 4px 8px;
-  border-radius: 6px;
-}
-
-.accuracy {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--ion-color-primary);
-  min-width: 40px;
-  text-align: right;
-}
-
-.accuracy-bar {
-  width: 100%;
-  height: 6px;
-  background: var(--ion-color-step-200);
-  border-radius: 3px;
+.operator-bar-container {
+  flex: 1;
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 4px;
   overflow: hidden;
 }
 
-.accuracy-fill {
+.operator-bar {
   height: 100%;
   background: linear-gradient(90deg, #4CAF50, #8BC34A);
-  border-radius: 3px;
-  transition: width 0.3s ease;
+  border-radius: 4px;
+  transition: width 0.5s ease;
 }
 
-.empty-state {
-  text-align: center;
-  padding: 60px 20px;
-  color: var(--ion-color-medium);
+.operator-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  min-width: 60px;
 }
 
+.operator-accuracy {
+  font-size: 16px;
+  font-weight: 700;
+  color: #2d3748;
+}
+
+.operator-attempts {
+  font-size: 10px;
+  color: #888;
+}
+
+/* Answer Details Section */
 .answer-details-section {
   border-radius: 16px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   margin-bottom: 20px;
 }
 
-.history-item {
-  margin-bottom: 10px;
-  border-radius: 10px;
-  border-left: 4px solid var(--ion-color-medium);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+.recent-problems-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.history-item.correct {
-  border-left-color: var(--ion-color-success);
-  background: linear-gradient(145deg, #f1f8e9, #ffffff);
-}
-
-.history-item.incorrect {
-  border-left-color: var(--ion-color-danger);
-  background: linear-gradient(145deg, #ffebee, #ffffff);
-}
-
-.history-item ion-card-content {
-  padding: 10px;
-}
-
-.history-row {
+.recent-problem {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #f8f9fa;
+  border-left: 3px solid #ccc;
 }
 
-.problem-display {
+.recent-problem.correct {
+  border-left-color: var(--ion-color-success);
+  background: #f0fdf4;
+}
+
+.recent-problem.incorrect {
+  border-left-color: var(--ion-color-danger);
+  background: #fef2f2;
+}
+
+.problem-left {
   flex: 1;
 }
 
 .problem-equation {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
   color: #2d3748;
-  margin-bottom: 6px;
-  font-family: 'Courier New', monospace;
+  font-family: 'SF Mono', 'Courier New', monospace;
 }
 
-.answer-row {
+.problem-right {
   display: flex;
-  gap: 8px;
   align-items: center;
-  flex-wrap: wrap;
+  gap: 8px;
 }
 
-.correct-answer {
-  font-size: 12px;
-  color: var(--ion-color-medium);
+.result-icon {
+  font-size: 16px;
+  font-weight: 700;
 }
 
-.result-badge {
-  font-size: 11px;
-  font-weight: 600;
-  padding: 2px 6px;
-  border-radius: 4px;
-  text-transform: uppercase;
+.recent-problem.correct .result-icon {
+  color: var(--ion-color-success);
 }
 
-.result-badge.success {
-  background: var(--ion-color-success);
-  color: white;
-}
-
-.result-badge.danger {
-  background: var(--ion-color-danger);
-  color: white;
-}
-
-.user-answer-display {
-  margin-top: 6px;
-  padding-top: 6px;
-  border-top: 1px solid rgba(0, 0, 0, 0.05);
-  font-size: 12px;
+.recent-problem.incorrect .result-icon {
   color: var(--ion-color-danger);
 }
 
+.wrong-answer {
+  font-size: 12px;
+  color: var(--ion-color-danger);
+  text-decoration: line-through;
+}
+
+/* Achievements Container adjustments */
+:deep(.achievements-container) {
+  margin-top: 20px;
+}
+
 @media (max-width: 480px) {
-  .stat-item {
-    padding: 12px 8px;
+  .star-circle {
+    width: 100px;
+    height: 100px;
   }
 
-  .stat-value {
-    font-size: 24px;
+  .star-count {
+    font-size: 28px;
+  }
+
+  .quick-value {
+    font-size: 20px;
+  }
+
+  .quick-label {
+    font-size: 9px;
   }
 }
 </style>

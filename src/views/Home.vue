@@ -2,11 +2,13 @@
   <ion-page>
     <ion-header>
       <ion-toolbar color="primary">
+        <ion-buttons slot="start">
+          <ion-button fill="clear" size="small" @click="showSettingsModal = true" aria-label="Open settings">
+            <ion-icon :icon="settingsIcon" slot="icon-only" style="color: white;"></ion-icon>
+          </ion-button>
+        </ion-buttons>
         <ion-title>{{ t('title') }}</ion-title>
         <ion-buttons slot="end">
-          <ion-button fill="clear" size="small" router-link="/stats" aria-label="View statistics and performance analytics">
-            <ion-icon :icon="statsIcon" aria-hidden="true"></ion-icon>
-          </ion-button>
           <ion-button fill="clear" size="small" id="language-trigger-header" aria-label="Change language" aria-expanded="false" aria-haspopup="menu">
             <span class="language-flag-toolbar" aria-hidden="true">{{ availableLanguages[selectedLanguage]?.flag }}</span>
           </ion-button>
@@ -26,80 +28,99 @@
               </ion-list>
             </ion-content>
           </ion-popover>
-          <ion-chip color="warning" aria-label="Stars earned" class="star-chip">
+          <ion-chip 
+            color="warning" 
+            class="star-chip clickable-chip" 
+            router-link="/stats"
+            aria-label="View stats and achievements"
+            role="button"
+          >
             <ion-icon :icon="star" aria-hidden="true"></ion-icon>
             <ion-label>{{ starsDisplay }}</ion-label>
           </ion-chip>
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
+
+    <!-- Settings Modal -->
+    <ion-modal 
+      :is-open="showSettingsModal" 
+      @didDismiss="showSettingsModal = false" 
+      class="settings-modal"
+    >
+      <ion-header>
+        <ion-toolbar color="primary">
+          <ion-title>{{ t('settings') }}</ion-title>
+          <ion-buttons slot="end">
+            <ion-button fill="clear" @click="showSettingsModal = false" aria-label="Close settings">
+              <ion-icon :icon="closeIcon" slot="icon-only" style="color: white;"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="ion-padding">
+        <div class="settings-list">
+          <!-- Difficulty Level -->
+          <div class="settings-group">
+            <div class="settings-group-header">
+              <ion-icon :icon="speedometerIcon" color="primary"></ion-icon>
+              <span>{{ t('level') }}</span>
+            </div>
+            <div class="settings-options">
+              <button 
+                v-for="level in levelOptions" 
+                :key="level.value" 
+                class="setting-option" 
+                :class="{ active: selectedLevel === level.value }"
+                @click="selectedLevel = level.value"
+              >
+                {{ level.label }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Operator -->
+          <div class="settings-group">
+            <div class="settings-group-header">
+              <ion-icon :icon="calculatorIcon" color="secondary"></ion-icon>
+              <span>{{ t('operators') }}</span>
+            </div>
+            <div class="settings-options">
+              <button 
+                v-for="op in operatorOptions" 
+                :key="op.value" 
+                class="setting-option" 
+                :class="{ active: selectedOperator === op.value }"
+                @click="selectedOperator = op.value"
+              >
+                {{ op.label }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Practice Mode -->
+          <div class="settings-group">
+            <div class="settings-group-header">
+              <ion-icon :icon="targetIcon" color="tertiary"></ion-icon>
+              <span>{{ t('sessionMode') }}</span>
+            </div>
+            <div class="settings-options vertical">
+              <button 
+                v-for="mode in modeOptions" 
+                :key="mode.value" 
+                class="setting-option wide" 
+                :class="{ active: sessionMode === mode.value }"
+                @click="sessionMode = mode.value"
+              >
+                {{ mode.label }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </ion-content>
+    </ion-modal>
     
     <ion-content :fullscreen="true" class="ion-padding" role="main">
-      <!-- Settings Card -->
-      <ion-card class="settings-card">
-        <ion-card-content>
-          <ion-grid>
-            <ion-row class="ion-align-items-center">
-              <ion-col size="6">
-                <ion-item lines="none" class="setting-item">
-                  <ion-icon :icon="speedometerIcon" slot="start" color="primary"></ion-icon>
-                  <ion-select
-                    interface="popover"
-                    :value="selectedLevel"
-                    @ionChange="selectedLevel = $event.target.value"
-                    :label="t('level')"
-                    label-placement="stacked"
-                    aria-label="Select difficulty level"
-                  >
-                    <ion-select-option value="beginner">{{ t('easy') }}</ion-select-option>
-                    <ion-select-option value="medium">{{ t('medium') }}</ion-select-option>
-                    <ion-select-option value="expert">{{ t('hard') }}</ion-select-option>
-                    <ion-select-option value="auto">🎯 {{ t('auto') }}</ion-select-option>
-                  </ion-select>
-                </ion-item>
-              </ion-col>
-              <ion-col size="6">
-                <ion-item lines="none" class="setting-item">
-                  <ion-icon :icon="calculatorIcon" slot="start" color="secondary"></ion-icon>
-                  <ion-select
-                    interface="popover"
-                    :value="selectedOperator"
-                    @ionChange="selectedOperator = $event.target.value"
-                    :label="t('operators')"
-                    label-placement="stacked"
-                    aria-label="Select arithmetic operator"
-                  >
-                    <ion-select-option value="times">× {{ t('multiplication') }}</ion-select-option>
-                    <ion-select-option value="plus">+ {{ t('addition') }}</ion-select-option>
-                    <ion-select-option value="minus">− {{ t('subtraction') }}</ion-select-option>
-                    <ion-select-option value="divide">÷ {{ t('division') }}</ion-select-option>
-                  </ion-select>
-                </ion-item>
-              </ion-col>
-            </ion-row>
-            <ion-row class="ion-align-items-center">
-              <ion-col size="12">
-                <ion-item lines="none" class="setting-item">
-                  <ion-icon :icon="targetIcon" slot="start" color="tertiary"></ion-icon>
-                  <ion-select
-                    interface="popover"
-                    :value="sessionMode"
-                    @ionChange="sessionMode = $event.target.value"
-                    :label="t('sessionMode')"
-                    label-placement="stacked"
-                    aria-label="Select practice mode"
-                  >
-                    <ion-select-option value="random">{{ t('randomMode') }}</ion-select-option>
-                    <ion-select-option value="weak_operators">{{ t('practiceWeakOperators') }}</ion-select-option>
-                    <ion-select-option value="recent_failures">{{ t('practiceRecentFailures') }}</ion-select-option>
-                  </ion-select>
-                </ion-item>
-              </ion-col>
-            </ion-row>
-          </ion-grid>
-        </ion-card-content>
-      </ion-card>
-
       <!-- Action Buttons (when not in play mode) -->
       <div class="action-buttons" v-if="!isPlayMode && !isComputing" role="toolbar" aria-label="Question controls">
         <ion-button fill="clear" size="small" @click="repeatQuestion" :disabled="!currentQuestion || isTalking" aria-label="Repeat question" :title="!currentQuestion ? 'No question available' : 'Repeat question'">
@@ -234,7 +255,7 @@ import {
   SpeechConfig,
   SpeechRecognizer,
 } from "microsoft-cognitiveservices-speech-sdk";
-import { star, play, speedometer, calculator, mic, volumeHigh, sync, alertCircle, refresh, volumeMute, timeOutline, trashOutline, globe, statsChart, fitness } from "ionicons/icons";
+import { star, play, speedometer, calculator, mic, volumeHigh, sync, alertCircle, refresh, volumeMute, timeOutline, trashOutline, globe, fitness, settingsOutline, close } from "ionicons/icons";
 import { OPERATORS, LEVELS, NUMBER_RANGES, SCORING } from "@/config/gameConfig";
 import { getRandomInt } from "@/utils/helpers";
 import { getSpeechToken, getCachedAudio, validateAnswer } from "@/services/apiService";
@@ -287,8 +308,9 @@ export default {
       historyIcon: timeOutline,
       trashIcon: trashOutline,
       globeIcon: globe,
-      statsIcon: statsChart,
-      targetIcon: fitness
+      targetIcon: fitness,
+      settingsIcon: settingsOutline,
+      closeIcon: close
     };
   },
   data() {
@@ -336,6 +358,7 @@ export default {
       isMuted: false,
       currentQuestion: "",  // Store current question for repeat
       showHistoryModal: false,
+      showSettingsModal: false,
       problemHistory: [],
       availableLanguages: LANGUAGES,
       
@@ -424,6 +447,29 @@ export default {
       // Cap stars at 100 and show max indicator
       const displayStars = Math.min(this.stars, 100);
       return this.stars >= 100 ? '100 ⭐' : displayStars.toString();
+    },
+    levelOptions() {
+      return [
+        { value: 'beginner', label: this.t('easy') },
+        { value: 'medium', label: this.t('medium') },
+        { value: 'expert', label: this.t('hard') },
+        { value: 'auto', label: '🎯 ' + this.t('auto') },
+      ];
+    },
+    operatorOptions() {
+      return [
+        { value: 'times', label: '×' },
+        { value: 'plus', label: '+' },
+        { value: 'minus', label: '−' },
+        { value: 'divide', label: '÷' },
+      ];
+    },
+    modeOptions() {
+      return [
+        { value: 'random', label: this.t('randomMode') },
+        { value: 'weak_operators', label: this.t('practiceWeakOperators') },
+        { value: 'recent_failures', label: this.t('practiceRecentFailures') },
+      ];
     },
     statusColor() {
       switch (this.botState) {
@@ -1343,25 +1389,85 @@ export default {
 </script>
 
 <style scoped>
-.settings-card {
-  margin: 8px;
-  border-radius: 16px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+/* Settings Modal Styles */
+ion-modal.settings-modal {
+  --height: 60%;
+  --min-height: 400px;
+  --border-radius: 16px 16px 0 0;
+  align-items: flex-end;
 }
 
-.settings-card ion-card-content {
-  padding: 8px;
+.settings-modal ion-content {
+  --background: #1a1a2e;
 }
 
-.setting-item {
-  --background: transparent;
-  --padding-start: 0;
-  --inner-padding-end: 0;
+.settings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
-.setting-item ion-icon {
-  font-size: 24px;
-  margin-right: 8px;
+.settings-group {
+  background: #16213e;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.settings-group-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  font-weight: 600;
+  font-size: 15px;
+  color: #e2e8f0;
+}
+
+.settings-group-header ion-icon {
+  font-size: 20px;
+}
+
+.settings-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.settings-options.vertical {
+  flex-direction: column;
+}
+
+.setting-option {
+  flex: 1;
+  min-width: 60px;
+  padding: 12px 16px;
+  border: 2px solid #2d3748;
+  border-radius: 10px;
+  background: #0f3460;
+  font-size: 15px;
+  font-weight: 500;
+  color: #cbd5e0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.setting-option.wide {
+  flex: none;
+  width: 100%;
+  text-align: left;
+}
+
+.setting-option:hover {
+  border-color: #4299e1;
+  background: #1a4a7a;
+}
+
+.setting-option.active {
+  border-color: #4299e1;
+  background: #3182ce;
+  color: white;
 }
 
 .bot-container {
@@ -1420,11 +1526,6 @@ ion-footer ion-toolbar {
 
 /* Responsive adjustments */
 @media (max-width: 400px) {
-  .settings-card ion-grid ion-col {
-    flex: 0 0 100%;
-    max-width: 100%;
-  }
-  
   .bot-container {
     min-height: 300px;
   }
@@ -1454,6 +1555,18 @@ ion-footer ion-toolbar {
 .star-chip {
   --background: #ffd700 !important;
   color: #000 !important;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.star-chip:hover,
+.star-chip:focus {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(255, 215, 0, 0.5);
+}
+
+.star-chip:active {
+  transform: scale(0.98);
 }
 
 .star-chip ion-icon {
@@ -1550,9 +1663,10 @@ ion-footer ion-toolbar {
 }
 
 @media (min-width: 768px) {
-  .settings-card {
-    max-width: 600px;
-    margin: 16px auto;
+  .settings-modal {
+    --max-width: 500px;
+    --border-radius: 16px;
+    align-items: center;
   }
   
   .bot-container {
@@ -1579,10 +1693,8 @@ ion-footer ion-toolbar {
   }
 }
 
-/* Dark mode adjustments */
+/* Dark mode adjustments - settings already dark themed */
 @media (prefers-color-scheme: dark) {
-  .settings-card {
-    --background: var(--ion-color-step-100);
-  }
+  /* Settings modal is already dark */
 }
 </style>
