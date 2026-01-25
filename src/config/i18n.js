@@ -191,11 +191,11 @@ export const translations = {
     ],
     
     // Math question format
-    whatIs: "¿Cuánto es",
+    whatIs: "Cuánto es",
     plus: "más",
     minus: "menos",
     times: "por",
-    dividedBy: "dividido entre",
+    dividedBy: "entre",
   },
   
   fr: {
@@ -284,7 +284,7 @@ export const translations = {
     ],
     
     // Math question format
-    whatIs: "Combien fait",
+    whatIs: "Combien font",
     plus: "plus",
     minus: "moins",
     times: "fois",
@@ -377,7 +377,7 @@ export const translations = {
     ],
     
     // Math question format
-    whatIs: "Was ist",
+    whatIs: "Wie viel ist",
     plus: "plus",
     minus: "minus",
     times: "mal",
