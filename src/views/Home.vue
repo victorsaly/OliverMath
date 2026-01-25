@@ -4,11 +4,11 @@
       <ion-toolbar color="primary">
         <ion-title>{{ t('title') }}</ion-title>
         <ion-buttons slot="end">
-          <ion-button fill="clear" size="small" router-link="/stats" title="View Statistics">
+          <ion-button fill="clear" size="small" router-link="/stats" aria-label="View statistics and performance analytics">
             <ion-icon :icon="statsIcon" aria-hidden="true"></ion-icon>
           </ion-button>
-          <ion-button fill="clear" size="small" id="language-trigger-header" title="Change language">
-            <span class="language-flag-toolbar">{{ availableLanguages[selectedLanguage]?.flag }}</span>
+          <ion-button fill="clear" size="small" id="language-trigger-header" aria-label="Change language" aria-expanded="false" aria-haspopup="menu">
+            <span class="language-flag-toolbar" aria-hidden="true">{{ availableLanguages[selectedLanguage]?.flag }}</span>
           </ion-button>
           <ion-popover trigger="language-trigger-header" trigger-action="click">
             <ion-content class="ion-padding">
@@ -49,10 +49,12 @@
                     @ionChange="selectedLevel = $event.target.value"
                     :label="t('level')"
                     label-placement="stacked"
+                    aria-label="Select difficulty level"
                   >
                     <ion-select-option value="beginner">{{ t('easy') }}</ion-select-option>
                     <ion-select-option value="medium">{{ t('medium') }}</ion-select-option>
                     <ion-select-option value="expert">{{ t('hard') }}</ion-select-option>
+                    <ion-select-option value="auto">🎯 {{ t('auto') }}</ion-select-option>
                   </ion-select>
                 </ion-item>
               </ion-col>
@@ -65,6 +67,7 @@
                     @ionChange="selectedOperator = $event.target.value"
                     :label="t('operators')"
                     label-placement="stacked"
+                    aria-label="Select arithmetic operator"
                   >
                     <ion-select-option value="times">× {{ t('multiplication') }}</ion-select-option>
                     <ion-select-option value="plus">+ {{ t('addition') }}</ion-select-option>
@@ -74,30 +77,49 @@
                 </ion-item>
               </ion-col>
             </ion-row>
+            <ion-row class="ion-align-items-center">
+              <ion-col size="12">
+                <ion-item lines="none" class="setting-item">
+                  <ion-icon :icon="targetIcon" slot="start" color="tertiary"></ion-icon>
+                  <ion-select
+                    interface="popover"
+                    :value="sessionMode"
+                    @ionChange="sessionMode = $event.target.value"
+                    :label="t('sessionMode')"
+                    label-placement="stacked"
+                    aria-label="Select practice mode"
+                  >
+                    <ion-select-option value="random">{{ t('randomMode') }}</ion-select-option>
+                    <ion-select-option value="weak_operators">{{ t('practiceWeakOperators') }}</ion-select-option>
+                    <ion-select-option value="recent_failures">{{ t('practiceRecentFailures') }}</ion-select-option>
+                  </ion-select>
+                </ion-item>
+              </ion-col>
+            </ion-row>
           </ion-grid>
         </ion-card-content>
       </ion-card>
 
       <!-- Action Buttons (when not in play mode) -->
-      <div class="action-buttons" v-if="!isPlayMode && !isComputing">
-        <ion-button fill="clear" size="small" @click="repeatQuestion" :disabled="!currentQuestion || isTalking" title="Repeat question">
-          <ion-icon :icon="refreshIcon" slot="icon-only"></ion-icon>
+      <div class="action-buttons" v-if="!isPlayMode && !isComputing" role="toolbar" aria-label="Question controls">
+        <ion-button fill="clear" size="small" @click="repeatQuestion" :disabled="!currentQuestion || isTalking" aria-label="Repeat question" :title="!currentQuestion ? 'No question available' : 'Repeat question'">
+          <ion-icon :icon="refreshIcon" slot="icon-only" aria-hidden="true"></ion-icon>
         </ion-button>
-        <ion-button fill="clear" size="small" @click="handleToggleMute" title="Toggle sound">
-          <ion-icon :icon="isMuted ? muteIcon : volumeIcon" slot="icon-only"></ion-icon>
+        <ion-button fill="clear" size="small" @click="handleToggleMute" :aria-label="isMuted ? 'Unmute' : 'Mute'" :title="isMuted ? 'Unmute audio' : 'Mute audio'">
+          <ion-icon :icon="isMuted ? muteIcon : volumeIcon" slot="icon-only" aria-hidden="true"></ion-icon>
         </ion-button>
-        <ion-button fill="clear" size="small" @click="openHistoryModal" title="Problem history">
-          <ion-icon :icon="historyIcon" slot="icon-only"></ion-icon>
+        <ion-button fill="clear" size="small" @click="openHistoryModal" aria-label="View problem history" title="View previously solved problems">
+          <ion-icon :icon="historyIcon" slot="icon-only" aria-hidden="true"></ion-icon>
         </ion-button>
       </div>
 
       <!-- Problem History Modal -->
-      <ion-modal :is-open="showHistoryModal" @didDismiss="showHistoryModal = false">
+      <ion-modal :is-open="showHistoryModal" @didDismiss="showHistoryModal = false" role="dialog" aria-labelledby="history-modal-title">
         <ion-header>
           <ion-toolbar color="primary">
-            <ion-title>{{ t('problemHistory') }}</ion-title>
-            <ion-button slot="end" fill="clear" @click="showHistoryModal = false">
-              <ion-icon :icon="alertIcon" slot="icon-only" style="color: white;"></ion-icon>
+            <ion-title id="history-modal-title">{{ t('problemHistory') }}</ion-title>
+            <ion-button slot="end" fill="clear" @click="showHistoryModal = false" aria-label="Close history">
+              <ion-icon :icon="alertIcon" slot="icon-only" style="color: white;" aria-hidden="true"></ion-icon>
             </ion-button>
           </ion-toolbar>
         </ion-header>
@@ -130,8 +152,9 @@
             fill="outline"
             @click="handleClearHistory"
             class="clear-history-btn"
+            aria-label="Delete all problem history"
           >
-            <ion-icon :icon="trashIcon" slot="start"></ion-icon>
+            <ion-icon :icon="trashIcon" slot="start" aria-hidden="true"></ion-icon>
             {{ t('clearHistory') }}
           </ion-button>
         </ion-content>
@@ -211,12 +234,12 @@ import {
   SpeechConfig,
   SpeechRecognizer,
 } from "microsoft-cognitiveservices-speech-sdk";
-import { star, play, speedometer, calculator, mic, volumeHigh, sync, alertCircle, refresh, volumeMute, timeOutline, trashOutline, globe, statsChart } from "ionicons/icons";
+import { star, play, speedometer, calculator, mic, volumeHigh, sync, alertCircle, refresh, volumeMute, timeOutline, trashOutline, globe, statsChart, fitness } from "ionicons/icons";
 import { OPERATORS, LEVELS, NUMBER_RANGES, SCORING } from "@/config/gameConfig";
 import { getRandomInt } from "@/utils/helpers";
 import { getSpeechToken, getCachedAudio, validateAnswer } from "@/services/apiService";
 import { LANGUAGES, SPEECH_VOICES, getPreferredLanguage, setLanguage, t, getRandomPhrase } from "@/config/i18n";
-import { addToHistory, getHistory, clearHistory as clearHistoryService, formatTimestamp, getOperatorSymbol } from "@/services/historyService";
+import { addToHistory, getHistory, clearHistory as clearHistoryService, formatTimestamp, getOperatorSymbol, getWeakOperators, getRecentFailures, getRecommendedDifficulty, getSpacedRepetitionProblem } from "@/services/historyService";
 import { preloadSounds, playCorrectSound, playIncorrectSound, toggleMute } from "@/services/soundService";
 import { celebrateConfetti, celebrateStreak, showStar } from "@/utils/confetti";
 
@@ -264,7 +287,8 @@ export default {
       historyIcon: timeOutline,
       trashIcon: trashOutline,
       globeIcon: globe,
-      statsIcon: statsChart
+      statsIcon: statsChart,
+      targetIcon: fitness
     };
   },
   data() {
@@ -294,6 +318,10 @@ export default {
       text: "",
       selectedLevel: LEVELS.MEDIUM,
       selectedOperator: OPERATORS.TIMES,
+      sessionMode: 'random', // random, weak_operators, recent_failures
+      currentAutoLevel: 'medium', // Used when selectedLevel is 'auto'
+      currentEffectiveLevel: 'medium', // Tracks actual difficulty used for current question
+      currentOperator: 'times', // Tracks actual operator used (may differ in SR mode)
       selectedLanguage: 'en',
       speech_phrases: 'Click play, listen to the question and respond back by talking your answer.',
       number1: 2,
@@ -375,13 +403,15 @@ export default {
       return "neutral";
     },
     expectedResultAsNumber() {
-      if (this.selectedOperator == "plus") {
+      // Use currentOperator (may differ from selectedOperator in spaced repetition mode)
+      const op = this.currentOperator || this.selectedOperator;
+      if (op == "plus") {
         return this.number1 + this.number2;
       }
-      if (this.selectedOperator == "minus") {
+      if (op == "minus") {
         return this.number1 - this.number2;
       }
-      if (this.selectedOperator == "divide") {
+      if (op == "divide") {
         return this.number1 / this.number2;
       }
       return this.number1 * this.number2;
@@ -666,21 +696,70 @@ export default {
             self.isPlayMode = false;
             self.speech_phrases = "";
             
-            // Get number ranges from config
-            const ranges = NUMBER_RANGES[self.selectedOperator]?.[self.selectedLevel] 
-              || NUMBER_RANGES[OPERATORS.TIMES][LEVELS.BEGINNER];
-            
-            // For division, generate numbers that result in whole number answers
-            if (self.selectedOperator === 'divide') {
-              // Generate divisor and quotient, then calculate dividend
-              const divisor = getRandomInt(ranges.min2, ranges.max2);
-              const quotient = getRandomInt(ranges.min1, ranges.max1);
-              self.number1 = divisor * quotient; // dividend
-              self.number2 = divisor;
-            } else {
-              self.number1 = getRandomInt(ranges.min1, ranges.max1);
-              self.number2 = getRandomInt(ranges.min2, ranges.max2);
+            // Handle adaptive difficulty (auto mode)
+            let effectiveLevel = self.selectedLevel;
+            if (self.selectedLevel === 'auto') {
+              const recommendation = getRecommendedDifficulty(self.selectedOperator, self.currentAutoLevel);
+              if (recommendation.recommended !== self.currentAutoLevel) {
+                self.currentAutoLevel = recommendation.recommended;
+                // Show toast notification about difficulty change
+                const message = recommendation.reason === 'high_accuracy' 
+                  ? self.t('difficultyIncreased') 
+                  : self.t('difficultyDecreased');
+                self.showToast(message, 'primary');
+              }
+              effectiveLevel = self.currentAutoLevel;
             }
+            
+            // Store effective level for history tracking
+            self.currentEffectiveLevel = effectiveLevel;
+            
+            // Check for spaced repetition problem (retry failures or practice weak areas)
+            const srProblem = getSpacedRepetitionProblem(self.selectedOperator, effectiveLevel);
+            let operatorToUse = self.selectedOperator;
+            
+            if (srProblem && srProblem.type === 'retry_failure') {
+              // Reuse exact problem from history
+              self.number1 = srProblem.num1;
+              self.number2 = srProblem.num2;
+              // Map operator symbol back to operator key
+              const opSymbolToKey = { '+': 'plus', '−': 'minus', '×': 'times', '÷': 'divide' };
+              operatorToUse = opSymbolToKey[srProblem.operator] || self.selectedOperator;
+            } else if (srProblem && srProblem.type === 'weak_operator') {
+              // Generate new problem for weak operator
+              const opSymbolToKey = { '+': 'plus', '−': 'minus', '×': 'times', '÷': 'divide' };
+              operatorToUse = opSymbolToKey[srProblem.operator] || self.selectedOperator;
+              const ranges = NUMBER_RANGES[operatorToUse]?.[effectiveLevel] 
+                || NUMBER_RANGES[OPERATORS.TIMES][LEVELS.BEGINNER];
+              if (operatorToUse === 'divide') {
+                const divisor = getRandomInt(ranges.min2, ranges.max2);
+                const quotient = getRandomInt(ranges.min1, ranges.max1);
+                self.number1 = divisor * quotient;
+                self.number2 = divisor;
+              } else {
+                self.number1 = getRandomInt(ranges.min1, ranges.max1);
+                self.number2 = getRandomInt(ranges.min2, ranges.max2);
+              }
+            } else {
+              // Standard random generation
+              const ranges = NUMBER_RANGES[self.selectedOperator]?.[effectiveLevel] 
+                || NUMBER_RANGES[OPERATORS.TIMES][LEVELS.BEGINNER];
+              
+              // For division, generate numbers that result in whole number answers
+              if (self.selectedOperator === 'divide') {
+                // Generate divisor and quotient, then calculate dividend
+                const divisor = getRandomInt(ranges.min2, ranges.max2);
+                const quotient = getRandomInt(ranges.min1, ranges.max1);
+                self.number1 = divisor * quotient; // dividend
+                self.number2 = divisor;
+              } else {
+                self.number1 = getRandomInt(ranges.min1, ranges.max1);
+                self.number2 = getRandomInt(ranges.min2, ranges.max2);
+              }
+            }
+            
+            // Store the actual operator being used
+            self.currentOperator = operatorToUse;
             
             // Get translated operator word
             const operatorWords = {
@@ -689,7 +768,7 @@ export default {
               'times': self.t('times'),
               'divide': self.t('dividedBy')
             };
-            const operatorWord = operatorWords[self.selectedOperator] || self.selectedOperator;
+            const operatorWord = operatorWords[operatorToUse] || operatorToUse;
             self.text = `${self.t('whatIs')} ${self.number1} ${operatorWord} ${self.number2}?`;
             self.currentQuestion = self.text; // Store for repeat
             self.speak();
@@ -1120,13 +1199,13 @@ export default {
         addToHistory({
           question: this.currentQuestion,
           num1: this.number1,
-          operator: this.getOperatorSymbolForHistory(this.selectedOperator),
+          operator: this.getOperatorSymbolForHistory(this.currentOperator),
           num2: this.number2,
           correctAnswer: this.expectedResultAsNumber,
           userAnswer: recordedText || '',
           interpretedAnswer: validationResult?.interpretedNumber ?? null,
           isCorrect: this.isResolved,
-          difficulty: this.selectedLevel,
+          difficulty: this.currentEffectiveLevel,
           timestamp: Date.now()
         });
       }

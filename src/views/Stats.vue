@@ -100,6 +100,9 @@
           </ion-card>
         </ion-card-content>
       </ion-card>
+
+      <!-- Achievements Section -->
+      <Achievements :stats="achievementStats" />
     </ion-content>
   </ion-page>
 </template>
@@ -123,6 +126,7 @@ import {
 } from '@ionic/vue';
 import { getHistory, getHistoryStats, getAllOperatorStats } from '@/services/historyService';
 import { t, getPreferredLanguage } from '@/config/i18n';
+import Achievements from '@/components/Achievements.vue';
 
 export default {
   name: 'Stats',
@@ -141,6 +145,7 @@ export default {
     IonCol,
     IonButtons,
     IonBackButton,
+    Achievements,
   },
   data() {
     return {
@@ -154,6 +159,12 @@ export default {
       },
       operatorStats: [],
       recentHistory: [],
+      achievementStats: {
+        correct: 0,
+        bestStreak: 0,
+        stars: 0,
+        operatorStats: [],
+      },
     };
   },
   methods: {
@@ -188,6 +199,14 @@ export default {
       // Load localStorage values
       this.stars = parseInt(localStorage.getItem('stars') || 0);
       this.starsDisplay = Math.min(this.stars, 100) >= 100 ? '100 ⭐' : Math.min(this.stars, 100).toString();
+
+      // Load achievement stats
+      this.achievementStats = {
+        correct: stats.correct,
+        bestStreak: parseInt(localStorage.getItem('bestStreak') || 0),
+        stars: this.stars,
+        operatorStats: this.operatorStats,
+      };
     },
   },
   mounted() {

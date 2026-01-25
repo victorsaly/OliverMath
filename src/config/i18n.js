@@ -30,6 +30,10 @@ export const translations = {
     easy: 'Easy',
     medium: 'Medium',
     hard: 'Hard',
+    auto: 'Auto',
+    adaptiveDifficulty: 'Adaptive difficulty adjusts based on your performance',
+    difficultyIncreased: 'Great job! Moving to harder problems',
+    difficultyDecreased: 'Let\'s practice easier problems first',
     
     // Operators
     operators: 'Operators',
@@ -45,6 +49,12 @@ export const translations = {
     accuracy: 'Accuracy',
     highScore: 'High Score',
     bestStreak: 'Best Streak',
+    
+    // Session Modes
+    sessionMode: 'Practice Mode',
+    randomMode: 'Random Mode',
+    practiceWeakOperators: 'Practice Weak Areas',
+    practiceRecentFailures: 'Practice Recent Failures',
     
     // Problem History
     history: 'History',
@@ -149,6 +159,24 @@ export const translations = {
     // Answer Details
     recentAnswers: 'Recent Answers',
     answer: 'Answer',
+    
+    // Achievements
+    achievements: 'Achievements',
+    unlockedOn: 'Unlocked on',
+    firstCorrect: 'First Step',
+    firstCorrectDesc: 'Answer your first problem correctly',
+    tenCorrect: 'Steady Progress',
+    tenCorrectDesc: 'Answer 10 problems correctly',
+    hundredCorrect: 'Math Master',
+    hundredCorrectDesc: 'Answer 100 problems correctly',
+    fiveStreak: 'Hot Streak',
+    fiveStreakDesc: '5 correct answers in a row',
+    tenStreak: 'On Fire',
+    tenStreakDesc: '10 correct answers in a row',
+    perfectOperator: 'Operator Expert',
+    perfectOperatorDesc: '100% accuracy on 10+ problems',
+    hundredStars: 'Star Collector',
+    hundredStarsDesc: 'Earn 100 stars',
   },
   
   es: {
@@ -169,6 +197,10 @@ export const translations = {
     easy: 'Fácil',
     medium: 'Medio',
     hard: 'Difícil',
+    auto: 'Auto',
+    adaptiveDifficulty: 'La dificultad se ajusta según tu rendimiento',
+    difficultyIncreased: '¡Excelente! Pasando a problemas más difíciles',
+    difficultyDecreased: 'Practiquemos problemas más fáciles primero',
     
     // Operators
     operators: 'Operadores',
@@ -184,6 +216,16 @@ export const translations = {
     accuracy: 'Precisión',
     highScore: 'Récord',
     bestStreak: 'Mejor Racha',
+    sessionMode: 'Modo de Práctica',
+    randomMode: 'Modo Aleatorio',
+    practiceWeakOperators: 'Practicar Áreas Débiles',
+    practiceRecentFailures: 'Practicar Errores Recientes',
+    
+    // Session Modes
+    sessionMode: 'Modo de Práctica',
+    randomMode: 'Modo Aleatorio',
+    practiceWeakOperators: 'Practicar Áreas Débiles',
+    practiceRecentFailures: 'Practicar Errores Recientes',
     
     // Problem History
     history: 'Historial',
@@ -196,6 +238,24 @@ export const translations = {
     correctAnswer: 'Respuesta correcta',
     recentAnswers: 'Respuestas Recientes',
     answer: 'Respuesta',
+    
+    // Achievements
+    achievements: 'Logros',
+    unlockedOn: 'Desbloqueado el',
+    firstCorrect: 'Primer Paso',
+    firstCorrectDesc: 'Responde correctamente tu primer problema',
+    tenCorrect: 'Progreso Constante',
+    tenCorrectDesc: 'Responde correctamente 10 problemas',
+    hundredCorrect: 'Maestro Matemático',
+    hundredCorrectDesc: 'Responde correctamente 100 problemas',
+    fiveStreak: 'Racha Caliente',
+    fiveStreakDesc: '5 respuestas correctas seguidas',
+    tenStreak: 'En Llamas',
+    tenStreakDesc: '10 respuestas correctas seguidas',
+    perfectOperator: 'Experto de Operador',
+    perfectOperatorDesc: '100% de precisión en 10+ problemas',
+    hundredStars: 'Coleccionista de Estrellas',
+    hundredStarsDesc: 'Gana 100 estrellas',
     
     // Phrases - Correct
     correctPhrases: [
@@ -306,6 +366,10 @@ export const translations = {
     easy: 'Facile',
     medium: 'Moyen',
     hard: 'Difficile',
+    auto: 'Auto',
+    adaptiveDifficulty: 'La difficulté s\'adapte selon tes performances',
+    difficultyIncreased: 'Super! Passons à des problèmes plus difficiles',
+    difficultyDecreased: 'Pratiquons d\'abord des problèmes plus faciles',
     
     // Operators
     operators: 'Opérateurs',
@@ -321,6 +385,16 @@ export const translations = {
     accuracy: 'Précision',
     highScore: 'Meilleur Score',
     bestStreak: 'Meilleure Série',
+    sessionMode: 'Mode de Pratique',
+    randomMode: 'Mode Aléatoire',
+    practiceWeakOperators: 'Pratiquer les Points Faibles',
+    practiceRecentFailures: 'Pratiquer les Erreurs Récentes',
+    
+    // Session Modes
+    sessionMode: 'Mode de Pratique',
+    randomMode: 'Mode Aléatoire',
+    practiceWeakOperators: 'Pratiquer les Points Faibles',
+    practiceRecentFailures: 'Pratiquer les Erreurs Récentes',
     
     // Problem History
     history: 'Historique',
@@ -333,6 +407,24 @@ export const translations = {
     correctAnswer: 'Bonne réponse',
     recentAnswers: 'Réponses Récentes',
     answer: 'Réponse',
+    
+    // Achievements
+    achievements: 'Succès',
+    unlockedOn: 'Débloqué le',
+    firstCorrect: 'Premier Pas',
+    firstCorrectDesc: 'Réponds correctement à ton premier problème',
+    tenCorrect: 'Progrès Régulier',
+    tenCorrectDesc: 'Réponds correctement à 10 problèmes',
+    hundredCorrect: 'Maître des Maths',
+    hundredCorrectDesc: 'Réponds correctement à 100 problèmes',
+    fiveStreak: 'Série Chaude',
+    fiveStreakDesc: '5 bonnes réponses de suite',
+    tenStreak: 'En Feu',
+    tenStreakDesc: '10 bonnes réponses de suite',
+    perfectOperator: 'Expert Opérateur',
+    perfectOperatorDesc: '100% de précision sur 10+ problèmes',
+    hundredStars: 'Collectionneur d\'Étoiles',
+    hundredStarsDesc: 'Gagne 100 étoiles',
     
     // Phrases - Correct
     correctPhrases: [
@@ -443,6 +535,10 @@ export const translations = {
     easy: 'Leicht',
     medium: 'Mittel',
     hard: 'Schwer',
+    auto: 'Auto',
+    adaptiveDifficulty: 'Die Schwierigkeit passt sich deiner Leistung an',
+    difficultyIncreased: 'Super! Auf zu schwereren Aufgaben',
+    difficultyDecreased: 'Üben wir erst leichtere Aufgaben',
     
     // Operators
     operators: 'Operatoren',
@@ -458,6 +554,16 @@ export const translations = {
     accuracy: 'Genauigkeit',
     highScore: 'Highscore',
     bestStreak: 'Beste Serie',
+    sessionMode: 'Übungsmodus',
+    randomMode: 'Zufälliger Modus',
+    practiceWeakOperators: 'Schwache Bereiche üben',
+    practiceRecentFailures: 'Letzte Fehler üben',
+    
+    // Session Modes
+    sessionMode: 'Übungsmodus',
+    randomMode: 'Zufälliger Modus',
+    practiceWeakOperators: 'Schwache Bereiche üben',
+    practiceRecentFailures: 'Letzte Fehler üben',
     
     // Problem History
     history: 'Verlauf',
@@ -470,6 +576,24 @@ export const translations = {
     correctAnswer: 'Richtige Antwort',
     recentAnswers: 'Letzte Antworten',
     answer: 'Antwort',
+    
+    // Achievements
+    achievements: 'Erfolge',
+    unlockedOn: 'Freigeschaltet am',
+    firstCorrect: 'Erster Schritt',
+    firstCorrectDesc: 'Beantworte deine erste Aufgabe richtig',
+    tenCorrect: 'Stetige Fortschritte',
+    tenCorrectDesc: 'Beantworte 10 Aufgaben richtig',
+    hundredCorrect: 'Mathe-Meister',
+    hundredCorrectDesc: 'Beantworte 100 Aufgaben richtig',
+    fiveStreak: 'Heiße Serie',
+    fiveStreakDesc: '5 richtige Antworten hintereinander',
+    tenStreak: 'Am Brennen',
+    tenStreakDesc: '10 richtige Antworten hintereinander',
+    perfectOperator: 'Operator-Experte',
+    perfectOperatorDesc: '100% Genauigkeit bei 10+ Aufgaben',
+    hundredStars: 'Sternesammler',
+    hundredStarsDesc: 'Verdiene 100 Sterne',
     
     // Phrases - Correct
     correctPhrases: [
@@ -580,6 +704,10 @@ export const translations = {
     easy: 'Fácil',
     medium: 'Médio',
     hard: 'Difícil',
+    auto: 'Auto',
+    adaptiveDifficulty: 'A dificuldade se ajusta ao seu desempenho',
+    difficultyIncreased: 'Ótimo! Vamos para problemas mais difíceis',
+    difficultyDecreased: 'Vamos praticar problemas mais fáceis primeiro',
     
     // Operators
     operators: 'Operadores',
@@ -595,6 +723,10 @@ export const translations = {
     accuracy: 'Precisão',
     highScore: 'Recorde',
     bestStreak: 'Melhor Sequência',
+    sessionMode: 'Modo de Prática',
+    randomMode: 'Modo Aleatório',
+    practiceWeakOperators: 'Praticar Áreas Fracas',
+    practiceRecentFailures: 'Praticar Falhas Recentes',
     
     // Problem History
     history: 'Histórico',
@@ -607,6 +739,24 @@ export const translations = {
     correctAnswer: 'Resposta correta',
     recentAnswers: 'Respostas Recentes',
     answer: 'Resposta',
+    
+    // Achievements
+    achievements: 'Conquistas',
+    unlockedOn: 'Desbloqueado em',
+    firstCorrect: 'Primeiro Passo',
+    firstCorrectDesc: 'Responda corretamente seu primeiro problema',
+    tenCorrect: 'Progresso Constante',
+    tenCorrectDesc: 'Responda corretamente 10 problemas',
+    hundredCorrect: 'Mestre da Matemática',
+    hundredCorrectDesc: 'Responda corretamente 100 problemas',
+    fiveStreak: 'Sequência Quente',
+    fiveStreakDesc: '5 respostas corretas seguidas',
+    tenStreak: 'Pegando Fogo',
+    tenStreakDesc: '10 respostas corretas seguidas',
+    perfectOperator: 'Especialista em Operador',
+    perfectOperatorDesc: '100% de precisão em 10+ problemas',
+    hundredStars: 'Colecionador de Estrelas',
+    hundredStarsDesc: 'Ganhe 100 estrelas',
     
     // Phrases - Correct
     correctPhrases: [
