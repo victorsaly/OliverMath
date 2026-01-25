@@ -4,6 +4,9 @@
       <ion-toolbar color="primary">
         <ion-title>{{ t('title') }}</ion-title>
         <ion-buttons slot="end">
+          <ion-button fill="clear" size="small" router-link="/stats" title="View Statistics">
+            <ion-icon :icon="statsIcon" aria-hidden="true"></ion-icon>
+          </ion-button>
           <ion-button fill="clear" size="small" id="language-trigger-header" title="Change language">
             <span class="language-flag-toolbar">{{ availableLanguages[selectedLanguage]?.flag }}</span>
           </ion-button>
@@ -25,7 +28,7 @@
           </ion-popover>
           <ion-chip color="warning" aria-label="Stars earned" class="star-chip">
             <ion-icon :icon="star" aria-hidden="true"></ion-icon>
-            <ion-label>{{ stars }}</ion-label>
+            <ion-label>{{ starsDisplay }}</ion-label>
           </ion-chip>
         </ion-buttons>
       </ion-toolbar>
@@ -208,7 +211,7 @@ import {
   SpeechConfig,
   SpeechRecognizer,
 } from "microsoft-cognitiveservices-speech-sdk";
-import { star, play, speedometer, calculator, mic, volumeHigh, sync, alertCircle, refresh, volumeMute, timeOutline, trashOutline, globe } from "ionicons/icons";
+import { star, play, speedometer, calculator, mic, volumeHigh, sync, alertCircle, refresh, volumeMute, timeOutline, trashOutline, globe, statsChart } from "ionicons/icons";
 import { OPERATORS, LEVELS, NUMBER_RANGES, SCORING } from "@/config/gameConfig";
 import { getRandomInt } from "@/utils/helpers";
 import { getSpeechToken, getCachedAudio, validateAnswer } from "@/services/apiService";
@@ -260,7 +263,8 @@ export default {
       muteIcon: volumeMute,
       historyIcon: timeOutline,
       trashIcon: trashOutline,
-      globeIcon: globe
+      globeIcon: globe,
+      statsIcon: statsChart
     };
   },
   data() {
@@ -385,6 +389,11 @@ export default {
     accuracy() {
       if (this.totalQuestionsAnswered === 0) return 0;
       return Math.round((this.totalCorrectAnswers / this.totalQuestionsAnswered) * 100);
+    },
+    starsDisplay() {
+      // Cap stars at 100 and show max indicator
+      const displayStars = Math.min(this.stars, 100);
+      return this.stars >= 100 ? '100 ⭐' : displayStars.toString();
     },
     statusColor() {
       switch (this.botState) {
@@ -1037,7 +1046,7 @@ export default {
         localStorage.totalCorrect = this.totalCorrectAnswers;
         
         const points = this.calculatePoints();
-        this.stars += points;
+        this.stars = Math.min(this.stars + points, 100); // Cap at 100 stars
         
         // Play sound and show celebration
         playCorrectSound(this.consecutiveCorrect);
@@ -1180,7 +1189,7 @@ export default {
     // Load saved game data
     const savedStars = localStorage.getItem('stars');
     if (savedStars) {
-      this.stars = parseInt(savedStars, 10) || 0;
+      this.stars = Math.min(parseInt(savedStars, 10) || 0, 100); // Cap at 100
     }
     
     const savedHighScore = localStorage.getItem('highScore');

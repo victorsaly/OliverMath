@@ -105,6 +105,50 @@ export const translations = {
     dividedBy: "divided by",
     
     initialPrompt: 'Click play, listen to the question and respond back by talking your answer.',
+    
+    // Stats & Dashboard
+    stats: 'Stats',
+    dashboard: 'Dashboard',
+    overview: 'Overview',
+    detailedHistory: 'Detailed History',
+    performanceByOperator: 'Performance by Operator',
+    performanceByDifficulty: 'Performance by Difficulty',
+    totalProblems: 'Total Problems',
+    correctAnswers: 'Correct Answers',
+    totalStars: 'Total Stars',
+    currentStreak: 'Current Streak',
+    longestStreak: 'Longest Streak',
+    averageAccuracy: 'Average Accuracy',
+    
+    // Filter & Display
+    filterByOperator: 'Filter by Operator',
+    filterByDifficulty: 'Filter by Difficulty',
+    filterByStatus: 'Filter by Status',
+    allOperators: 'All Operators',
+    allDifficulties: 'All Difficulties',
+    correct: 'Correct',
+    incorrect: 'Incorrect',
+    all: 'All',
+    
+    // History Table
+    date: 'Date',
+    problem: 'Problem',
+    yourAnswer: 'Your Answer',
+    result: 'Result',
+    points: 'Points',
+    timeAgo: 'Time Ago',
+    
+    // Stats Labels
+    operator: 'Operator',
+    difficulty: 'Difficulty',
+    accuracy: 'Accuracy',
+    attempt: 'Attempt',
+    attempts: 'Attempts',
+    successRate: 'Success Rate',
+    
+    // Answer Details
+    recentAnswers: 'Recent Answers',
+    answer: 'Answer',
   },
   
   es: {
@@ -150,6 +194,8 @@ export const translations = {
     incorrect: 'Incorrecto',
     yourAnswer: 'Tu respuesta',
     correctAnswer: 'Respuesta correcta',
+    recentAnswers: 'Respuestas Recientes',
+    answer: 'Respuesta',
     
     // Phrases - Correct
     correctPhrases: [
@@ -200,6 +246,46 @@ export const translations = {
     dividedBy: "entre",
     
     initialPrompt: 'Haz clic en jugar, escucha la pregunta y responde hablando.',
+    
+    // Stats & Dashboard
+    stats: 'Estadísticas',
+    dashboard: 'Panel de Control',
+    overview: 'General',
+    detailedHistory: 'Historial Detallado',
+    performanceByOperator: 'Rendimiento por Operación',
+    performanceByDifficulty: 'Rendimiento por Dificultad',
+    totalProblems: 'Problemas Total',
+    correctAnswers: 'Respuestas Correctas',
+    totalStars: 'Estrellas Totales',
+    currentStreak: 'Racha Actual',
+    longestStreak: 'Mejor Racha',
+    averageAccuracy: 'Precisión Promedio',
+    
+    // Filter & Display
+    filterByOperator: 'Filtrar por Operación',
+    filterByDifficulty: 'Filtrar por Dificultad',
+    filterByStatus: 'Filtrar por Estado',
+    allOperators: 'Todas las Operaciones',
+    allDifficulties: 'Todas las Dificultades',
+    correct: 'Correcto',
+    incorrect: 'Incorrecto',
+    all: 'Todo',
+    
+    // History Table
+    date: 'Fecha',
+    problem: 'Problema',
+    yourAnswer: 'Tu Respuesta',
+    result: 'Resultado',
+    points: 'Puntos',
+    timeAgo: 'Hace',
+    
+    // Stats Labels
+    operator: 'Operación',
+    difficulty: 'Dificultad',
+    accuracy: 'Precisión',
+    attempt: 'Intento',
+    attempts: 'Intentos',
+    successRate: 'Tasa de Éxito',
   },
   
   fr: {
@@ -245,6 +331,8 @@ export const translations = {
     incorrect: 'Incorrect',
     yourAnswer: 'Votre réponse',
     correctAnswer: 'Bonne réponse',
+    recentAnswers: 'Réponses Récentes',
+    answer: 'Réponse',
     
     // Phrases - Correct
     correctPhrases: [
@@ -295,6 +383,46 @@ export const translations = {
     dividedBy: "divisé par",
     
     initialPrompt: 'Cliquez sur jouer, écoutez la question et répondez en parlant.',
+    
+    // Stats & Dashboard
+    stats: 'Statistiques',
+    dashboard: 'Tableau de Bord',
+    overview: 'Aperçu',
+    detailedHistory: 'Historique Détaillé',
+    performanceByOperator: 'Performance par Opération',
+    performanceByDifficulty: 'Performance par Difficulté',
+    totalProblems: 'Problèmes au Total',
+    correctAnswers: 'Réponses Correctes',
+    totalStars: 'Étoiles Totales',
+    currentStreak: 'Série Actuelle',
+    longestStreak: 'Meilleure Série',
+    averageAccuracy: 'Précision Moyenne',
+    
+    // Filter & Display
+    filterByOperator: 'Filtrer par Opération',
+    filterByDifficulty: 'Filtrer par Difficulté',
+    filterByStatus: 'Filtrer par Statut',
+    allOperators: 'Toutes les Opérations',
+    allDifficulties: 'Toutes les Difficultés',
+    correct: 'Correct',
+    incorrect: 'Incorrect',
+    all: 'Tous',
+    
+    // History Table
+    date: 'Date',
+    problem: 'Problème',
+    yourAnswer: 'Votre Réponse',
+    result: 'Résultat',
+    points: 'Points',
+    timeAgo: 'Il y a',
+    
+    // Stats Labels
+    operator: 'Opération',
+    difficulty: 'Difficulté',
+    accuracy: 'Précision',
+    attempt: 'Tentative',
+    attempts: 'Tentatives',
+    successRate: 'Taux de Réussite',
   },
   
   de: {
@@ -340,6 +468,8 @@ export const translations = {
     incorrect: 'Falsch',
     yourAnswer: 'Deine Antwort',
     correctAnswer: 'Richtige Antwort',
+    recentAnswers: 'Letzte Antworten',
+    answer: 'Antwort',
     
     // Phrases - Correct
     correctPhrases: [
@@ -390,6 +520,46 @@ export const translations = {
     dividedBy: "geteilt durch",
     
     initialPrompt: 'Klicke auf "Spielen", höre die Frage und antworte, indem du sprichst.',
+    
+    // Stats & Dashboard
+    stats: 'Statistiken',
+    dashboard: 'Armaturenbrett',
+    overview: 'Überblick',
+    detailedHistory: 'Detaillierter Verlauf',
+    performanceByOperator: 'Leistung nach Operator',
+    performanceByDifficulty: 'Leistung nach Schwierigkeit',
+    totalProblems: 'Gesamtaufgaben',
+    correctAnswers: 'Korrekte Antworten',
+    totalStars: 'Gesamtsterne',
+    currentStreak: 'Aktuelle Serie',
+    longestStreak: 'Beste Serie',
+    averageAccuracy: 'Durchschnittliche Genauigkeit',
+    
+    // Filter & Display
+    filterByOperator: 'Nach Operator filtern',
+    filterByDifficulty: 'Nach Schwierigkeit filtern',
+    filterByStatus: 'Nach Status filtern',
+    allOperators: 'Alle Operatoren',
+    allDifficulties: 'Alle Schwierigkeitsgrade',
+    correct: 'Richtig',
+    incorrect: 'Falsch',
+    all: 'Alle',
+    
+    // History Table
+    date: 'Datum',
+    problem: 'Aufgabe',
+    yourAnswer: 'Deine Antwort',
+    result: 'Ergebnis',
+    points: 'Punkte',
+    timeAgo: 'vor',
+    
+    // Stats Labels
+    operator: 'Operator',
+    difficulty: 'Schwierigkeit',
+    accuracy: 'Genauigkeit',
+    attempt: 'Versuch',
+    attempts: 'Versuche',
+    successRate: 'Erfolgsquote',
   },
   
   pt: {
@@ -435,6 +605,8 @@ export const translations = {
     incorrect: 'Incorreto',
     yourAnswer: 'Sua resposta',
     correctAnswer: 'Resposta correta',
+    recentAnswers: 'Respostas Recentes',
+    answer: 'Resposta',
     
     // Phrases - Correct
     correctPhrases: [
@@ -485,6 +657,46 @@ export const translations = {
     dividedBy: "dividido por",
     
     initialPrompt: 'Clique em jogar, ouça a pergunta e responda falando.',
+    
+    // Stats & Dashboard
+    stats: 'Estatísticas',
+    dashboard: 'Painel de Controle',
+    overview: 'Visão Geral',
+    detailedHistory: 'Histórico Detalhado',
+    performanceByOperator: 'Desempenho por Operador',
+    performanceByDifficulty: 'Desempenho por Dificuldade',
+    totalProblems: 'Total de Problemas',
+    correctAnswers: 'Respostas Corretas',
+    totalStars: 'Estrelas Totais',
+    currentStreak: 'Sequência Atual',
+    longestStreak: 'Melhor Sequência',
+    averageAccuracy: 'Precisão Média',
+    
+    // Filter & Display
+    filterByOperator: 'Filtrar por Operador',
+    filterByDifficulty: 'Filtrar por Dificuldade',
+    filterByStatus: 'Filtrar por Status',
+    allOperators: 'Todos os Operadores',
+    allDifficulties: 'Todas as Dificuldades',
+    correct: 'Correto',
+    incorrect: 'Incorreto',
+    all: 'Todos',
+    
+    // History Table
+    date: 'Data',
+    problem: 'Problema',
+    yourAnswer: 'Sua Resposta',
+    result: 'Resultado',
+    points: 'Pontos',
+    timeAgo: 'há',
+    
+    // Stats Labels
+    operator: 'Operador',
+    difficulty: 'Dificuldade',
+    accuracy: 'Precisão',
+    attempt: 'Tentativa',
+    attempts: 'Tentativas',
+    successRate: 'Taxa de Sucesso',
   },
 };
 

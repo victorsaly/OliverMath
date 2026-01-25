@@ -173,3 +173,133 @@ export function getOperatorSymbol(operator) {
   };
   return symbols[operator] || operator;
 }
+/**
+ * Filter history by operator
+ * @param {string} operator - Operator to filter by
+ * @returns {Array} Filtered problems
+ */
+export function getHistoryByOperator(operator) {
+  if (!operator) return getHistory();
+  const history = getHistory();
+  return history.filter((p) => p.operator === operator);
+}
+
+/**
+ * Filter history by difficulty
+ * @param {string} difficulty - Difficulty to filter by
+ * @returns {Array} Filtered problems
+ */
+export function getHistoryByDifficulty(difficulty) {
+  if (!difficulty) return getHistory();
+  const history = getHistory();
+  return history.filter((p) => p.difficulty === difficulty);
+}
+
+/**
+ * Filter history by status (correct/incorrect)
+ * @param {string} status - 'correct', 'incorrect', or null for all
+ * @returns {Array} Filtered problems
+ */
+export function getHistoryByStatus(status) {
+  const history = getHistory();
+  if (status === 'correct') return history.filter((p) => p.isCorrect);
+  if (status === 'incorrect') return history.filter((p) => !p.isCorrect);
+  return history;
+}
+
+/**
+ * Get performance stats for a specific operator
+ * @param {string} operator - Operator to analyze
+ * @returns {Object} Performance metrics
+ */
+export function getOperatorStats(operator) {
+  const filtered = getHistoryByOperator(operator);
+  if (filtered.length === 0) {
+    return { operator, total: 0, correct: 0, accuracy: 0 };
+  }
+  const correct = filtered.filter((p) => p.isCorrect).length;
+  return {
+    operator,
+    total: filtered.length,
+    correct,
+    accuracy: Math.round((correct / filtered.length) * 100),
+  };
+}
+
+/**
+ * Get performance stats for a specific difficulty
+ * @param {string} difficulty - Difficulty to analyze
+ * @returns {Object} Performance metrics
+ */
+export function getDifficultyStats(difficulty) {
+  const filtered = getHistoryByDifficulty(difficulty);
+  if (filtered.length === 0) {
+    return { difficulty, total: 0, correct: 0, accuracy: 0 };
+  }
+  const correct = filtered.filter((p) => p.isCorrect).length;
+  return {
+    difficulty,
+    total: filtered.length,
+    correct,
+    accuracy: Math.round((correct / filtered.length) * 100),
+  };
+}
+
+/**
+ * Get all operators with their stats
+ * @returns {Array} Array of operator stats
+ */
+export function getAllOperatorStats() {
+  const history = getHistory();
+  const operators = new Set(history.map((p) => p.operator));
+  return Array.from(operators).map((op) => getOperatorStats(op));
+}
+
+/**
+ * Get all difficulties with their stats
+ * @returns {Array} Array of difficulty stats
+ */
+export function getAllDifficultyStats() {
+  const history = getHistory();
+  const difficulties = new Set(history.map((p) => p.difficulty));
+  return Array.from(difficulties).map((diff) => getDifficultyStats(diff));
+}
+
+/**
+ * Get combined stats for multiple filters
+ * @param {Object} filters - Filter options
+ * @param {string} filters.operator - Filter by operator
+ * @param {string} filters.difficulty - Filter by difficulty
+ * @param {string} filters.status - Filter by status (correct/incorrect)
+ * @returns {Object} Combined stats
+ */
+export function getFilteredStats(filters = {}) {
+  let filtered = getHistory();
+  
+  if (filters.operator) {
+    filtered = filtered.filter((p) => p.operator === filters.operator);
+  }
+  
+  if (filters.difficulty) {
+    filtered = filtered.filter((p) => p.difficulty === filters.difficulty);
+  }
+  
+  if (filters.status === 'correct') {
+    filtered = filtered.filter((p) => p.isCorrect);
+  } else if (filters.status === 'incorrect') {
+    filtered = filtered.filter((p) => !p.isCorrect);
+  }
+  
+  if (filtered.length === 0) {
+    return { total: 0, correct: 0, accuracy: 0, data: [] };
+  }
+  
+  const correct = filtered.filter((p) => p.isCorrect).length;
+  return {
+    total: filtered.length,
+    correct,
+    incorrect: filtered.length - correct,
+    accuracy: Math.round((correct / filtered.length) * 100),
+    data: filtered,
+  };
+}
