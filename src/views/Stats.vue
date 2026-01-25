@@ -186,7 +186,7 @@ export default {
 
 <style scoped>
 .stats-content {
-  --background: linear-gradient(180deg, #f8f9fa 0%, #ffffff 100%);
+  --background: #1a1a2e;
 }
 
 /* Hero Star Display */
@@ -224,13 +224,14 @@ export default {
 .star-count {
   font-size: 32px;
   font-weight: 800;
-  color: #1a1a1a;
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .star-subtitle {
   margin-top: 12px;
   font-size: 14px;
-  color: #666;
+  color: #a0aec0;
   font-weight: 500;
 }
 
@@ -243,33 +244,33 @@ export default {
 
 .quick-stat {
   flex: 1;
-  background: white;
+  background: #16213e;
   border-radius: 12px;
   padding: 16px 12px;
   text-align: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  border-top: 3px solid var(--ion-color-primary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  border-top: 3px solid #3182ce;
 }
 
 .quick-stat.success {
-  border-top-color: var(--ion-color-success);
+  border-top-color: #48bb78;
 }
 
 .quick-stat.accent {
-  border-top-color: #8b5cf6;
+  border-top-color: #9f7aea;
 }
 
 .quick-value {
   display: block;
   font-size: 24px;
   font-weight: 700;
-  color: #1a1a1a;
+  color: #e2e8f0;
 }
 
 .quick-label {
   display: block;
   font-size: 10px;
-  color: #888;
+  color: #a0aec0;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-top: 4px;
@@ -278,8 +279,14 @@ export default {
 /* Performance Section */
 .performance-section {
   border-radius: 16px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   margin-bottom: 20px;
+  --background: #16213e;
+  --color: #e2e8f0;
+}
+
+.performance-section ion-card-header {
+  --color: #e2e8f0;
 }
 
 .operator-grid {
@@ -299,27 +306,27 @@ export default {
   width: 40px;
   height: 40px;
   border-radius: 10px;
-  background: linear-gradient(145deg, #e0e5ec, #ffffff);
+  background: linear-gradient(145deg, #0f3460, #1a4a7a);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 20px;
   font-weight: 600;
-  color: #2d3748;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  color: #e2e8f0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .operator-bar-container {
   flex: 1;
   height: 8px;
-  background: #e2e8f0;
+  background: #2d3748;
   border-radius: 4px;
   overflow: hidden;
 }
 
 .operator-bar {
   height: 100%;
-  background: linear-gradient(90deg, #4CAF50, #8BC34A);
+  background: linear-gradient(90deg, #48bb78, #68d391);
   border-radius: 4px;
   transition: width 0.5s ease;
 }
@@ -334,19 +341,25 @@ export default {
 .operator-accuracy {
   font-size: 16px;
   font-weight: 700;
-  color: #2d3748;
+  color: #e2e8f0;
 }
 
 .operator-attempts {
   font-size: 10px;
-  color: #888;
+  color: #a0aec0;
 }
 
 /* Answer Details Section */
 .answer-details-section {
   border-radius: 16px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   margin-bottom: 20px;
+  --background: #16213e;
+  --color: #e2e8f0;
+}
+
+.answer-details-section ion-card-header {
+  --color: #e2e8f0;
 }
 
 .recent-problems-list {
@@ -361,18 +374,18 @@ export default {
   align-items: center;
   padding: 10px 12px;
   border-radius: 8px;
-  background: #f8f9fa;
-  border-left: 3px solid #ccc;
+  background: #0f3460;
+  border-left: 3px solid #4a5568;
 }
 
 .recent-problem.correct {
-  border-left-color: var(--ion-color-success);
-  background: #f0fdf4;
+  border-left-color: #48bb78;
+  background: rgba(72, 187, 120, 0.15);
 }
 
 .recent-problem.incorrect {
-  border-left-color: var(--ion-color-danger);
-  background: #fef2f2;
+  border-left-color: #fc8181;
+  background: rgba(252, 129, 129, 0.15);
 }
 
 .problem-left {
@@ -382,7 +395,7 @@ export default {
 .problem-equation {
   font-size: 14px;
   font-weight: 600;
-  color: #2d3748;
+  color: #e2e8f0;
   font-family: 'SF Mono', 'Courier New', monospace;
 }
 
@@ -398,16 +411,16 @@ export default {
 }
 
 .recent-problem.correct .result-icon {
-  color: var(--ion-color-success);
+  color: #48bb78;
 }
 
 .recent-problem.incorrect .result-icon {
-  color: var(--ion-color-danger);
+  color: #fc8181;
 }
 
 .wrong-answer {
   font-size: 12px;
-  color: var(--ion-color-danger);
+  color: #fc8181;
   text-decoration: line-through;
 }
 

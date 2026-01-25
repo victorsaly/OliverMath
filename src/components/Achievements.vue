@@ -197,14 +197,14 @@ export default {
 .achievements-container {
   margin: 20px 0;
   padding: 16px;
-  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  background: #16213e;
   border-radius: 12px;
 }
 
 .achievements-title {
   font-size: 18px;
   font-weight: 700;
-  color: #2d3748;
+  color: #e2e8f0;
   margin-bottom: 16px;
   text-align: center;
 }
@@ -220,10 +220,10 @@ export default {
   flex-direction: column;
   align-items: center;
   padding: 12px;
-  background: white;
+  background: #0f3460;
   border-radius: 10px;
-  border: 2px solid #e2e8f0;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  border: 2px solid #2d3748;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
   transition: all 0.3s ease;
   opacity: 0.6;
   position: relative;
@@ -276,7 +276,7 @@ export default {
 }
 
 .lock-icon {
-  color: rgba(0, 0, 0, 0.3);
+  color: rgba(255, 255, 255, 0.4);
   position: absolute;
 }
 
@@ -288,13 +288,13 @@ export default {
 .badge-name {
   font-size: 12px;
   font-weight: 600;
-  color: #2d3748;
+  color: #e2e8f0;
   margin: 0 0 4px 0;
 }
 
 .badge-description {
   font-size: 10px;
-  color: #718096;
+  color: #a0aec0;
   margin: 0 0 8px 0;
   line-height: 1.3;
 }
@@ -308,7 +308,7 @@ export default {
 .progress-bar {
   width: 100%;
   height: 4px;
-  background: #e2e8f0;
+  background: #2d3748;
   border-radius: 2px;
   overflow: hidden;
 }
@@ -321,13 +321,13 @@ export default {
 
 .progress-text {
   font-size: 9px;
-  color: #718096;
+  color: #a0aec0;
   font-weight: 500;
 }
 
 .badge-unlocked-date {
   font-size: 9px;
-  color: #10b981;
+  color: #48bb78;
   font-weight: 600;
 }
 
