@@ -234,16 +234,9 @@ import {
   IonIcon,
   toastController,
   IonItem,
-  IonSelect,
-  IonSelectOption,
   IonButton,
   IonButtons,
   IonFooter,
-  IonCard,
-  IonCardContent,
-  IonGrid,
-  IonRow,
-  IonCol,
   IonSpinner,
   IonModal,
   IonPopover,
@@ -260,7 +253,7 @@ import { OPERATORS, LEVELS, NUMBER_RANGES, SCORING } from "@/config/gameConfig";
 import { getRandomInt } from "@/utils/helpers";
 import { getSpeechToken, getCachedAudio, validateAnswer } from "@/services/apiService";
 import { LANGUAGES, SPEECH_VOICES, getPreferredLanguage, setLanguage, t, getRandomPhrase } from "@/config/i18n";
-import { addToHistory, getHistory, clearHistory as clearHistoryService, formatTimestamp, getOperatorSymbol, getWeakOperators, getRecentFailures, getRecommendedDifficulty, getSpacedRepetitionProblem } from "@/services/historyService";
+import { addToHistory, getHistory, clearHistory as clearHistoryService, formatTimestamp, getOperatorSymbol, getRecommendedDifficulty, getSpacedRepetitionProblem } from "@/services/historyService";
 import { preloadSounds, playCorrectSound, playIncorrectSound, toggleMute } from "@/services/soundService";
 import { celebrateConfetti, celebrateStreak, showStar } from "@/utils/confetti";
 
@@ -277,16 +270,9 @@ export default {
     IonLabel,
     IonIcon,
     IonItem,
-    IonSelect,
-    IonSelectOption,
     IonButton,
     IonButtons,
     IonFooter,
-    IonCard,
-    IonCardContent,
-    IonGrid,
-    IonRow,
-    IonCol,
     IonSpinner,
     IonModal,
     IonPopover,

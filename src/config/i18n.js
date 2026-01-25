@@ -136,22 +136,17 @@ export const translations = {
     filterByStatus: 'Filter by Status',
     allOperators: 'All Operators',
     allDifficulties: 'All Difficulties',
-    correct: 'Correct',
-    incorrect: 'Incorrect',
     all: 'All',
     
     // History Table
     date: 'Date',
     problem: 'Problem',
-    yourAnswer: 'Your Answer',
     result: 'Result',
     points: 'Points',
     timeAgo: 'Time Ago',
     
     // Stats Labels
     operator: 'Operator',
-    difficulty: 'Difficulty',
-    accuracy: 'Accuracy',
     attempt: 'Attempt',
     attempts: 'Attempts',
     successRate: 'Success Rate',
@@ -216,12 +211,6 @@ export const translations = {
     accuracy: 'Precisión',
     highScore: 'Récord',
     bestStreak: 'Mejor Racha',
-    sessionMode: 'Modo de Práctica',
-    randomMode: 'Modo Aleatorio',
-    practiceWeakOperators: 'Practicar Áreas Débiles',
-    practiceRecentFailures: 'Practicar Errores Recientes',
-    
-    // Session Modes
     sessionMode: 'Modo de Práctica',
     randomMode: 'Modo Aleatorio',
     practiceWeakOperators: 'Practicar Áreas Débiles',
@@ -327,22 +316,17 @@ export const translations = {
     filterByStatus: 'Filtrar por Estado',
     allOperators: 'Todas las Operaciones',
     allDifficulties: 'Todas las Dificultades',
-    correct: 'Correcto',
-    incorrect: 'Incorrecto',
     all: 'Todo',
     
     // History Table
     date: 'Fecha',
     problem: 'Problema',
-    yourAnswer: 'Tu Respuesta',
     result: 'Resultado',
     points: 'Puntos',
     timeAgo: 'Hace',
     
     // Stats Labels
     operator: 'Operación',
-    difficulty: 'Dificultad',
-    accuracy: 'Precisión',
     attempt: 'Intento',
     attempts: 'Intentos',
     successRate: 'Tasa de Éxito',
@@ -385,12 +369,6 @@ export const translations = {
     accuracy: 'Précision',
     highScore: 'Meilleur Score',
     bestStreak: 'Meilleure Série',
-    sessionMode: 'Mode de Pratique',
-    randomMode: 'Mode Aléatoire',
-    practiceWeakOperators: 'Pratiquer les Points Faibles',
-    practiceRecentFailures: 'Pratiquer les Erreurs Récentes',
-    
-    // Session Modes
     sessionMode: 'Mode de Pratique',
     randomMode: 'Mode Aléatoire',
     practiceWeakOperators: 'Pratiquer les Points Faibles',
@@ -496,22 +474,17 @@ export const translations = {
     filterByStatus: 'Filtrer par Statut',
     allOperators: 'Toutes les Opérations',
     allDifficulties: 'Toutes les Difficultés',
-    correct: 'Correct',
-    incorrect: 'Incorrect',
     all: 'Tous',
     
     // History Table
     date: 'Date',
     problem: 'Problème',
-    yourAnswer: 'Votre Réponse',
     result: 'Résultat',
     points: 'Points',
     timeAgo: 'Il y a',
     
     // Stats Labels
     operator: 'Opération',
-    difficulty: 'Difficulté',
-    accuracy: 'Précision',
     attempt: 'Tentative',
     attempts: 'Tentatives',
     successRate: 'Taux de Réussite',
@@ -554,12 +527,6 @@ export const translations = {
     accuracy: 'Genauigkeit',
     highScore: 'Highscore',
     bestStreak: 'Beste Serie',
-    sessionMode: 'Übungsmodus',
-    randomMode: 'Zufälliger Modus',
-    practiceWeakOperators: 'Schwache Bereiche üben',
-    practiceRecentFailures: 'Letzte Fehler üben',
-    
-    // Session Modes
     sessionMode: 'Übungsmodus',
     randomMode: 'Zufälliger Modus',
     practiceWeakOperators: 'Schwache Bereiche üben',
@@ -665,22 +632,17 @@ export const translations = {
     filterByStatus: 'Nach Status filtern',
     allOperators: 'Alle Operatoren',
     allDifficulties: 'Alle Schwierigkeitsgrade',
-    correct: 'Richtig',
-    incorrect: 'Falsch',
     all: 'Alle',
     
     // History Table
     date: 'Datum',
     problem: 'Aufgabe',
-    yourAnswer: 'Deine Antwort',
     result: 'Ergebnis',
     points: 'Punkte',
     timeAgo: 'vor',
     
     // Stats Labels
     operator: 'Operator',
-    difficulty: 'Schwierigkeit',
-    accuracy: 'Genauigkeit',
     attempt: 'Versuch',
     attempts: 'Versuche',
     successRate: 'Erfolgsquote',
@@ -828,22 +790,17 @@ export const translations = {
     filterByStatus: 'Filtrar por Status',
     allOperators: 'Todos os Operadores',
     allDifficulties: 'Todas as Dificuldades',
-    correct: 'Correto',
-    incorrect: 'Incorreto',
     all: 'Todos',
     
     // History Table
     date: 'Data',
     problem: 'Problema',
-    yourAnswer: 'Sua Resposta',
     result: 'Resultado',
     points: 'Pontos',
     timeAgo: 'há',
     
     // Stats Labels
     operator: 'Operador',
-    difficulty: 'Dificuldade',
-    accuracy: 'Precisão',
     attempt: 'Tentativa',
     attempts: 'Tentativas',
     successRate: 'Taxa de Sucesso',
