@@ -156,12 +156,12 @@
 
       <!-- Bot Container -->
       <div class="bot-container">
-        <BotFace
+        <AnimatedBot
           :botState="botState"
           :isPlayMode="isPlayMode"
           :text="speech_phrases"
           :audioLevel="audioLevel"
-          v-on:ask_question="askQuestion"
+          size="200px"
           @click="changeStatus('laughing')"
           aria-live="polite"
         />
@@ -221,7 +221,7 @@ import {
   IonPopover,
   IonList
 } from "@ionic/vue";
-import BotFace from "@/components/BotFace.vue";
+import AnimatedBot from "@/components/AnimatedBot.vue";
 import {
   AudioConfig,
   SpeechConfig,
@@ -239,7 +239,7 @@ import { celebrateConfetti, celebrateStreak, showStar } from "@/utils/confetti";
 export default {
   name: "Math",
   components: {
-    BotFace,
+    AnimatedBot,
     IonHeader,
     IonToolbar,
     IonTitle,
