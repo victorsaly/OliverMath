@@ -1,0 +1,25 @@
+{
+  "name": "Oliver Math",
+  "short_name": "OliverMath",
+  "description": "A math practice game with voice recognition for kids",
+  "start_url": "/OliverMath/",
+  "scope": "/OliverMath/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#3880ff",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "assets/icon/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/icon/favicon.png",
+      "sizes": "64x64",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["education", "kids", "games"]
+}
