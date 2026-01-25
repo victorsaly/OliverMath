@@ -5,18 +5,67 @@
       {{ text }}
     </p>
     
-    <!-- Lottie Animation -->
-    <div class="lottie-wrapper" v-if="currentAnimation">
+    <!-- Lottie Animations - use v-show to keep all loaded, show only active one -->
+    <div class="lottie-wrapper">
       <Vue3Lottie
-        ref="lottieRef"
-        :key="botState"
-        :animationData="currentAnimation"
-        :loop="true"
-        :autoPlay="true"
+        v-if="currentAnimationType === 'idle'"
+        :key="'idle'"
+        :animationData="animations.idle"
+        :loop="shouldLoop"
+        :autoPlay="shouldAutoPlay"
         :speed="animationSpeed"
         :width="size"
         :height="size"
-        @animLoop="onAnimationLoop"
+      />
+      <Vue3Lottie
+        v-else-if="currentAnimationType === 'happy'"
+        :key="'happy'"
+        :animationData="animations.happy"
+        :loop="shouldLoop"
+        :autoPlay="shouldAutoPlay"
+        :speed="animationSpeed"
+        :width="size"
+        :height="size"
+      />
+      <Vue3Lottie
+        v-else-if="currentAnimationType === 'sad'"
+        :key="'sad'"
+        :animationData="animations.sad"
+        :loop="shouldLoop"
+        :autoPlay="shouldAutoPlay"
+        :speed="animationSpeed"
+        :width="size"
+        :height="size"
+      />
+      <Vue3Lottie
+        v-else-if="currentAnimationType === 'talking'"
+        :key="'talking'"
+        :animationData="animations.talking"
+        :loop="shouldLoop"
+        :autoPlay="shouldAutoPlay"
+        :speed="animationSpeed"
+        :width="size"
+        :height="size"
+      />
+      <Vue3Lottie
+        v-else-if="currentAnimationType === 'thinking'"
+        :key="'thinking'"
+        :animationData="animations.thinking"
+        :loop="shouldLoop"
+        :autoPlay="shouldAutoPlay"
+        :speed="animationSpeed"
+        :width="size"
+        :height="size"
+      />
+      <Vue3Lottie
+        v-else-if="currentAnimationType === 'listening'"
+        :key="'listening'"
+        :animationData="animations.listening"
+        :loop="shouldLoop"
+        :autoPlay="shouldAutoPlay"
+        :speed="animationSpeed"
+        :width="size"
+        :height="size"
       />
     </div>
   </div>
@@ -81,8 +130,8 @@ export default {
     };
   },
   computed: {
-    // Map botState to the appropriate animation
-    currentAnimation() {
+    // Map botState to the animation type string
+    currentAnimationType() {
       const stateToAnimation = {
         neutral: 'idle',
         thinking: 'thinking',
@@ -100,9 +149,22 @@ export default {
         sleepy: 'idle'
       };
       
-      const animationKey = stateToAnimation[this.botState] || 'idle';
-      // Always return a valid animation, fallback to idle if not found
-      return this.animations[animationKey] || this.animations.idle;
+      return stateToAnimation[this.botState] || 'idle';
+    },
+    
+    // Determine if animations should loop
+    shouldLoop() {
+      // Only loop when in play mode (waiting for question)
+      if (!this.isPlayMode) {
+        return false; // Don't loop during question/answer sequence
+      }
+      return true;
+    },
+    
+    // Determine if animations should auto-play
+    shouldAutoPlay() {
+      // Only auto-play when in play mode
+      return this.isPlayMode;
     },
     
     // Adjust animation speed based on state and audio level
@@ -182,7 +244,11 @@ p.bubble {
   position: relative;
   width: min(300px, 80vw);
   padding: 15px 20px;
-  margin-bottom: 20px;
+  margin-bottom: 35px;
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: linear-gradient(145deg, #ffffff, #f0f4f8);
   border-radius: 20px;
   box-shadow: 
@@ -199,7 +265,7 @@ p.bubble {
 p.bubble::after {
   content: '';
   position: absolute;
-  bottom: -15px;
+  bottom: -10px;
   left: 50%;
   transform: translateX(-50%);
   border: 10px solid transparent;

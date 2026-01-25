@@ -23,7 +23,7 @@
               </ion-list>
             </ion-content>
           </ion-popover>
-          <ion-chip color="warning" aria-label="Stars earned">
+          <ion-chip color="warning" aria-label="Stars earned" class="star-chip">
             <ion-icon :icon="star" aria-hidden="true"></ion-icon>
             <ion-label>{{ stars }}</ion-label>
           </ion-chip>
@@ -146,20 +146,20 @@
           aria-live="polite"
         />
       </div>
-
-      <!-- Status Indicator -->
-      <div class="status-indicator" v-if="botState !== 'thinking'">
-        <ion-chip :color="statusColor" outline>
-          <ion-icon :icon="statusIcon" aria-hidden="true"></ion-icon>
-          <ion-label>{{ statusText }}</ion-label>
-        </ion-chip>
-      </div>
     </ion-content>
     
-    <ion-footer class="ion-no-border">
+    <ion-footer class="ion-no-border footer-spacer">
       <ion-toolbar>
+        <!-- Status Indicator -->
+        <div class="status-indicator" v-if="botState !== 'thinking'">
+          <ion-chip :color="statusColor">
+            <ion-icon :icon="statusIcon" aria-hidden="true"></ion-icon>
+            <ion-label>{{ statusText }}</ion-label>
+          </ion-chip>
+        </div>
+      </ion-toolbar>
+      <ion-toolbar v-if="isPlayMode && botState !== 'broken'">
         <ion-button
-          v-if="isPlayMode && botState !== 'broken'"
           expand="block"
           size="large"
           @click="askQuestion"
@@ -574,16 +574,19 @@ export default {
       this._voiceEnd = null;
     },
     changeStatus(status) {
-      if (this.timeout) 
-          if (status == "laughing"){
-            var audio = new Audio(window.location.origin + this.$route.path + this.publicPath + 'assets/sound/laugh.wav');
-            audio.play();
-            this.isLaughing = true;
-          }
-          clearTimeout(this.timeout); 
-          this.timeout = setTimeout(() => {
-            this.isLaughing = false;
-          }, 1500); // delay
+      if (this.timeout) {
+        clearTimeout(this.timeout);
+      }
+      
+      if (status === "laughing") {
+        var audio = new Audio(window.location.origin + this.$route.path + this.publicPath + 'assets/sound/laugh.wav');
+        audio.play();
+        this.isLaughing = true;
+        
+        this.timeout = setTimeout(() => {
+          this.isLaughing = false;
+        }, 1500); // delay
+      }
     },
     keyDownHandler(e) {
       let value = e.key * 1;
@@ -611,7 +614,7 @@ export default {
         message: text,
         duration: 4000,
         color: color,
-        position: 'top',
+        position: 'bottom',
         translucent: true,
         cssClass:"toast-compact",
         animated:false,
@@ -1284,12 +1287,29 @@ export default {
 .status-indicator {
   display: flex;
   justify-content: center;
-  margin: 16px 0;
+  width: 100%;
+  padding: 12px 0;
 }
 
 .status-indicator ion-chip {
   font-size: 14px;
   padding: 8px 16px;
+  --border-radius: 16px;
+  --background: #0066ff;
+  color: white;
+}
+
+.status-indicator ion-icon {
+  color: #ffd700;
+  margin-right: 6px;
+}
+
+.status-indicator ion-label {
+  color: white;
+}
+
+ion-footer.footer-spacer {
+  min-height: 90px;
 }
 
 ion-footer ion-toolbar {
@@ -1343,12 +1363,24 @@ ion-footer ion-toolbar {
   margin: 2px;
 }
 
+.star-chip {
+  --background: #ffd700 !important;
+  color: #000 !important;
+}
+
+.star-chip ion-icon {
+  color: #000 !important;
+}
+
 /* Action buttons */
 .action-buttons {
+  position: absolute;
+  top: 8px;
+  right: 8px;
   display: flex;
   justify-content: center;
   gap: 8px;
-  margin-top: 8px;
+  z-index: 20;
 }
 
 .action-buttons ion-button {
@@ -1382,9 +1414,12 @@ ion-footer ion-toolbar {
 
 /* Toast styling */
 .toast-compact::part(container) {
-  padding: 8px 12px;
-  border-radius: 8px;
-  font-size: 13px;
+  padding: 12px 16px;
+  border-radius: 16px;
+  font-size: 14px;
+  bottom: 130px;
+  margin: 0 16px;
+  width: calc(100% - 32px);
 }
 
 .toast-compact::part(message) {

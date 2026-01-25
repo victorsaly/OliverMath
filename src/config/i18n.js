@@ -14,7 +14,7 @@ export const LANGUAGES = {
 export const translations = {
   en: {
     // Game UI
-    title: 'OliverMath',
+    title: 'Oliver Math',
     play: 'Play',
     stop: 'Stop',
     listening: 'Listening...',
@@ -109,7 +109,7 @@ export const translations = {
   
   es: {
     // Game UI
-    title: 'OliverMath',
+    title: 'Oliver Math',
     play: 'Jugar',
     stop: 'Parar',
     listening: 'Escuchando...',
@@ -204,7 +204,7 @@ export const translations = {
   
   fr: {
     // Game UI
-    title: 'OliverMath',
+    title: 'Oliver Math',
     play: 'Jouer',
     stop: 'Arrêter',
     listening: 'Écoute...',
@@ -299,7 +299,7 @@ export const translations = {
   
   de: {
     // Game UI
-    title: 'OliverMath',
+    title: 'Oliver Math',
     play: 'Spielen',
     stop: 'Stoppen',
     listening: 'Höre zu...',
@@ -394,7 +394,7 @@ export const translations = {
   
   pt: {
     // Game UI
-    title: 'OliverMath',
+    title: 'Oliver Math',
     play: 'Jogar',
     stop: 'Parar',
     listening: 'Ouvindo...',
