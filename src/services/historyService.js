@@ -396,12 +396,50 @@ export function getRecommendedDifficulty(operator, currentDifficulty) {
  * Get a problem using spaced repetition algorithm
  * @param {string} selectedOperator - User-selected operator or null for any
  * @param {string} selectedDifficulty - User-selected difficulty
+ * @param {string} sessionMode - Session mode: 'random', 'weak_operators', or 'recent_failures'
  * @returns {Object|null} { type, problem, operator, difficulty } or null for random
  */
-export function getSpacedRepetitionProblem(selectedOperator, selectedDifficulty) {
+export function getSpacedRepetitionProblem(selectedOperator, selectedDifficulty, sessionMode = 'random') {
+  // If mode is 'random', use weighted random selection (70/20/10)
+  // If mode is 'weak_operators', prioritize weak operators
+  // If mode is 'recent_failures', prioritize recent failures
+  
+  if (sessionMode === 'recent_failures') {
+    // Prioritize recent failures
+    const failures = getRecentFailures();
+    if (failures.length > 0) {
+      const problem = failures[Math.floor(Math.random() * failures.length)];
+      return {
+        type: 'retry_failure',
+        num1: problem.num1,
+        num2: problem.num2,
+        operator: problem.operator,
+        difficulty: problem.difficulty,
+      };
+    }
+    // Fall back to random if no failures
+    return null;
+  }
+  
+  if (sessionMode === 'weak_operators') {
+    // Prioritize weak operators
+    const weakOps = getWeakOperators(5);
+    if (weakOps.length > 0) {
+      const weakest = weakOps[0];
+      return {
+        type: 'weak_operator',
+        operator: weakest.operator,
+        difficulty: selectedDifficulty,
+        generateNew: true,
+      };
+    }
+    // Fall back to random if no weak operators
+    return null;
+  }
+  
+  // Default: 70% random problems, 20% recent failures, 10% weak operators
   const random = Math.random() * 100;
   
-  // 70% random problems, 20% recent failures, 10% weak operators
   if (random < 70) {
     return null; // Use random generation
   }

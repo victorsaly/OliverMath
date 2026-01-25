@@ -140,15 +140,6 @@ export default {
     t(key) {
       return t(this.selectedLanguage, key);
     },
-    getOperatorLabel(operator) {
-      const labels = {
-        '+': this.t('plus'),
-        '−': this.t('minus'),
-        '×': this.t('times'),
-        '÷': this.t('dividedBy'),
-      };
-      return labels[operator] || operator;
-    },
     loadStats() {
       // Load overview stats
       const stats = getHistoryStats();

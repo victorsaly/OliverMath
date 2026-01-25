@@ -746,8 +746,12 @@ export default {
             // Store effective level for history tracking
             self.currentEffectiveLevel = effectiveLevel;
             
-            // Check for spaced repetition problem (retry failures or practice weak areas)
-            const srProblem = getSpacedRepetitionProblem(self.selectedOperator, effectiveLevel);
+            // Check for spaced repetition problem based on sessionMode
+            let srProblem = null;
+            if (self.sessionMode !== 'random') {
+              // Only use spaced repetition when not in random mode
+              srProblem = getSpacedRepetitionProblem(self.selectedOperator, effectiveLevel, self.sessionMode);
+            }
             let operatorToUse = self.selectedOperator;
             
             if (srProblem && srProblem.type === 'retry_failure') {

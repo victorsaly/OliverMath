@@ -27,7 +27,7 @@
 <script>
 import { IonIcon } from '@ionic/vue';
 import { lockClosed } from 'ionicons/icons';
-import { t } from '@/config/i18n';
+import { t, getPreferredLanguage } from '@/config/i18n';
 
 export default {
   name: 'Achievements',
@@ -117,46 +117,82 @@ export default {
   },
   methods: {
     t(key) {
-      return t(this.$root.$data.selectedLanguage || 'en', key);
+      return t(getPreferredLanguage(), key);
     },
     formatDate(date) {
       if (!date) return '';
       return new Date(date).toLocaleDateString();
     },
+    loadPersistedBadges() {
+      // Load persisted badge unlock states from localStorage
+      try {
+        const saved = localStorage.getItem('achievementBadges');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          this.badges.forEach((badge) => {
+            if (parsed[badge.id]) {
+              badge.unlocked = parsed[badge.id].unlocked;
+              badge.unlockedDate = parsed[badge.id].unlockedDate;
+            }
+          });
+        }
+      } catch (e) {
+        console.warn('Failed to load badges:', e);
+      }
+    },
+    saveBadges() {
+      // Persist badge unlock states to localStorage
+      try {
+        const toSave = {};
+        this.badges.forEach(badge => {
+          if (badge.unlocked) {
+            toSave[badge.id] = {
+              unlocked: badge.unlocked,
+              unlockedDate: badge.unlockedDate
+            };
+          }
+        });
+        localStorage.setItem('achievementBadges', JSON.stringify(toSave));
+      } catch (e) {
+        console.warn('Failed to save badges:', e);
+      }
+    },
+    unlockBadge(index) {
+      if (!this.badges[index].unlocked) {
+        this.badges[index].unlocked = true;
+        this.badges[index].unlockedDate = Date.now();
+        this.saveBadges();
+      }
+    },
     updateBadgeProgress() {
       // First Correct
       this.badges[0].progress = this.stats.correct > 0 ? 1 : 0;
-      if (this.stats.correct >= 1 && !this.badges[0].unlocked) {
-        this.badges[0].unlocked = true;
-        this.badges[0].unlockedDate = Date.now();
+      if (this.stats.correct >= 1) {
+        this.unlockBadge(0);
       }
 
       // 10 Correct
       this.badges[1].progress = Math.min(this.stats.correct, 10);
-      if (this.stats.correct >= 10 && !this.badges[1].unlocked) {
-        this.badges[1].unlocked = true;
-        this.badges[1].unlockedDate = Date.now();
+      if (this.stats.correct >= 10) {
+        this.unlockBadge(1);
       }
 
       // 100 Correct
       this.badges[2].progress = Math.min(this.stats.correct, 100);
-      if (this.stats.correct >= 100 && !this.badges[2].unlocked) {
-        this.badges[2].unlocked = true;
-        this.badges[2].unlockedDate = Date.now();
+      if (this.stats.correct >= 100) {
+        this.unlockBadge(2);
       }
 
       // 5 Streak
       this.badges[3].progress = Math.min(this.stats.bestStreak || 0, 5);
-      if ((this.stats.bestStreak || 0) >= 5 && !this.badges[3].unlocked) {
-        this.badges[3].unlocked = true;
-        this.badges[3].unlockedDate = Date.now();
+      if ((this.stats.bestStreak || 0) >= 5) {
+        this.unlockBadge(3);
       }
 
       // 10 Streak
       this.badges[4].progress = Math.min(this.stats.bestStreak || 0, 10);
-      if ((this.stats.bestStreak || 0) >= 10 && !this.badges[4].unlocked) {
-        this.badges[4].unlocked = true;
-        this.badges[4].unlockedDate = Date.now();
+      if ((this.stats.bestStreak || 0) >= 10) {
+        this.unlockBadge(4);
       }
 
       // Perfect Operator (100% on 10+ attempts in any operator)
@@ -165,17 +201,13 @@ export default {
       );
       if (perfectOperator) {
         this.badges[5].progress = 100;
-        if (!this.badges[5].unlocked) {
-          this.badges[5].unlocked = true;
-          this.badges[5].unlockedDate = Date.now();
-        }
+        this.unlockBadge(5);
       }
 
       // 100 Stars
       this.badges[6].progress = Math.min(this.stats.stars || 0, 100);
-      if ((this.stats.stars || 0) >= 100 && !this.badges[6].unlocked) {
-        this.badges[6].unlocked = true;
-        this.badges[6].unlockedDate = Date.now();
+      if ((this.stats.stars || 0) >= 100) {
+        this.unlockBadge(6);
       }
     },
   },
@@ -188,6 +220,7 @@ export default {
     },
   },
   mounted() {
+    this.loadPersistedBadges();
     this.updateBadgeProgress();
   },
 };
