@@ -15,8 +15,8 @@ describe('Oliver Math - Home Page', () => {
     cy.get('#bot').should('exist');
   });
 
-  it('should display level selector', () => {
-    cy.get('ion-select').should('exist');
+  it('should display settings button in header', () => {
+    cy.get('ion-button[aria-label="Open settings"]').should('exist');
   });
 
   it('should display stars counter in header', () => {
@@ -28,18 +28,20 @@ describe('Oliver Math - Home Page', () => {
   });
 });
 
-describe('Oliver Math - Game Flow', () => {
+describe('Oliver Math - Settings Modal', () => {
   beforeEach(() => {
     cy.visit('/');
   });
 
-  it('should display operator selector', () => {
-    cy.get('ion-select').should('have.length.at.least', 2);
+  it('should open settings modal when clicking settings button', () => {
+    cy.get('ion-button[aria-label="Open settings"]').click();
+    cy.get('ion-modal.settings-modal').should('be.visible');
   });
 
-  it('should display level options when clicking level select', () => {
-    cy.get('ion-select').first().click();
-    cy.get('ion-select-option').should('exist');
+  it('should display level options in settings modal', () => {
+    cy.get('ion-button[aria-label="Open settings"]').click();
+    cy.get('ion-modal.settings-modal').should('be.visible');
+    cy.get('.settings-group').should('have.length.at.least', 2);
   });
 
   it('should navigate to assistant page', () => {
