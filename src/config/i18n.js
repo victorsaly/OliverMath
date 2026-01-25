@@ -14,7 +14,7 @@ export const LANGUAGES = {
 export const translations = {
   en: {
     // Game UI
-    title: 'OliverMath',
+    title: 'Oliver Math',
     play: 'Play',
     stop: 'Stop',
     listening: 'Listening...',
@@ -30,6 +30,10 @@ export const translations = {
     easy: 'Easy',
     medium: 'Medium',
     hard: 'Hard',
+    auto: 'Auto',
+    adaptiveDifficulty: 'Adaptive difficulty adjusts based on your performance',
+    difficultyIncreased: 'Great job! Moving to harder problems',
+    difficultyDecreased: 'Let\'s practice easier problems first',
     
     // Operators
     operators: 'Operators',
@@ -45,6 +49,12 @@ export const translations = {
     accuracy: 'Accuracy',
     highScore: 'High Score',
     bestStreak: 'Best Streak',
+    
+    // Session Modes
+    sessionMode: 'Practice Mode',
+    randomMode: 'Random Mode',
+    practiceWeakOperators: 'Practice Weak Areas',
+    practiceRecentFailures: 'Practice Recent Failures',
     
     // Problem History
     history: 'History',
@@ -103,11 +113,70 @@ export const translations = {
     minus: "minus",
     times: "times",
     dividedBy: "divided by",
+    
+    initialPrompt: 'Click play, listen to the question and respond back by talking your answer.',
+    
+    // Stats & Dashboard
+    stats: 'Stats',
+    dashboard: 'Dashboard',
+    overview: 'Overview',
+    detailedHistory: 'Detailed History',
+    performanceByOperator: 'Performance by Operator',
+    performanceByDifficulty: 'Performance by Difficulty',
+    totalProblems: 'Total Problems',
+    correctAnswers: 'Correct Answers',
+    totalStars: 'Total Stars',
+    currentStreak: 'Current Streak',
+    longestStreak: 'Longest Streak',
+    averageAccuracy: 'Average Accuracy',
+    
+    // Filter & Display
+    filterByOperator: 'Filter by Operator',
+    filterByDifficulty: 'Filter by Difficulty',
+    filterByStatus: 'Filter by Status',
+    allOperators: 'All Operators',
+    allDifficulties: 'All Difficulties',
+    all: 'All',
+    
+    // History Table
+    date: 'Date',
+    problem: 'Problem',
+    result: 'Result',
+    points: 'Points',
+    timeAgo: 'Time Ago',
+    
+    // Stats Labels
+    operator: 'Operator',
+    attempt: 'Attempt',
+    attempts: 'Attempts',
+    successRate: 'Success Rate',
+    
+    // Answer Details
+    recentAnswers: 'Recent Answers',
+    answer: 'Answer',
+    
+    // Achievements
+    achievements: 'Achievements',
+    unlockedOn: 'Unlocked on',
+    firstCorrect: 'First Step',
+    firstCorrectDesc: 'Answer your first problem correctly',
+    tenCorrect: 'Steady Progress',
+    tenCorrectDesc: 'Answer 10 problems correctly',
+    hundredCorrect: 'Math Master',
+    hundredCorrectDesc: 'Answer 100 problems correctly',
+    fiveStreak: 'Hot Streak',
+    fiveStreakDesc: '5 correct answers in a row',
+    tenStreak: 'On Fire',
+    tenStreakDesc: '10 correct answers in a row',
+    perfectOperator: 'Operator Expert',
+    perfectOperatorDesc: '100% accuracy on 10+ problems',
+    hundredStars: 'Star Collector',
+    hundredStarsDesc: 'Earn 100 stars',
   },
   
   es: {
     // Game UI
-    title: 'OliverMath',
+    title: 'Oliver Math',
     play: 'Jugar',
     stop: 'Parar',
     listening: 'Escuchando...',
@@ -123,6 +192,10 @@ export const translations = {
     easy: 'Fácil',
     medium: 'Medio',
     hard: 'Difícil',
+    auto: 'Auto',
+    adaptiveDifficulty: 'La dificultad se ajusta según tu rendimiento',
+    difficultyIncreased: '¡Excelente! Pasando a problemas más difíciles',
+    difficultyDecreased: 'Practiquemos problemas más fáciles primero',
     
     // Operators
     operators: 'Operadores',
@@ -138,6 +211,10 @@ export const translations = {
     accuracy: 'Precisión',
     highScore: 'Récord',
     bestStreak: 'Mejor Racha',
+    sessionMode: 'Modo de Práctica',
+    randomMode: 'Modo Aleatorio',
+    practiceWeakOperators: 'Practicar Áreas Débiles',
+    practiceRecentFailures: 'Practicar Errores Recientes',
     
     // Problem History
     history: 'Historial',
@@ -148,6 +225,26 @@ export const translations = {
     incorrect: 'Incorrecto',
     yourAnswer: 'Tu respuesta',
     correctAnswer: 'Respuesta correcta',
+    recentAnswers: 'Respuestas Recientes',
+    answer: 'Respuesta',
+    
+    // Achievements
+    achievements: 'Logros',
+    unlockedOn: 'Desbloqueado el',
+    firstCorrect: 'Primer Paso',
+    firstCorrectDesc: 'Responde correctamente tu primer problema',
+    tenCorrect: 'Progreso Constante',
+    tenCorrectDesc: 'Responde correctamente 10 problemas',
+    hundredCorrect: 'Maestro Matemático',
+    hundredCorrectDesc: 'Responde correctamente 100 problemas',
+    fiveStreak: 'Racha Caliente',
+    fiveStreakDesc: '5 respuestas correctas seguidas',
+    tenStreak: 'En Llamas',
+    tenStreakDesc: '10 respuestas correctas seguidas',
+    perfectOperator: 'Experto de Operador',
+    perfectOperatorDesc: '100% de precisión en 10+ problemas',
+    hundredStars: 'Coleccionista de Estrellas',
+    hundredStarsDesc: 'Gana 100 estrellas',
     
     // Phrases - Correct
     correctPhrases: [
@@ -196,11 +293,48 @@ export const translations = {
     minus: "menos",
     times: "por",
     dividedBy: "entre",
+    
+    initialPrompt: 'Haz clic en jugar, escucha la pregunta y responde hablando.',
+    
+    // Stats & Dashboard
+    stats: 'Estadísticas',
+    dashboard: 'Panel de Control',
+    overview: 'General',
+    detailedHistory: 'Historial Detallado',
+    performanceByOperator: 'Rendimiento por Operación',
+    performanceByDifficulty: 'Rendimiento por Dificultad',
+    totalProblems: 'Problemas Total',
+    correctAnswers: 'Respuestas Correctas',
+    totalStars: 'Estrellas Totales',
+    currentStreak: 'Racha Actual',
+    longestStreak: 'Mejor Racha',
+    averageAccuracy: 'Precisión Promedio',
+    
+    // Filter & Display
+    filterByOperator: 'Filtrar por Operación',
+    filterByDifficulty: 'Filtrar por Dificultad',
+    filterByStatus: 'Filtrar por Estado',
+    allOperators: 'Todas las Operaciones',
+    allDifficulties: 'Todas las Dificultades',
+    all: 'Todo',
+    
+    // History Table
+    date: 'Fecha',
+    problem: 'Problema',
+    result: 'Resultado',
+    points: 'Puntos',
+    timeAgo: 'Hace',
+    
+    // Stats Labels
+    operator: 'Operación',
+    attempt: 'Intento',
+    attempts: 'Intentos',
+    successRate: 'Tasa de Éxito',
   },
   
   fr: {
     // Game UI
-    title: 'OliverMath',
+    title: 'Oliver Math',
     play: 'Jouer',
     stop: 'Arrêter',
     listening: 'Écoute...',
@@ -216,6 +350,10 @@ export const translations = {
     easy: 'Facile',
     medium: 'Moyen',
     hard: 'Difficile',
+    auto: 'Auto',
+    adaptiveDifficulty: 'La difficulté s\'adapte selon tes performances',
+    difficultyIncreased: 'Super! Passons à des problèmes plus difficiles',
+    difficultyDecreased: 'Pratiquons d\'abord des problèmes plus faciles',
     
     // Operators
     operators: 'Opérateurs',
@@ -231,6 +369,10 @@ export const translations = {
     accuracy: 'Précision',
     highScore: 'Meilleur Score',
     bestStreak: 'Meilleure Série',
+    sessionMode: 'Mode de Pratique',
+    randomMode: 'Mode Aléatoire',
+    practiceWeakOperators: 'Pratiquer les Points Faibles',
+    practiceRecentFailures: 'Pratiquer les Erreurs Récentes',
     
     // Problem History
     history: 'Historique',
@@ -241,6 +383,26 @@ export const translations = {
     incorrect: 'Incorrect',
     yourAnswer: 'Votre réponse',
     correctAnswer: 'Bonne réponse',
+    recentAnswers: 'Réponses Récentes',
+    answer: 'Réponse',
+    
+    // Achievements
+    achievements: 'Succès',
+    unlockedOn: 'Débloqué le',
+    firstCorrect: 'Premier Pas',
+    firstCorrectDesc: 'Réponds correctement à ton premier problème',
+    tenCorrect: 'Progrès Régulier',
+    tenCorrectDesc: 'Réponds correctement à 10 problèmes',
+    hundredCorrect: 'Maître des Maths',
+    hundredCorrectDesc: 'Réponds correctement à 100 problèmes',
+    fiveStreak: 'Série Chaude',
+    fiveStreakDesc: '5 bonnes réponses de suite',
+    tenStreak: 'En Feu',
+    tenStreakDesc: '10 bonnes réponses de suite',
+    perfectOperator: 'Expert Opérateur',
+    perfectOperatorDesc: '100% de précision sur 10+ problèmes',
+    hundredStars: 'Collectionneur d\'Étoiles',
+    hundredStarsDesc: 'Gagne 100 étoiles',
     
     // Phrases - Correct
     correctPhrases: [
@@ -289,11 +451,48 @@ export const translations = {
     minus: "moins",
     times: "fois",
     dividedBy: "divisé par",
+    
+    initialPrompt: 'Cliquez sur jouer, écoutez la question et répondez en parlant.',
+    
+    // Stats & Dashboard
+    stats: 'Statistiques',
+    dashboard: 'Tableau de Bord',
+    overview: 'Aperçu',
+    detailedHistory: 'Historique Détaillé',
+    performanceByOperator: 'Performance par Opération',
+    performanceByDifficulty: 'Performance par Difficulté',
+    totalProblems: 'Problèmes au Total',
+    correctAnswers: 'Réponses Correctes',
+    totalStars: 'Étoiles Totales',
+    currentStreak: 'Série Actuelle',
+    longestStreak: 'Meilleure Série',
+    averageAccuracy: 'Précision Moyenne',
+    
+    // Filter & Display
+    filterByOperator: 'Filtrer par Opération',
+    filterByDifficulty: 'Filtrer par Difficulté',
+    filterByStatus: 'Filtrer par Statut',
+    allOperators: 'Toutes les Opérations',
+    allDifficulties: 'Toutes les Difficultés',
+    all: 'Tous',
+    
+    // History Table
+    date: 'Date',
+    problem: 'Problème',
+    result: 'Résultat',
+    points: 'Points',
+    timeAgo: 'Il y a',
+    
+    // Stats Labels
+    operator: 'Opération',
+    attempt: 'Tentative',
+    attempts: 'Tentatives',
+    successRate: 'Taux de Réussite',
   },
   
   de: {
     // Game UI
-    title: 'OliverMath',
+    title: 'Oliver Math',
     play: 'Spielen',
     stop: 'Stoppen',
     listening: 'Höre zu...',
@@ -309,6 +508,10 @@ export const translations = {
     easy: 'Leicht',
     medium: 'Mittel',
     hard: 'Schwer',
+    auto: 'Auto',
+    adaptiveDifficulty: 'Die Schwierigkeit passt sich deiner Leistung an',
+    difficultyIncreased: 'Super! Auf zu schwereren Aufgaben',
+    difficultyDecreased: 'Üben wir erst leichtere Aufgaben',
     
     // Operators
     operators: 'Operatoren',
@@ -324,6 +527,10 @@ export const translations = {
     accuracy: 'Genauigkeit',
     highScore: 'Highscore',
     bestStreak: 'Beste Serie',
+    sessionMode: 'Übungsmodus',
+    randomMode: 'Zufälliger Modus',
+    practiceWeakOperators: 'Schwache Bereiche üben',
+    practiceRecentFailures: 'Letzte Fehler üben',
     
     // Problem History
     history: 'Verlauf',
@@ -334,6 +541,26 @@ export const translations = {
     incorrect: 'Falsch',
     yourAnswer: 'Deine Antwort',
     correctAnswer: 'Richtige Antwort',
+    recentAnswers: 'Letzte Antworten',
+    answer: 'Antwort',
+    
+    // Achievements
+    achievements: 'Erfolge',
+    unlockedOn: 'Freigeschaltet am',
+    firstCorrect: 'Erster Schritt',
+    firstCorrectDesc: 'Beantworte deine erste Aufgabe richtig',
+    tenCorrect: 'Stetige Fortschritte',
+    tenCorrectDesc: 'Beantworte 10 Aufgaben richtig',
+    hundredCorrect: 'Mathe-Meister',
+    hundredCorrectDesc: 'Beantworte 100 Aufgaben richtig',
+    fiveStreak: 'Heiße Serie',
+    fiveStreakDesc: '5 richtige Antworten hintereinander',
+    tenStreak: 'Am Brennen',
+    tenStreakDesc: '10 richtige Antworten hintereinander',
+    perfectOperator: 'Operator-Experte',
+    perfectOperatorDesc: '100% Genauigkeit bei 10+ Aufgaben',
+    hundredStars: 'Sternesammler',
+    hundredStarsDesc: 'Verdiene 100 Sterne',
     
     // Phrases - Correct
     correctPhrases: [
@@ -382,11 +609,48 @@ export const translations = {
     minus: "minus",
     times: "mal",
     dividedBy: "geteilt durch",
+    
+    initialPrompt: 'Klicke auf "Spielen", höre die Frage und antworte, indem du sprichst.',
+    
+    // Stats & Dashboard
+    stats: 'Statistiken',
+    dashboard: 'Armaturenbrett',
+    overview: 'Überblick',
+    detailedHistory: 'Detaillierter Verlauf',
+    performanceByOperator: 'Leistung nach Operator',
+    performanceByDifficulty: 'Leistung nach Schwierigkeit',
+    totalProblems: 'Gesamtaufgaben',
+    correctAnswers: 'Korrekte Antworten',
+    totalStars: 'Gesamtsterne',
+    currentStreak: 'Aktuelle Serie',
+    longestStreak: 'Beste Serie',
+    averageAccuracy: 'Durchschnittliche Genauigkeit',
+    
+    // Filter & Display
+    filterByOperator: 'Nach Operator filtern',
+    filterByDifficulty: 'Nach Schwierigkeit filtern',
+    filterByStatus: 'Nach Status filtern',
+    allOperators: 'Alle Operatoren',
+    allDifficulties: 'Alle Schwierigkeitsgrade',
+    all: 'Alle',
+    
+    // History Table
+    date: 'Datum',
+    problem: 'Aufgabe',
+    result: 'Ergebnis',
+    points: 'Punkte',
+    timeAgo: 'vor',
+    
+    // Stats Labels
+    operator: 'Operator',
+    attempt: 'Versuch',
+    attempts: 'Versuche',
+    successRate: 'Erfolgsquote',
   },
   
   pt: {
     // Game UI
-    title: 'OliverMath',
+    title: 'Oliver Math',
     play: 'Jogar',
     stop: 'Parar',
     listening: 'Ouvindo...',
@@ -402,6 +666,10 @@ export const translations = {
     easy: 'Fácil',
     medium: 'Médio',
     hard: 'Difícil',
+    auto: 'Auto',
+    adaptiveDifficulty: 'A dificuldade se ajusta ao seu desempenho',
+    difficultyIncreased: 'Ótimo! Vamos para problemas mais difíceis',
+    difficultyDecreased: 'Vamos praticar problemas mais fáceis primeiro',
     
     // Operators
     operators: 'Operadores',
@@ -417,6 +685,10 @@ export const translations = {
     accuracy: 'Precisão',
     highScore: 'Recorde',
     bestStreak: 'Melhor Sequência',
+    sessionMode: 'Modo de Prática',
+    randomMode: 'Modo Aleatório',
+    practiceWeakOperators: 'Praticar Áreas Fracas',
+    practiceRecentFailures: 'Praticar Falhas Recentes',
     
     // Problem History
     history: 'Histórico',
@@ -427,6 +699,26 @@ export const translations = {
     incorrect: 'Incorreto',
     yourAnswer: 'Sua resposta',
     correctAnswer: 'Resposta correta',
+    recentAnswers: 'Respostas Recentes',
+    answer: 'Resposta',
+    
+    // Achievements
+    achievements: 'Conquistas',
+    unlockedOn: 'Desbloqueado em',
+    firstCorrect: 'Primeiro Passo',
+    firstCorrectDesc: 'Responda corretamente seu primeiro problema',
+    tenCorrect: 'Progresso Constante',
+    tenCorrectDesc: 'Responda corretamente 10 problemas',
+    hundredCorrect: 'Mestre da Matemática',
+    hundredCorrectDesc: 'Responda corretamente 100 problemas',
+    fiveStreak: 'Sequência Quente',
+    fiveStreakDesc: '5 respostas corretas seguidas',
+    tenStreak: 'Pegando Fogo',
+    tenStreakDesc: '10 respostas corretas seguidas',
+    perfectOperator: 'Especialista em Operador',
+    perfectOperatorDesc: '100% de precisão em 10+ problemas',
+    hundredStars: 'Colecionador de Estrelas',
+    hundredStarsDesc: 'Ganhe 100 estrelas',
     
     // Phrases - Correct
     correctPhrases: [
@@ -475,6 +767,43 @@ export const translations = {
     minus: "menos",
     times: "vezes",
     dividedBy: "dividido por",
+    
+    initialPrompt: 'Clique em jogar, ouça a pergunta e responda falando.',
+    
+    // Stats & Dashboard
+    stats: 'Estatísticas',
+    dashboard: 'Painel de Controle',
+    overview: 'Visão Geral',
+    detailedHistory: 'Histórico Detalhado',
+    performanceByOperator: 'Desempenho por Operador',
+    performanceByDifficulty: 'Desempenho por Dificuldade',
+    totalProblems: 'Total de Problemas',
+    correctAnswers: 'Respostas Corretas',
+    totalStars: 'Estrelas Totais',
+    currentStreak: 'Sequência Atual',
+    longestStreak: 'Melhor Sequência',
+    averageAccuracy: 'Precisão Média',
+    
+    // Filter & Display
+    filterByOperator: 'Filtrar por Operador',
+    filterByDifficulty: 'Filtrar por Dificuldade',
+    filterByStatus: 'Filtrar por Status',
+    allOperators: 'Todos os Operadores',
+    allDifficulties: 'Todas as Dificuldades',
+    all: 'Todos',
+    
+    // History Table
+    date: 'Data',
+    problem: 'Problema',
+    result: 'Resultado',
+    points: 'Pontos',
+    timeAgo: 'há',
+    
+    // Stats Labels
+    operator: 'Operador',
+    attempt: 'Tentativa',
+    attempts: 'Tentativas',
+    successRate: 'Taxa de Sucesso',
   },
 };
 

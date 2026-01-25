@@ -2,119 +2,145 @@
   <ion-page>
     <ion-header>
       <ion-toolbar color="primary">
+        <ion-buttons slot="start">
+          <ion-button fill="clear" size="small" @click="showSettingsModal = true" aria-label="Open settings">
+            <ion-icon :icon="settingsIcon" slot="icon-only" style="color: white;"></ion-icon>
+          </ion-button>
+        </ion-buttons>
         <ion-title>{{ t('title') }}</ion-title>
-        <ion-chip slot="end" color="warning" aria-label="Stars earned">
-          <ion-icon :icon="star" aria-hidden="true"></ion-icon>
-          <ion-label>{{ stars }}</ion-label>
-        </ion-chip>
+        <ion-buttons slot="end">
+          <ion-button fill="clear" size="small" id="language-trigger-header" aria-label="Change language" aria-expanded="false" aria-haspopup="menu">
+            <span class="language-flag-toolbar" aria-hidden="true">{{ availableLanguages[selectedLanguage]?.flag }}</span>
+          </ion-button>
+          <ion-popover trigger="language-trigger-header" trigger-action="click">
+            <ion-content class="ion-padding">
+              <ion-list>
+                <ion-item 
+                  v-for="(lang, code) in availableLanguages" 
+                  :key="code" 
+                  button 
+                  @click="changeLanguage(code)"
+                  :class="{ 'selected-language': code === selectedLanguage }"
+                >
+                  <span class="language-flag">{{ lang.flag }}</span>
+                  <ion-label>{{ lang.name }}</ion-label>
+                </ion-item>
+              </ion-list>
+            </ion-content>
+          </ion-popover>
+          <ion-chip 
+            color="warning" 
+            class="star-chip clickable-chip" 
+            router-link="/stats"
+            aria-label="View stats and achievements"
+            role="button"
+          >
+            <ion-icon :icon="star" aria-hidden="true"></ion-icon>
+            <ion-label>{{ starsDisplay }}</ion-label>
+          </ion-chip>
+        </ion-buttons>
       </ion-toolbar>
     </ion-header>
+
+    <!-- Settings Modal -->
+    <ion-modal 
+      :is-open="showSettingsModal" 
+      @didDismiss="showSettingsModal = false" 
+      class="settings-modal"
+    >
+      <ion-header>
+        <ion-toolbar color="primary">
+          <ion-title>{{ t('settings') }}</ion-title>
+          <ion-buttons slot="end">
+            <ion-button fill="clear" @click="showSettingsModal = false" aria-label="Close settings">
+              <ion-icon :icon="closeIcon" slot="icon-only" style="color: white;"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="ion-padding">
+        <div class="settings-list">
+          <!-- Difficulty Level -->
+          <div class="settings-group">
+            <div class="settings-group-header">
+              <ion-icon :icon="speedometerIcon" color="primary"></ion-icon>
+              <span>{{ t('level') }}</span>
+            </div>
+            <div class="settings-options">
+              <button 
+                v-for="level in levelOptions" 
+                :key="level.value" 
+                class="setting-option" 
+                :class="{ active: selectedLevel === level.value }"
+                @click="selectedLevel = level.value"
+              >
+                {{ level.label }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Operator -->
+          <div class="settings-group">
+            <div class="settings-group-header">
+              <ion-icon :icon="calculatorIcon" color="secondary"></ion-icon>
+              <span>{{ t('operators') }}</span>
+            </div>
+            <div class="settings-options">
+              <button 
+                v-for="op in operatorOptions" 
+                :key="op.value" 
+                class="setting-option" 
+                :class="{ active: selectedOperator === op.value }"
+                @click="selectedOperator = op.value"
+              >
+                {{ op.label }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Practice Mode -->
+          <div class="settings-group">
+            <div class="settings-group-header">
+              <ion-icon :icon="targetIcon" color="tertiary"></ion-icon>
+              <span>{{ t('sessionMode') }}</span>
+            </div>
+            <div class="settings-options vertical">
+              <button 
+                v-for="mode in modeOptions" 
+                :key="mode.value" 
+                class="setting-option wide" 
+                :class="{ active: sessionMode === mode.value }"
+                @click="sessionMode = mode.value"
+              >
+                {{ mode.label }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </ion-content>
+    </ion-modal>
     
     <ion-content :fullscreen="true" class="ion-padding" role="main">
-      <!-- Settings Card -->
-      <ion-card class="settings-card">
-        <ion-card-content>
-          <ion-grid>
-            <ion-row class="ion-align-items-center">
-              <ion-col size="6">
-                <ion-item lines="none" class="setting-item">
-                  <ion-icon :icon="speedometerIcon" slot="start" color="primary"></ion-icon>
-                  <ion-select
-                    interface="popover"
-                    :value="selectedLevel"
-                    @ionChange="selectedLevel = $event.target.value"
-                    :label="t('level')"
-                    label-placement="stacked"
-                  >
-                    <ion-select-option value="beginner">{{ t('easy') }}</ion-select-option>
-                    <ion-select-option value="medium">{{ t('medium') }}</ion-select-option>
-                    <ion-select-option value="expert">{{ t('hard') }}</ion-select-option>
-                  </ion-select>
-                </ion-item>
-              </ion-col>
-              <ion-col size="6">
-                <ion-item lines="none" class="setting-item">
-                  <ion-icon :icon="calculatorIcon" slot="start" color="secondary"></ion-icon>
-                  <ion-select
-                    interface="popover"
-                    :value="selectedOperator"
-                    @ionChange="selectedOperator = $event.target.value"
-                    :label="t('operators')"
-                    label-placement="stacked"
-                  >
-                    <ion-select-option value="times">× {{ t('multiplication') }}</ion-select-option>
-                    <ion-select-option value="plus">+ {{ t('addition') }}</ion-select-option>
-                    <ion-select-option value="minus">− {{ t('subtraction') }}</ion-select-option>
-                    <ion-select-option value="divide">÷ {{ t('division') }}</ion-select-option>
-                  </ion-select>
-                </ion-item>
-              </ion-col>
-            </ion-row>
-            <!-- Stats Row -->
-            <ion-row class="stats-row ion-align-items-center ion-justify-content-center">
-              <ion-col size="auto">
-                <ion-chip color="tertiary" outline class="stat-chip">
-                  <ion-label>🏆 {{ t('best') }}: {{ highScore }}</ion-label>
-                </ion-chip>
-              </ion-col>
-              <ion-col size="auto">
-                <ion-chip color="secondary" outline class="stat-chip">
-                  <ion-label>🔥 {{ t('streak') }}: {{ consecutiveCorrect }}</ion-label>
-                </ion-chip>
-              </ion-col>
-              <ion-col size="auto">
-                <ion-chip color="success" outline class="stat-chip">
-                  <ion-label>🎯 {{ t('accuracy') }}: {{ accuracy }}%</ion-label>
-                </ion-chip>
-              </ion-col>
-            </ion-row>
-          </ion-grid>
-        </ion-card-content>
-      </ion-card>
-
       <!-- Action Buttons (when not in play mode) -->
-      <div class="action-buttons" v-if="!isPlayMode && !isComputing">
-        <ion-button fill="clear" size="small" @click="repeatQuestion" :disabled="!currentQuestion || isTalking" title="Repeat question">
-          <ion-icon :icon="refreshIcon" slot="icon-only"></ion-icon>
+      <div class="action-buttons" v-if="!isPlayMode && !isComputing" role="toolbar" aria-label="Question controls">
+        <ion-button fill="clear" size="small" @click="repeatQuestion" :disabled="!currentQuestion || isTalking" aria-label="Repeat question" :title="!currentQuestion ? 'No question available' : 'Repeat question'">
+          <ion-icon :icon="refreshIcon" slot="icon-only" aria-hidden="true"></ion-icon>
         </ion-button>
-        <ion-button fill="clear" size="small" @click="handleToggleMute" title="Toggle sound">
-          <ion-icon :icon="isMuted ? muteIcon : volumeIcon" slot="icon-only"></ion-icon>
+        <ion-button fill="clear" size="small" @click="handleToggleMute" :aria-label="isMuted ? 'Unmute' : 'Mute'" :title="isMuted ? 'Unmute audio' : 'Mute audio'">
+          <ion-icon :icon="isMuted ? muteIcon : volumeIcon" slot="icon-only" aria-hidden="true"></ion-icon>
         </ion-button>
-        <ion-button fill="clear" size="small" @click="openHistoryModal" title="Problem history">
-          <ion-icon :icon="historyIcon" slot="icon-only"></ion-icon>
+        <ion-button fill="clear" size="small" @click="openHistoryModal" aria-label="View problem history" title="View previously solved problems">
+          <ion-icon :icon="historyIcon" slot="icon-only" aria-hidden="true"></ion-icon>
         </ion-button>
-      </div>
-
-      <!-- Language Selector -->
-      <div class="language-selector">
-        <ion-button fill="clear" size="small" id="language-trigger">
-          <span class="language-flag">{{ availableLanguages[selectedLanguage]?.flag }}</span>
-        </ion-button>
-        <ion-popover trigger="language-trigger" trigger-action="click">
-          <ion-content class="ion-padding">
-            <ion-list>
-              <ion-item 
-                v-for="(lang, code) in availableLanguages" 
-                :key="code" 
-                button 
-                @click="changeLanguage(code)"
-                :class="{ 'selected-language': code === selectedLanguage }"
-              >
-                <span class="language-flag">{{ lang.flag }}</span>
-                <ion-label>{{ lang.name }}</ion-label>
-              </ion-item>
-            </ion-list>
-          </ion-content>
-        </ion-popover>
       </div>
 
       <!-- Problem History Modal -->
-      <ion-modal :is-open="showHistoryModal" @didDismiss="showHistoryModal = false">
+      <ion-modal :is-open="showHistoryModal" @didDismiss="showHistoryModal = false" role="dialog" aria-labelledby="history-modal-title">
         <ion-header>
           <ion-toolbar color="primary">
-            <ion-title>{{ t('problemHistory') }}</ion-title>
-            <ion-button slot="end" fill="clear" @click="showHistoryModal = false">
-              <ion-icon :icon="alertIcon" slot="icon-only" style="color: white;"></ion-icon>
+            <ion-title id="history-modal-title">{{ t('problemHistory') }}</ion-title>
+            <ion-button slot="end" fill="clear" @click="showHistoryModal = false" aria-label="Close history">
+              <ion-icon :icon="alertIcon" slot="icon-only" style="color: white;" aria-hidden="true"></ion-icon>
             </ion-button>
           </ion-toolbar>
         </ion-header>
@@ -147,8 +173,9 @@
             fill="outline"
             @click="handleClearHistory"
             class="clear-history-btn"
+            aria-label="Delete all problem history"
           >
-            <ion-icon :icon="trashIcon" slot="start"></ion-icon>
+            <ion-icon :icon="trashIcon" slot="start" aria-hidden="true"></ion-icon>
             {{ t('clearHistory') }}
           </ion-button>
         </ion-content>
@@ -156,30 +183,30 @@
 
       <!-- Bot Container -->
       <div class="bot-container">
-        <BotFace
+        <AnimatedBot
           :botState="botState"
           :isPlayMode="isPlayMode"
           :text="speech_phrases"
           :audioLevel="audioLevel"
-          v-on:ask_question="askQuestion"
+          size="200px"
           @click="changeStatus('laughing')"
           aria-live="polite"
         />
       </div>
-
-      <!-- Status Indicator -->
-      <div class="status-indicator" v-if="botState !== 'thinking'">
-        <ion-chip :color="statusColor" outline>
-          <ion-icon :icon="statusIcon" aria-hidden="true"></ion-icon>
-          <ion-label>{{ statusText }}</ion-label>
-        </ion-chip>
-      </div>
     </ion-content>
     
-    <ion-footer class="ion-no-border">
+    <ion-footer class="ion-no-border footer-spacer">
       <ion-toolbar>
+        <!-- Status Indicator -->
+        <div class="status-indicator" v-if="botState !== 'thinking'">
+          <ion-chip :color="statusColor">
+            <ion-icon :icon="statusIcon" aria-hidden="true"></ion-icon>
+            <ion-label>{{ statusText }}</ion-label>
+          </ion-chip>
+        </div>
+      </ion-toolbar>
+      <ion-toolbar v-if="isPlayMode && botState !== 'broken'">
         <ion-button
-          v-if="isPlayMode && botState !== 'broken'"
           expand="block"
           size="large"
           @click="askQuestion"
@@ -189,7 +216,7 @@
         >
           <ion-icon :icon="playIcon" slot="start" v-if="!isComputing"></ion-icon>
           <ion-spinner name="crescent" v-if="isComputing"></ion-spinner>
-          {{ isComputing ? t('thinking') : t('play') + ' Math!' }}
+          {{ isComputing ? t('thinking') : t('play') }}
         </ion-button>
       </ion-toolbar>
     </ion-footer>
@@ -207,39 +234,33 @@ import {
   IonIcon,
   toastController,
   IonItem,
-  IonSelect,
-  IonSelectOption,
   IonButton,
+  IonButtons,
   IonFooter,
-  IonCard,
-  IonCardContent,
-  IonGrid,
-  IonRow,
-  IonCol,
   IonSpinner,
   IonModal,
   IonPopover,
   IonList
 } from "@ionic/vue";
-import BotFace from "@/components/BotFace.vue";
+import AnimatedBot from "@/components/AnimatedBot.vue";
 import {
   AudioConfig,
   SpeechConfig,
   SpeechRecognizer,
 } from "microsoft-cognitiveservices-speech-sdk";
-import { star, play, speedometer, calculator, mic, volumeHigh, sync, alertCircle, refresh, volumeMute, timeOutline, trashOutline, globe } from "ionicons/icons";
+import { star, play, speedometer, calculator, mic, volumeHigh, sync, alertCircle, refresh, volumeMute, timeOutline, trashOutline, globe, fitness, settingsOutline, close } from "ionicons/icons";
 import { OPERATORS, LEVELS, NUMBER_RANGES, SCORING } from "@/config/gameConfig";
 import { getRandomInt } from "@/utils/helpers";
 import { getSpeechToken, getCachedAudio, validateAnswer } from "@/services/apiService";
 import { LANGUAGES, SPEECH_VOICES, getPreferredLanguage, setLanguage, t, getRandomPhrase } from "@/config/i18n";
-import { addToHistory, getHistory, clearHistory as clearHistoryService, formatTimestamp, getOperatorSymbol } from "@/services/historyService";
+import { addToHistory, getHistory, clearHistory as clearHistoryService, formatTimestamp, getOperatorSymbol, getRecommendedDifficulty, getSpacedRepetitionProblem } from "@/services/historyService";
 import { preloadSounds, playCorrectSound, playIncorrectSound, toggleMute } from "@/services/soundService";
 import { celebrateConfetti, celebrateStreak, showStar } from "@/utils/confetti";
 
 export default {
   name: "Math",
   components: {
-    BotFace,
+    AnimatedBot,
     IonHeader,
     IonToolbar,
     IonTitle,
@@ -249,15 +270,9 @@ export default {
     IonLabel,
     IonIcon,
     IonItem,
-    IonSelect,
-    IonSelectOption,
     IonButton,
+    IonButtons,
     IonFooter,
-    IonCard,
-    IonCardContent,
-    IonGrid,
-    IonRow,
-    IonCol,
     IonSpinner,
     IonModal,
     IonPopover,
@@ -266,6 +281,7 @@ export default {
   setup() {
     return {
       star,
+      starIcon: star,
       playIcon: play,
       speedometerIcon: speedometer,
       calculatorIcon: calculator,
@@ -277,7 +293,10 @@ export default {
       muteIcon: volumeMute,
       historyIcon: timeOutline,
       trashIcon: trashOutline,
-      globeIcon: globe
+      globeIcon: globe,
+      targetIcon: fitness,
+      settingsIcon: settingsOutline,
+      closeIcon: close
     };
   },
   data() {
@@ -307,8 +326,12 @@ export default {
       text: "",
       selectedLevel: LEVELS.MEDIUM,
       selectedOperator: OPERATORS.TIMES,
+      sessionMode: 'random', // random, weak_operators, recent_failures
+      currentAutoLevel: 'medium', // Used when selectedLevel is 'auto'
+      currentEffectiveLevel: 'medium', // Tracks actual difficulty used for current question
+      currentOperator: 'times', // Tracks actual operator used (may differ in SR mode)
       selectedLanguage: 'en',
-      speech_phrases: "Click play, listen the question and respond back by talking your answer.",
+      speech_phrases: 'Click play, listen to the question and respond back by talking your answer.',
       number1: 2,
       number2: 3,
       stars: 0,
@@ -321,6 +344,7 @@ export default {
       isMuted: false,
       currentQuestion: "",  // Store current question for repeat
       showHistoryModal: false,
+      showSettingsModal: false,
       problemHistory: [],
       availableLanguages: LANGUAGES,
       
@@ -377,22 +401,26 @@ export default {
       }
       if (this.isTalking) {
         return "speaking";
-      } else if (this.isListening) {
-        return "listening";
-      } else if (this.isComputing) {
-        return "computing";
-      } else {
-        return "thinking";
       }
+      if (this.isListening) {
+        return "listening";
+      }
+      if (this.isComputing) {
+        return "computing";
+      }
+      // Default to neutral (idle) state
+      return "neutral";
     },
     expectedResultAsNumber() {
-      if (this.selectedOperator == "plus") {
+      // Use currentOperator (may differ from selectedOperator in spaced repetition mode)
+      const op = this.currentOperator || this.selectedOperator;
+      if (op == "plus") {
         return this.number1 + this.number2;
       }
-      if (this.selectedOperator == "minus") {
+      if (op == "minus") {
         return this.number1 - this.number2;
       }
-      if (this.selectedOperator == "divide") {
+      if (op == "divide") {
         return this.number1 / this.number2;
       }
       return this.number1 * this.number2;
@@ -400,6 +428,34 @@ export default {
     accuracy() {
       if (this.totalQuestionsAnswered === 0) return 0;
       return Math.round((this.totalCorrectAnswers / this.totalQuestionsAnswered) * 100);
+    },
+    starsDisplay() {
+      // Cap stars at 100 and show max indicator
+      const displayStars = Math.min(this.stars, 100);
+      return this.stars >= 100 ? '100 ⭐' : displayStars.toString();
+    },
+    levelOptions() {
+      return [
+        { value: 'beginner', label: this.t('easy') },
+        { value: 'medium', label: this.t('medium') },
+        { value: 'expert', label: this.t('hard') },
+        { value: 'auto', label: '🎯 ' + this.t('auto') },
+      ];
+    },
+    operatorOptions() {
+      return [
+        { value: 'times', label: '×' },
+        { value: 'plus', label: '+' },
+        { value: 'minus', label: '−' },
+        { value: 'divide', label: '÷' },
+      ];
+    },
+    modeOptions() {
+      return [
+        { value: 'random', label: this.t('randomMode') },
+        { value: 'weak_operators', label: this.t('practiceWeakOperators') },
+        { value: 'recent_failures', label: this.t('practiceRecentFailures') },
+      ];
     },
     statusColor() {
       switch (this.botState) {
@@ -589,16 +645,19 @@ export default {
       this._voiceEnd = null;
     },
     changeStatus(status) {
-      if (this.timeout) 
-          if (status == "laughing"){
-            var audio = new Audio(window.location.origin + this.$route.path + this.publicPath + 'assets/sound/laugh.wav');
-            audio.play();
-            this.isLaughing = true;
-          }
-          clearTimeout(this.timeout); 
-          this.timeout = setTimeout(() => {
-            this.isLaughing = false;
-          }, 1500); // delay
+      if (this.timeout) {
+        clearTimeout(this.timeout);
+      }
+      
+      if (status === "laughing") {
+        var audio = new Audio(window.location.origin + this.$route.path + this.publicPath + 'assets/sound/laugh.wav');
+        audio.play();
+        this.isLaughing = true;
+        
+        this.timeout = setTimeout(() => {
+          this.isLaughing = false;
+        }, 1500); // delay
+      }
     },
     keyDownHandler(e) {
       let value = e.key * 1;
@@ -624,10 +683,11 @@ export default {
     async showToast(text, color) {
       const toast = await toastController.create({
         message: text,
-        duration: 5000,
+        duration: 4000,
         color: color,
-        translucent: false,
-        cssClass:"toast-custom-position",
+        position: 'bottom',
+        translucent: true,
+        cssClass:"toast-compact",
         animated:false,
       });
       return toast.present();
@@ -668,21 +728,74 @@ export default {
             self.isPlayMode = false;
             self.speech_phrases = "";
             
-            // Get number ranges from config
-            const ranges = NUMBER_RANGES[self.selectedOperator]?.[self.selectedLevel] 
-              || NUMBER_RANGES[OPERATORS.TIMES][LEVELS.BEGINNER];
-            
-            // For division, generate numbers that result in whole number answers
-            if (self.selectedOperator === 'divide') {
-              // Generate divisor and quotient, then calculate dividend
-              const divisor = getRandomInt(ranges.min2, ranges.max2);
-              const quotient = getRandomInt(ranges.min1, ranges.max1);
-              self.number1 = divisor * quotient; // dividend
-              self.number2 = divisor;
-            } else {
-              self.number1 = getRandomInt(ranges.min1, ranges.max1);
-              self.number2 = getRandomInt(ranges.min2, ranges.max2);
+            // Handle adaptive difficulty (auto mode)
+            let effectiveLevel = self.selectedLevel;
+            if (self.selectedLevel === 'auto') {
+              const recommendation = getRecommendedDifficulty(self.selectedOperator, self.currentAutoLevel);
+              if (recommendation.recommended !== self.currentAutoLevel) {
+                self.currentAutoLevel = recommendation.recommended;
+                // Show toast notification about difficulty change
+                const message = recommendation.reason === 'high_accuracy' 
+                  ? self.t('difficultyIncreased') 
+                  : self.t('difficultyDecreased');
+                self.showToast(message, 'primary');
+              }
+              effectiveLevel = self.currentAutoLevel;
             }
+            
+            // Store effective level for history tracking
+            self.currentEffectiveLevel = effectiveLevel;
+            
+            // Check for spaced repetition problem based on sessionMode
+            let srProblem = null;
+            if (self.sessionMode !== 'random') {
+              // Only use spaced repetition when not in random mode
+              srProblem = getSpacedRepetitionProblem(self.selectedOperator, effectiveLevel, self.sessionMode);
+            }
+            let operatorToUse = self.selectedOperator;
+            
+            if (srProblem && srProblem.type === 'retry_failure') {
+              // Reuse exact problem from history
+              self.number1 = srProblem.num1;
+              self.number2 = srProblem.num2;
+              // Map operator symbol back to operator key
+              const opSymbolToKey = { '+': 'plus', '−': 'minus', '×': 'times', '÷': 'divide' };
+              operatorToUse = opSymbolToKey[srProblem.operator] || self.selectedOperator;
+            } else if (srProblem && srProblem.type === 'weak_operator') {
+              // Generate new problem for weak operator
+              const opSymbolToKey = { '+': 'plus', '−': 'minus', '×': 'times', '÷': 'divide' };
+              operatorToUse = opSymbolToKey[srProblem.operator] || self.selectedOperator;
+              const ranges = NUMBER_RANGES[operatorToUse]?.[effectiveLevel] 
+                || NUMBER_RANGES[OPERATORS.TIMES][LEVELS.BEGINNER];
+              if (operatorToUse === 'divide') {
+                const divisor = getRandomInt(ranges.min2, ranges.max2);
+                const quotient = getRandomInt(ranges.min1, ranges.max1);
+                self.number1 = divisor * quotient;
+                self.number2 = divisor;
+              } else {
+                self.number1 = getRandomInt(ranges.min1, ranges.max1);
+                self.number2 = getRandomInt(ranges.min2, ranges.max2);
+              }
+            } else {
+              // Standard random generation
+              const ranges = NUMBER_RANGES[self.selectedOperator]?.[effectiveLevel] 
+                || NUMBER_RANGES[OPERATORS.TIMES][LEVELS.BEGINNER];
+              
+              // For division, generate numbers that result in whole number answers
+              if (self.selectedOperator === 'divide') {
+                // Generate divisor and quotient, then calculate dividend
+                const divisor = getRandomInt(ranges.min2, ranges.max2);
+                const quotient = getRandomInt(ranges.min1, ranges.max1);
+                self.number1 = divisor * quotient; // dividend
+                self.number2 = divisor;
+              } else {
+                self.number1 = getRandomInt(ranges.min1, ranges.max1);
+                self.number2 = getRandomInt(ranges.min2, ranges.max2);
+              }
+            }
+            
+            // Store the actual operator being used
+            self.currentOperator = operatorToUse;
             
             // Get translated operator word
             const operatorWords = {
@@ -691,7 +804,7 @@ export default {
               'times': self.t('times'),
               'divide': self.t('dividedBy')
             };
-            const operatorWord = operatorWords[self.selectedOperator] || self.selectedOperator;
+            const operatorWord = operatorWords[operatorToUse] || operatorToUse;
             self.text = `${self.t('whatIs')} ${self.number1} ${operatorWord} ${self.number2}?`;
             self.currentQuestion = self.text; // Store for repeat
             self.speak();
@@ -939,6 +1052,7 @@ export default {
     changeLanguage(langCode) {
       setLanguage(langCode);
       this.selectedLanguage = langCode;
+      this.speech_phrases = this.t('initialPrompt');
       this.showToast(`${this.availableLanguages[langCode].flag} ${this.availableLanguages[langCode].name}`, "success");
     },
     /**
@@ -986,7 +1100,8 @@ export default {
         const result = await validateAnswer(
           word, 
           this.expectedResultAsNumber,
-          this.text // The question
+          this.text, // The question
+          this.selectedLanguage
         );
         
         if (result.correct) {
@@ -1046,7 +1161,7 @@ export default {
         localStorage.totalCorrect = this.totalCorrectAnswers;
         
         const points = this.calculatePoints();
-        this.stars += points;
+        this.stars = Math.min(this.stars + points, 100); // Cap at 100 stars
         
         // Play sound and show celebration
         playCorrectSound(this.consecutiveCorrect);
@@ -1120,13 +1235,13 @@ export default {
         addToHistory({
           question: this.currentQuestion,
           num1: this.number1,
-          operator: this.getOperatorSymbolForHistory(this.selectedOperator),
+          operator: this.getOperatorSymbolForHistory(this.currentOperator),
           num2: this.number2,
           correctAnswer: this.expectedResultAsNumber,
           userAnswer: recordedText || '',
           interpretedAnswer: validationResult?.interpretedNumber ?? null,
           isCorrect: this.isResolved,
-          difficulty: this.selectedLevel,
+          difficulty: this.currentEffectiveLevel,
           timestamp: Date.now()
         });
       }
@@ -1189,7 +1304,7 @@ export default {
     // Load saved game data
     const savedStars = localStorage.getItem('stars');
     if (savedStars) {
-      this.stars = parseInt(savedStars, 10) || 0;
+      this.stars = Math.min(parseInt(savedStars, 10) || 0, 100); // Cap at 100
     }
     
     const savedHighScore = localStorage.getItem('highScore');
@@ -1214,6 +1329,9 @@ export default {
     
     // Load language preference
     this.selectedLanguage = getPreferredLanguage();
+    
+    // Update speech_phrases to the selected language
+    this.speech_phrases = this.t('initialPrompt');
     
     // Load problem history
     this.problemHistory = getHistory();
@@ -1261,25 +1379,85 @@ export default {
 </script>
 
 <style scoped>
-.settings-card {
-  margin: 8px;
-  border-radius: 16px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+/* Settings Modal Styles */
+ion-modal.settings-modal {
+  --height: 60%;
+  --min-height: 400px;
+  --border-radius: 16px 16px 0 0;
+  align-items: flex-end;
 }
 
-.settings-card ion-card-content {
-  padding: 8px;
+.settings-modal ion-content {
+  --background: #1a1a2e;
 }
 
-.setting-item {
-  --background: transparent;
-  --padding-start: 0;
-  --inner-padding-end: 0;
+.settings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
-.setting-item ion-icon {
-  font-size: 24px;
-  margin-right: 8px;
+.settings-group {
+  background: #16213e;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.settings-group-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  font-weight: 600;
+  font-size: 15px;
+  color: #e2e8f0;
+}
+
+.settings-group-header ion-icon {
+  font-size: 20px;
+}
+
+.settings-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.settings-options.vertical {
+  flex-direction: column;
+}
+
+.setting-option {
+  flex: 1;
+  min-width: 60px;
+  padding: 12px 16px;
+  border: 2px solid #2d3748;
+  border-radius: 10px;
+  background: #0f3460;
+  font-size: 15px;
+  font-weight: 500;
+  color: #cbd5e0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.setting-option.wide {
+  flex: none;
+  width: 100%;
+  text-align: left;
+}
+
+.setting-option:hover {
+  border-color: #4299e1;
+  background: #1a4a7a;
+}
+
+.setting-option.active {
+  border-color: #4299e1;
+  background: #3182ce;
+  color: white;
 }
 
 .bot-container {
@@ -1293,12 +1471,29 @@ export default {
 .status-indicator {
   display: flex;
   justify-content: center;
-  margin: 16px 0;
+  width: 100%;
+  padding: 12px 0;
 }
 
 .status-indicator ion-chip {
   font-size: 14px;
   padding: 8px 16px;
+  --border-radius: 16px;
+  --background: #0066ff;
+  color: white;
+}
+
+.status-indicator ion-icon {
+  color: #ffd700;
+  margin-right: 6px;
+}
+
+.status-indicator ion-label {
+  color: white;
+}
+
+ion-footer.footer-spacer {
+  min-height: 90px;
 }
 
 ion-footer ion-toolbar {
@@ -1321,11 +1516,6 @@ ion-footer ion-toolbar {
 
 /* Responsive adjustments */
 @media (max-width: 400px) {
-  .settings-card ion-grid ion-col {
-    flex: 0 0 100%;
-    max-width: 100%;
-  }
-  
   .bot-container {
     min-height: 300px;
   }
@@ -1352,12 +1542,36 @@ ion-footer ion-toolbar {
   margin: 2px;
 }
 
+.star-chip {
+  --background: #ffd700 !important;
+  color: #000 !important;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.star-chip:hover,
+.star-chip:focus {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(255, 215, 0, 0.5);
+}
+
+.star-chip:active {
+  transform: scale(0.98);
+}
+
+.star-chip ion-icon {
+  color: #000 !important;
+}
+
 /* Action buttons */
 .action-buttons {
+  position: absolute;
+  top: 8px;
+  right: 8px;
   display: flex;
   justify-content: center;
   gap: 8px;
-  margin-top: 8px;
+  z-index: 20;
 }
 
 .action-buttons ion-button {
@@ -1380,8 +1594,27 @@ ion-footer ion-toolbar {
   font-size: 24px;
 }
 
+.language-flag-toolbar {
+  font-size: 20px;
+  margin: 0 4px;
+}
+
 .selected-language {
   --background: var(--ion-color-primary-tint);
+}
+
+/* Toast styling */
+.toast-compact::part(container) {
+  padding: 12px 16px;
+  border-radius: 16px;
+  font-size: 14px;
+  bottom: 130px;
+  margin: 0 16px;
+  width: calc(100% - 32px);
+}
+
+.toast-compact::part(message) {
+  padding: 0;
 }
 
 /* Problem History Modal */
@@ -1420,9 +1653,10 @@ ion-footer ion-toolbar {
 }
 
 @media (min-width: 768px) {
-  .settings-card {
-    max-width: 600px;
-    margin: 16px auto;
+  .settings-modal {
+    --max-width: 500px;
+    --border-radius: 16px;
+    align-items: center;
   }
   
   .bot-container {
@@ -1449,10 +1683,8 @@ ion-footer ion-toolbar {
   }
 }
 
-/* Dark mode adjustments */
+/* Dark mode adjustments - settings already dark themed */
 @media (prefers-color-scheme: dark) {
-  .settings-card {
-    --background: var(--ion-color-step-100);
-  }
+  /* Settings modal is already dark */
 }
 </style>

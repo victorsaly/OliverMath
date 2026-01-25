@@ -173,3 +173,303 @@ export function getOperatorSymbol(operator) {
   };
   return symbols[operator] || operator;
 }
+/**
+ * Filter history by operator
+ * @param {string} operator - Operator to filter by
+ * @returns {Array} Filtered problems
+ */
+export function getHistoryByOperator(operator) {
+  if (!operator) return getHistory();
+  const history = getHistory();
+  return history.filter((p) => p.operator === operator);
+}
+
+/**
+ * Filter history by difficulty
+ * @param {string} difficulty - Difficulty to filter by
+ * @returns {Array} Filtered problems
+ */
+export function getHistoryByDifficulty(difficulty) {
+  if (!difficulty) return getHistory();
+  const history = getHistory();
+  return history.filter((p) => p.difficulty === difficulty);
+}
+
+/**
+ * Filter history by status (correct/incorrect)
+ * @param {string} status - 'correct', 'incorrect', or null for all
+ * @returns {Array} Filtered problems
+ */
+export function getHistoryByStatus(status) {
+  const history = getHistory();
+  if (status === 'correct') return history.filter((p) => p.isCorrect);
+  if (status === 'incorrect') return history.filter((p) => !p.isCorrect);
+  return history;
+}
+
+/**
+ * Get performance stats for a specific operator
+ * @param {string} operator - Operator to analyze
+ * @returns {Object} Performance metrics
+ */
+export function getOperatorStats(operator) {
+  const filtered = getHistoryByOperator(operator);
+  if (filtered.length === 0) {
+    return { operator, total: 0, correct: 0, accuracy: 0 };
+  }
+  const correct = filtered.filter((p) => p.isCorrect).length;
+  return {
+    operator,
+    total: filtered.length,
+    correct,
+    accuracy: Math.round((correct / filtered.length) * 100),
+  };
+}
+
+/**
+ * Get performance stats for a specific difficulty
+ * @param {string} difficulty - Difficulty to analyze
+ * @returns {Object} Performance metrics
+ */
+export function getDifficultyStats(difficulty) {
+  const filtered = getHistoryByDifficulty(difficulty);
+  if (filtered.length === 0) {
+    return { difficulty, total: 0, correct: 0, accuracy: 0 };
+  }
+  const correct = filtered.filter((p) => p.isCorrect).length;
+  return {
+    difficulty,
+    total: filtered.length,
+    correct,
+    accuracy: Math.round((correct / filtered.length) * 100),
+  };
+}
+
+/**
+ * Get all operators with their stats
+ * @returns {Array} Array of operator stats
+ */
+export function getAllOperatorStats() {
+  const history = getHistory();
+  const operators = new Set(history.map((p) => p.operator));
+  return Array.from(operators).map((op) => getOperatorStats(op));
+}
+
+/**
+ * Get all difficulties with their stats
+ * @returns {Array} Array of difficulty stats
+ */
+export function getAllDifficultyStats() {
+  const history = getHistory();
+  const difficulties = new Set(history.map((p) => p.difficulty));
+  return Array.from(difficulties).map((diff) => getDifficultyStats(diff));
+}
+
+/**
+ * Get combined stats for multiple filters
+ * @param {Object} filters - Filter options
+ * @param {string} filters.operator - Filter by operator
+ * @param {string} filters.difficulty - Filter by difficulty
+ * @param {string} filters.status - Filter by status (correct/incorrect)
+ * @returns {Object} Combined stats
+ */
+export function getFilteredStats(filters = {}) {
+  let filtered = getHistory();
+  
+  if (filters.operator) {
+    filtered = filtered.filter((p) => p.operator === filters.operator);
+  }
+  
+  if (filters.difficulty) {
+    filtered = filtered.filter((p) => p.difficulty === filters.difficulty);
+  }
+  
+  if (filters.status === 'correct') {
+    filtered = filtered.filter((p) => p.isCorrect);
+  } else if (filters.status === 'incorrect') {
+    filtered = filtered.filter((p) => !p.isCorrect);
+  }
+  
+  if (filtered.length === 0) {
+    return { total: 0, correct: 0, accuracy: 0, data: [] };
+  }
+  
+  const correct = filtered.filter((p) => p.isCorrect).length;
+  return {
+    total: filtered.length,
+    correct,
+    incorrect: filtered.length - correct,
+    accuracy: Math.round((correct / filtered.length) * 100),
+    data: filtered,
+  };
+}
+
+/**
+ * Get weak operators (lowest accuracy)
+ * @param {number} minAttempts - Minimum attempts to qualify as weak
+ * @returns {Array} Array of operators sorted by accuracy (worst first)
+ */
+export function getWeakOperators(minAttempts = 3) {
+  const stats = getAllOperatorStats();
+  return stats
+    .filter((op) => op.total >= minAttempts)
+    .sort((a, b) => a.accuracy - b.accuracy);
+}
+
+/**
+ * Get recent failures (last 7 days)
+ * @returns {Array} Array of incorrect problems from past 7 days
+ */
+export function getRecentFailures() {
+  const history = getHistory();
+  const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  return history.filter((p) => !p.isCorrect && p.timestamp > sevenDaysAgo);
+}
+
+/**
+ * Get recent session accuracy for adaptive difficulty
+ * @param {string} operator - Current operator
+ * @param {string} difficulty - Current difficulty level
+ * @param {number} recentCount - Number of recent problems to consider
+ * @returns {Object} { accuracy, total, shouldEscalate, shouldDeescalate }
+ */
+export function getRecentSessionAccuracy(operator, difficulty, recentCount = 10) {
+  const history = getHistory();
+  const operatorSymbol = {
+    'plus': '+', 'minus': '−', 'times': '×', 'divide': '÷'
+  }[operator] || operator;
+  
+  const recent = history
+    .filter((p) => p.operator === operatorSymbol && p.difficulty === difficulty)
+    .slice(0, recentCount);
+  
+  if (recent.length < 5) {
+    return { accuracy: 0, total: recent.length, shouldEscalate: false, shouldDeescalate: false };
+  }
+  
+  const correct = recent.filter((p) => p.isCorrect).length;
+  const accuracy = Math.round((correct / recent.length) * 100);
+  
+  return {
+    accuracy,
+    total: recent.length,
+    shouldEscalate: accuracy >= 90,
+    shouldDeescalate: accuracy < 60,
+  };
+}
+
+/**
+ * Get recommended difficulty based on recent performance
+ * @param {string} operator - Current operator
+ * @param {string} currentDifficulty - Current difficulty level
+ * @returns {Object} { recommended, reason }
+ */
+export function getRecommendedDifficulty(operator, currentDifficulty) {
+  const session = getRecentSessionAccuracy(operator, currentDifficulty);
+  const levels = ['beginner', 'medium', 'expert'];
+  const currentIndex = levels.indexOf(currentDifficulty);
+  
+  if (session.shouldEscalate && currentIndex < levels.length - 1) {
+    return {
+      recommended: levels[currentIndex + 1],
+      reason: 'high_accuracy',
+      accuracy: session.accuracy,
+    };
+  }
+  
+  if (session.shouldDeescalate && currentIndex > 0) {
+    return {
+      recommended: levels[currentIndex - 1],
+      reason: 'low_accuracy',
+      accuracy: session.accuracy,
+    };
+  }
+  
+  return {
+    recommended: currentDifficulty,
+    reason: 'optimal',
+    accuracy: session.accuracy,
+  };
+}
+
+/**
+ * Get a problem using spaced repetition algorithm
+ * @param {string} selectedOperator - User-selected operator or null for any
+ * @param {string} selectedDifficulty - User-selected difficulty
+ * @param {string} sessionMode - Session mode: 'random', 'weak_operators', or 'recent_failures'
+ * @returns {Object|null} { type, problem, operator, difficulty } or null for random
+ */
+export function getSpacedRepetitionProblem(selectedOperator, selectedDifficulty, sessionMode = 'random') {
+  // If mode is 'random', use weighted random selection (70/20/10)
+  // If mode is 'weak_operators', prioritize weak operators
+  // If mode is 'recent_failures', prioritize recent failures
+  
+  if (sessionMode === 'recent_failures') {
+    // Prioritize recent failures
+    const failures = getRecentFailures();
+    if (failures.length > 0) {
+      const problem = failures[Math.floor(Math.random() * failures.length)];
+      return {
+        type: 'retry_failure',
+        num1: problem.num1,
+        num2: problem.num2,
+        operator: problem.operator,
+        difficulty: problem.difficulty,
+      };
+    }
+    // Fall back to random if no failures
+    return null;
+  }
+  
+  if (sessionMode === 'weak_operators') {
+    // Prioritize weak operators
+    const weakOps = getWeakOperators(5);
+    if (weakOps.length > 0) {
+      const weakest = weakOps[0];
+      return {
+        type: 'weak_operator',
+        operator: weakest.operator,
+        difficulty: selectedDifficulty,
+        generateNew: true,
+      };
+    }
+    // Fall back to random if no weak operators
+    return null;
+  }
+  
+  // Default: 70% random problems, 20% recent failures, 10% weak operators
+  const random = Math.random() * 100;
+  
+  if (random < 70) {
+    return null; // Use random generation
+  }
+  
+  if (random < 90) {
+    // 20% - Retry recent failure
+    const failures = getRecentFailures();
+    if (failures.length > 0) {
+      const problem = failures[Math.floor(Math.random() * failures.length)];
+      return {
+        type: 'retry_failure',
+        num1: problem.num1,
+        num2: problem.num2,
+        operator: problem.operator,
+        difficulty: problem.difficulty,
+      };
+    }
+  }
+  
+  // 10% - Practice weak operator
+  const weakOps = getWeakOperators(5);
+  if (weakOps.length > 0) {
+    const weakest = weakOps[0];
+    return {
+      type: 'weak_operator',
+      operator: weakest.operator,
+      difficulty: selectedDifficulty,
+      generateNew: true,
+    };
+  }
+  
+  return null; // Fall back to random
+}

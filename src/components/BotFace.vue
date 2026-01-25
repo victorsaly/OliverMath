@@ -15,16 +15,27 @@
           <div id="eyes">
             <div id="left-eye">
               <div id="left-pupil"></div>
+              <div class="eye-highlight"></div>
+              <div class="eye-highlight-small"></div>
             </div>
             <div id="right-eye">
               <div id="right-pupil"></div>
+              <div class="eye-highlight"></div>
+              <div class="eye-highlight-small"></div>
             </div>
           </div>
           <div id="cheeks">
             <div id="left-cheek"></div>
             <div id="right-cheek"></div>
           </div>
-          <div id="mouth" :style="mouthStyle"></div>
+          <div id="mouth-container">
+            <div id="upper-lip"></div>
+            <div id="mouth" :style="mouthStyle">
+              <div id="teeth"></div>
+              <div id="tongue"></div>
+            </div>
+            <div id="lower-lip"></div>
+          </div>
         </div>
         <div id="right-ear">
           <div id="right-ear-inner"></div>
@@ -74,20 +85,23 @@ export default {
       }
       
       const level = Math.min(this.audioLevel, 1);
-      const baseHeight = 4;
-      const maxHeight = 12;
+      const baseHeight = 6;
+      const maxHeight = 18;
       const height = baseHeight + (level * (maxHeight - baseHeight));
       
-      const baseWidth = 10;
-      const maxWidth = 25;
+      const baseWidth = 30;
+      const maxWidth = 50;
       const width = baseWidth + (level * (maxWidth - baseWidth));
+      
+      // Lip rounding based on audio level
+      const roundness = level > 0.5 ? '50% 50% 50% 50%' : '30% 30% 50% 50%';
       
       return {
         width: `${width}%`,
         height: `${height}%`,
         left: `${50 - width/2}%`,
-        borderRadius: level > 0.3 ? '50%' : '0.5em',
-        transition: 'all 0.05s ease-out'
+        borderRadius: roundness,
+        transition: 'all 0.04s ease-out'
       };
     }
   }
@@ -299,6 +313,35 @@ p.thought:after {
   border-radius: 50%;
   top: 30%;
   left: 30%;
+  box-shadow: inset 0 0 3px rgba(0,0,0,0.5);
+}
+
+/* Eye highlights for life-like appearance */
+.eye-highlight
+{
+  position: absolute;
+  width: 25%;
+  height: 25%;
+  background: radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.7) 100%);
+  border-radius: 50%;
+  top: 15%;
+  left: 55%;
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+.eye-highlight-small
+{
+  position: absolute;
+  width: 12%;
+  height: 12%;
+  background: rgba(255,255,255,0.8);
+  border-radius: 50%;
+  top: 45%;
+  left: 25%;
+  opacity: 0.6;
+  pointer-events: none;
+  left: 30%;
   opacity: 0;
   transition: opacity 0.3s ease;
 }
@@ -369,21 +412,110 @@ p.thought:after {
   right: 5%;
 }
 
+/* Mouth Container */
+#mouth-container
+{
+  position: absolute;
+  width: 50%;
+  height: 25%;
+  left: 25%;
+  bottom: 12%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Upper Lip */
+#upper-lip
+{
+  position: absolute;
+  width: 35%;
+  height: 8%;
+  background: linear-gradient(180deg, #ff9999 0%, #cc6666 100%);
+  border-radius: 50% 50% 30% 30%;
+  top: 20%;
+  left: 32.5%;
+  z-index: 3;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+/* Lower Lip */
+#lower-lip
+{
+  position: absolute;
+  width: 40%;
+  height: 12%;
+  background: linear-gradient(180deg, #cc6666 0%, #ff8888 100%);
+  border-radius: 30% 30% 50% 50%;
+  bottom: 20%;
+  left: 30%;
+  z-index: 3;
+  box-shadow: 0 2px 3px rgba(0,0,0,0.15);
+}
+
 #mouth
 {
   position: absolute;
   width: 30%;
-  height: 4%;
-  border-left: 0.2em solid #FFF;
-  border-right: 0.2em solid #FFF;
-  border-bottom: 0.2em solid #FFF;
-  border-top: 0.0em solid #FFF;
-  border-radius: 0.5em;
+  height: 6%;
+  background: linear-gradient(180deg, #2a0a0a 0%, #1a0505 100%);
+  border-radius: 30% 30% 50% 50%;
   left: 35%;
-  bottom: 20%;
+  top: 35%;
+  z-index: 2;
+  overflow: hidden;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.4);
+}
+
+/* Teeth */
+#teeth
+{
+  position: absolute;
+  width: 80%;
+  height: 40%;
+  background: linear-gradient(180deg, #ffffff 0%, #f0f0f0 100%);
+  border-radius: 0 0 3px 3px;
+  left: 10%;
+  top: 0;
+  opacity: 0;
+  transition: opacity 0.1s ease;
+}
+
+/* Tongue */
+#tongue
+{
+  position: absolute;
+  width: 50%;
+  height: 60%;
+  background: linear-gradient(180deg, #ff6b6b 0%, #cc5555 100%);
+  border-radius: 50% 50% 50% 50%;
+  left: 25%;
+  bottom: -20%;
+  opacity: 0;
+  transition: all 0.1s ease;
 }
 
 /* Animations */
+#bot.neutral #upper-lip,
+#bot.neutral #lower-lip
+{
+  opacity: 0.7;
+}
+
+#bot.neutral #mouth
+{
+  height: 4%;
+  top: 40%;
+  border-radius: 20% 20% 50% 50%;
+}
+
+#bot.neutral #teeth,
+#bot.neutral #tongue
+{
+  opacity: 0;
+}
+
 #bot.neutral #left-eye, #bot.neutral #right-eye
 {
    animation: blink-eyes 3s infinite ease-in alternate;
@@ -409,39 +541,84 @@ p.thought:after {
 /* Speaking */
 #bot.speaking #mouth
 {
-   border-top: 0.2em solid #FFF;
-   background-color: #FFF;
-   /* Remove animation - now controlled dynamically via audioLevel prop */
+  height: 10%;
+  top: 30%;
+}
+
+#bot.speaking #teeth
+{
+  opacity: 0.9;
+}
+
+#bot.speaking #tongue
+{
+  opacity: 0.8;
+  animation: tongue-move 0.15s infinite alternate ease-in-out;
+}
+
+#bot.speaking #upper-lip
+{
+  animation: upper-lip-speak 0.12s infinite alternate ease-in-out;
+}
+
+#bot.speaking #lower-lip
+{
+  animation: lower-lip-speak 0.12s infinite alternate ease-in-out;
+}
+
+@keyframes tongue-move {
+  0% { bottom: -20%; transform: scale(1); }
+  100% { bottom: -10%; transform: scale(1.1); }
+}
+
+@keyframes upper-lip-speak {
+  0% { transform: scaleY(1) translateY(0); }
+  100% { transform: scaleY(0.85) translateY(1px); }
+}
+
+@keyframes lower-lip-speak {
+  0% { transform: scaleY(1) translateY(0); }
+  100% { transform: scaleY(1.15) translateY(2px); }
 }
 
 /* Mouth shapes for lip sync - fallback when no audio analysis */
 #bot.speaking.mouth-closed #mouth {
-  width: 15%;
-  height: 4%;
-  left: 42.5%;
-  border-radius: 0.5em;
+  width: 25%;
+  height: 6%;
+  left: 37.5%;
 }
+
+#bot.speaking.mouth-closed #teeth { opacity: 0.3; }
+#bot.speaking.mouth-closed #tongue { opacity: 0; }
 
 #bot.speaking.mouth-small #mouth {
-  width: 15%;
-  height: 6%;
-  left: 42.5%;
-  border-radius: 0.6em;
+  width: 30%;
+  height: 10%;
+  left: 35%;
 }
+
+#bot.speaking.mouth-small #teeth { opacity: 0.6; }
+#bot.speaking.mouth-small #tongue { opacity: 0.4; }
 
 #bot.speaking.mouth-medium #mouth {
-  width: 20%;
-  height: 9%;
-  left: 40%;
-  border-radius: 50%;
+  width: 38%;
+  height: 14%;
+  left: 31%;
+  border-radius: 40% 40% 50% 50%;
 }
 
+#bot.speaking.mouth-medium #teeth { opacity: 0.85; }
+#bot.speaking.mouth-medium #tongue { opacity: 0.7; bottom: -5%; }
+
 #bot.speaking.mouth-wide #mouth {
-  width: 25%;
-  height: 12%;
-  left: 37.5%;
-  border-radius: 50%;
+  width: 50%;
+  height: 20%;
+  left: 25%;
+  border-radius: 45% 45% 50% 50%;
 }
+
+#bot.speaking.mouth-wide #teeth { opacity: 1; height: 35%; }
+#bot.speaking.mouth-wide #tongue { opacity: 0.9; bottom: 0%; transform: scale(1.2); }
 
 /* Waiting (Thinking) */
 #bot.thinking #eyes
@@ -452,8 +629,25 @@ p.thought:after {
 
 #bot.thinking #mouth
 {
-   animation: pinch-mouth 6.0s infinite ease alternate;
-   animation-delay: 4s;
+  animation: pinch-mouth 6.0s infinite ease alternate;
+  animation-delay: 4s;
+}
+
+#bot.thinking #teeth,
+#bot.thinking #tongue
+{
+  opacity: 0;
+}
+
+#bot.thinking #upper-lip
+{
+  animation: think-lip 6.0s infinite ease alternate;
+  animation-delay: 4s;
+}
+
+@keyframes think-lip {
+  0%, 48%, 52%, 100% { transform: translateX(0); }
+  50% { transform: translateX(5%); }
 }
 
 #bot.thinking #left-ear-inner
@@ -559,9 +753,40 @@ p.thought:after {
 
 #bot.laughing #mouth
 {
-  border: 0.5em solid #FFF;
-  width: 30%;
-  left: 35%;
+  width: 50%;
+  height: 22%;
+  left: 25%;
+  top: 22%;
+  border-radius: 20% 20% 50% 50%;
+}
+
+#bot.laughing #teeth
+{
+  opacity: 1;
+  height: 40%;
+}
+
+#bot.laughing #tongue
+{
+  opacity: 0.9;
+  bottom: 5%;
+  animation: laugh-tongue 0.15s infinite alternate;
+}
+
+#bot.laughing #upper-lip,
+#bot.laughing #lower-lip
+{
+  animation: laugh-lips 0.15s infinite alternate;
+}
+
+@keyframes laugh-tongue {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(3px); }
+}
+
+@keyframes laugh-lips {
+  0% { transform: scaleX(1); }
+  100% { transform: scaleX(1.05); }
 }
 
 @keyframes MoveUpDown {
@@ -630,10 +855,25 @@ p.thought:after {
 
 #bot.broken #mouth
 {
-  border: 0.1em solid darkred;
   background: darkred;
-  width: 30%;
-  left: 35%;
+  width: 35%;
+  height: 5%;
+  left: 32.5%;
+  top: 45%;
+  border-radius: 0;
+}
+
+#bot.broken #teeth,
+#bot.broken #tongue
+{
+  opacity: 0;
+}
+
+#bot.broken #upper-lip,
+#bot.broken #lower-lip
+{
+  background: linear-gradient(180deg, #8b0000 0%, #5c0000 100%);
+  opacity: 0.8;
 }
 
 
@@ -678,9 +918,25 @@ p.thought:after {
 
 #bot.computing #mouth
 {
-  border: 0.5em solid #FFF;
-  width: 10%;
-  left: 45%;
+  width: 18%;
+  height: 18%;
+  left: 41%;
+  top: 28%;
+  border-radius: 50%;
+}
+
+#bot.computing #teeth,
+#bot.computing #tongue
+{
+  opacity: 0;
+}
+
+#bot.computing #upper-lip,
+#bot.computing #lower-lip
+{
+  background: linear-gradient(180deg, #66cccc 0%, #99ffff 100%);
+  width: 22%;
+  left: 39%;
 }
 
 @keyframes border-dance {
@@ -706,12 +962,44 @@ p.thought:after {
 
 #bot.happy #mouth
 {
-  border: 0.4em solid #FFF;
-  border-top: none;
+  width: 55%;
+  height: 22%;
+  left: 22.5%;
+  top: 25%;
+  border-radius: 10% 10% 50% 50%;
+  background: linear-gradient(180deg, #1a0505 0%, #0a0202 100%);
+}
+
+#bot.happy #teeth
+{
+  opacity: 1;
+  height: 45%;
+  border-radius: 0 0 5px 5px;
+}
+
+#bot.happy #tongue
+{
+  opacity: 0.85;
+  bottom: 5%;
   width: 40%;
-  height: 20%;
   left: 30%;
-  border-radius: 0 0 2em 2em;
+}
+
+#bot.happy #upper-lip
+{
+  width: 50%;
+  left: 25%;
+  top: 10%;
+  border-radius: 50% 50% 20% 20%;
+}
+
+#bot.happy #lower-lip
+{
+  width: 55%;
+  left: 22.5%;
+  bottom: 10%;
+  height: 15%;
+  border-radius: 20% 20% 50% 50%;
 }
 
 #bot.happy #face, 
@@ -774,13 +1062,32 @@ p.thought:after {
 
 #bot.sad #mouth
 {
-  border: 0.3em solid #FFF;
-  border-bottom: none;
-  width: 30%;
-  height: 15%;
-  left: 35%;
-  bottom: 15%;
-  border-radius: 2em 2em 0 0;
+  width: 35%;
+  height: 8%;
+  left: 32.5%;
+  top: 45%;
+  border-radius: 50% 50% 20% 20%;
+}
+
+#bot.sad #teeth { opacity: 0; }
+#bot.sad #tongue { opacity: 0; }
+
+#bot.sad #upper-lip
+{
+  width: 38%;
+  left: 31%;
+  top: 30%;
+  border-radius: 50% 50% 50% 50%;
+  transform: scaleY(0.8);
+}
+
+#bot.sad #lower-lip
+{
+  width: 35%;
+  left: 32.5%;
+  bottom: 25%;
+  border-radius: 50% 50% 30% 30%;
+  transform: rotate(180deg) translateY(5px);
 }
 
 #bot.sad #face, 
@@ -827,12 +1134,41 @@ p.thought:after {
 
 #bot.excited #mouth
 {
-  border: 0.5em solid #FFF;
-  width: 35%;
+  width: 45%;
   height: 25%;
-  left: 32%;
+  left: 27.5%;
+  top: 20%;
   border-radius: 50%;
   animation: excited-mouth 0.3s infinite alternate;
+}
+
+#bot.excited #teeth
+{
+  opacity: 1;
+  height: 40%;
+}
+
+#bot.excited #tongue
+{
+  opacity: 0.9;
+  bottom: 10%;
+  animation: tongue-wiggle 0.2s infinite alternate;
+}
+
+#bot.excited #upper-lip,
+#bot.excited #lower-lip
+{
+  animation: lip-bounce 0.3s infinite alternate;
+}
+
+@keyframes tongue-wiggle {
+  0% { transform: translateX(-2px); }
+  100% { transform: translateX(2px); }
+}
+
+@keyframes lip-bounce {
+  0% { transform: scaleY(1); }
+  100% { transform: scaleY(1.1); }
 }
 
 #bot.excited #face, 
@@ -890,12 +1226,34 @@ p.thought:after {
 
 #bot.sleepy #mouth
 {
-  width: 20%;
-  height: 15%;
-  left: 40%;
-  border: 0.3em solid #FFF;
+  width: 25%;
+  height: 18%;
+  left: 37.5%;
+  top: 25%;
   border-radius: 50%;
   animation: yawn 4s infinite ease-in-out;
+}
+
+#bot.sleepy #teeth
+{
+  opacity: 0.5;
+  animation: yawn-teeth 4s infinite ease-in-out;
+}
+
+#bot.sleepy #tongue
+{
+  opacity: 0.6;
+  animation: yawn-tongue 4s infinite ease-in-out;
+}
+
+@keyframes yawn-teeth {
+  0%, 70%, 100% { height: 30%; opacity: 0.3; }
+  80%, 90% { height: 35%; opacity: 0.7; }
+}
+
+@keyframes yawn-tongue {
+  0%, 70%, 100% { bottom: -15%; opacity: 0.3; }
+  80%, 90% { bottom: 5%; opacity: 0.8; }
 }
 
 #bot.sleepy #face, 
@@ -967,11 +1325,25 @@ p.thought:after {
 
 #bot.confused #mouth
 {
-  width: 25%;
+  width: 28%;
+  height: 8%;
   left: 40%;
-  border: 0.3em solid #FFF;
-  border-radius: 0.5em;
+  top: 38%;
+  border-radius: 30%;
   transform: rotate(15deg);
+}
+
+#bot.confused #teeth,
+#bot.confused #tongue
+{
+  opacity: 0;
+}
+
+#bot.confused #upper-lip,
+#bot.confused #lower-lip
+{
+  transform: rotate(10deg);
+  left: 38%;
 }
 
 #bot.confused #face, 
@@ -1018,10 +1390,37 @@ p.thought:after {
 
 #bot.surprised #mouth
 {
-  width: 20%;
-  height: 20%;
-  left: 40%;
-  border: 0.4em solid #FFF;
+  width: 25%;
+  height: 25%;
+  left: 37.5%;
+  top: 25%;
+  border-radius: 50%;
+}
+
+#bot.surprised #teeth
+{
+  opacity: 0.7;
+  height: 30%;
+  border-radius: 0;
+}
+
+#bot.surprised #tongue { opacity: 0; }
+
+#bot.surprised #upper-lip
+{
+  width: 30%;
+  left: 35%;
+  top: 15%;
+  border-radius: 50%;
+  height: 10%;
+}
+
+#bot.surprised #lower-lip
+{
+  width: 30%;
+  left: 35%;
+  bottom: 15%;
+  height: 12%;
   border-radius: 50%;
 }
 
@@ -1071,12 +1470,36 @@ p.thought:after {
 
 #bot.proud #mouth
 {
-  border: 0.3em solid #FFF;
-  border-top: none;
-  width: 35%;
+  width: 45%;
   height: 15%;
-  left: 32%;
-  border-radius: 0 0 1.5em 1.5em;
+  left: 27.5%;
+  top: 30%;
+  border-radius: 10% 10% 50% 50%;
+}
+
+#bot.proud #teeth
+{
+  opacity: 0.9;
+  height: 45%;
+}
+
+#bot.proud #tongue
+{
+  opacity: 0.5;
+  bottom: 0%;
+}
+
+#bot.proud #upper-lip
+{
+  width: 42%;
+  left: 29%;
+}
+
+#bot.proud #lower-lip
+{
+  width: 45%;
+  left: 27.5%;
+  bottom: 15%;
 }
 
 #bot.proud #face, 
