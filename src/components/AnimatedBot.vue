@@ -6,9 +6,10 @@
     </p>
     
     <!-- Lottie Animation -->
-    <div class="lottie-wrapper">
+    <div class="lottie-wrapper" v-if="currentAnimation">
       <Vue3Lottie
         ref="lottieRef"
+        :key="botState"
         :animationData="currentAnimation"
         :loop="true"
         :autoPlay="true"
@@ -100,7 +101,8 @@ export default {
       };
       
       const animationKey = stateToAnimation[this.botState] || 'idle';
-      return this.animations[animationKey];
+      // Always return a valid animation, fallback to idle if not found
+      return this.animations[animationKey] || this.animations.idle;
     },
     
     // Adjust animation speed based on state and audio level
@@ -127,15 +129,6 @@ export default {
     onAnimationLoop() {
       // Can be used to trigger events on animation loop
       this.$emit('animation-loop');
-    }
-  },
-  watch: {
-    // React to state changes
-    botState(newState, oldState) {
-      if (newState !== oldState && this.$refs.lottieRef) {
-        // Restart animation on state change for smooth transition
-        this.$refs.lottieRef.goToAndPlay(0, true);
-      }
     }
   }
 };

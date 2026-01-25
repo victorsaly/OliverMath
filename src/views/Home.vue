@@ -359,13 +359,15 @@ export default {
       }
       if (this.isTalking) {
         return "speaking";
-      } else if (this.isListening) {
-        return "listening";
-      } else if (this.isComputing) {
-        return "computing";
-      } else {
-        return "thinking";
       }
+      if (this.isListening) {
+        return "listening";
+      }
+      if (this.isComputing) {
+        return "computing";
+      }
+      // Default to neutral (idle) state
+      return "neutral";
     },
     expectedResultAsNumber() {
       if (this.selectedOperator == "plus") {
