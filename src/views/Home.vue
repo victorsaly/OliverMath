@@ -248,6 +248,7 @@ export default {
   setup() {
     return {
       star,
+      starIcon: star,
       playIcon: play,
       speedometerIcon: speedometer,
       calculatorIcon: calculator,
