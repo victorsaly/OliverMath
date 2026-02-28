@@ -3,6 +3,7 @@ import Home from '../views/Home.vue'
 
 const Assistant = () => import('../views/Assistant.vue');
 const Stats = () => import('../views/Stats.vue');
+const BotPreview = () => import('../views/BotPreview.vue');
 
 const routes = [
   {
@@ -19,6 +20,11 @@ const routes = [
     path: '/stats',
     name: 'Stats',
     component: Stats
+  },
+  {
+    path: '/bot-preview',
+    name: 'BotPreview',
+    component: BotPreview
   }
 ]
 

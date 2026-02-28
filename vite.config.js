@@ -67,15 +67,31 @@ export default defineConfig({
         short_name: 'OliverMath',
         description: 'A fun math learning app for kids',
         theme_color: '#3880ff',
-        background_color: '#ffffff',
+        background_color: '#000000',
         display: 'standalone',
+        orientation: 'portrait-primary',
         start_url: '/OliverMath/',
+        scope: '/OliverMath/',
+        id: '/OliverMath/',
+        categories: ['education', 'kids', 'games'],
         icons: [
           {
             src: 'assets/icon/icon.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'any maskable'
+            purpose: 'any'
+          },
+          {
+            src: 'assets/icon/icon.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable'
+          },
+          {
+            src: 'assets/icon/icon.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'any'
           },
           {
             src: 'assets/icon/favicon.png',
