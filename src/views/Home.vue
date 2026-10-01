@@ -14,6 +14,13 @@
         </button>
       </div>
 
+      <!-- Wordmark. Absolutely centred rather than a flex child, so it stays
+           put when the star count grows a digit and the right group widens. -->
+      <p class="wordmark" aria-label="Oliver Math">
+        <ion-icon :icon="calculatorIcon" class="wordmark-icon" aria-hidden="true"></ion-icon>
+        <span class="wordmark-oliver">Oliver</span><span class="wordmark-math">Math</span>
+      </p>
+
       <div class="hud-right">
         <button class="hud-btn" id="language-trigger-header" aria-label="Change language" aria-haspopup="menu">
           <span class="hud-flag" aria-hidden="true">{{ availableLanguages[selectedLanguage]?.flag }}</span>
@@ -47,7 +54,9 @@
          14-word sentence in a speech bubble and nothing else. -->
     <div class="intro-backdrop" v-if="showIntro" role="dialog" aria-modal="true" aria-labelledby="intro-title">
       <div class="intro-card">
-        <p class="intro-brand" id="intro-title">Oliver Math</p>
+        <p class="intro-brand" id="intro-title">
+          <span class="wordmark-oliver">Oliver</span><span class="wordmark-math">Math</span>
+        </p>
         <p class="intro-tagline">{{ t('tagline') }}</p>
 
         <ol class="intro-steps">
@@ -2070,6 +2079,68 @@ ion-modal.settings-modal {
   outline-offset: 3px;
 }
 
+/* Wordmark ----------------------------------------------------------------- */
+
+.wordmark {
+  position: absolute;
+  left: 50%;
+  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  transform: translateX(-50%);
+  margin: 0;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: clamp(15px, 4.4vw, 21px);
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  white-space: nowrap;
+  pointer-events: none;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.55);
+}
+
+/* Below this the buttons either side would collide with it. */
+@media (max-width: 340px) {
+  .wordmark {
+    display: none;
+  }
+}
+
+.wordmark-oliver {
+  color: #ffffff;
+}
+
+/* Solid gold with a brightness pulse, not a gradient clipped to the text:
+   background-clip renders the glyphs dark wherever the gradient happens to be
+   mid-sweep, and it drops out entirely where it is unsupported. */
+.wordmark-math {
+  color: #ffd700;
+  animation: wordmark-pulse 4s ease-in-out infinite;
+}
+
+.wordmark-icon {
+  font-size: 1.15em;
+  color: #ffd700;
+  animation: wordmark-pulse 4s ease-in-out infinite;
+}
+
+@keyframes wordmark-pulse {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.35); }
+}
+
+.intro-brand .wordmark-oliver,
+.intro-brand .wordmark-math {
+  font-size: inherit;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wordmark-math,
+  .wordmark-icon {
+    animation: none;
+  }
+}
+
 /* Speech glow -------------------------------------------------------------- */
 
 .speak-glow {
@@ -2238,7 +2309,6 @@ ion-modal.settings-modal {
   font-size: 26px;
   font-weight: 800;
   letter-spacing: -0.4px;
-  color: #ffd700;
 }
 
 .intro-tagline {

@@ -163,15 +163,24 @@ export default {
       // coming from where the sun is drawn (back and to the right, low), and a
       // soft fill from the camera so the face never goes black. No shadow maps
       // - this runs on a child's phone.
-      this.scene.add(new THREE.HemisphereLight(0x9fb6e8, 0x2a3350, 1.5));
+      this.scene.add(new THREE.HemisphereLight(0xcfe0ff, 0x3a4668, 2.4));
 
-      const sun = new THREE.DirectionalLight(0xffd3a0, 2.3);
-      sun.position.set(4, 2.4, -5);
-      this.scene.add(sun);
-      this.sunLight = sun;
+      // Key from the FRONT. The previous version put the only strong light
+      // behind the robot to match where the sun is painted, which backlit it
+      // and left the whole front in shadow.
+      const key = new THREE.DirectionalLight(0xfff1dd, 2.6);
+      key.position.set(2.5, 3.5, 4);
+      this.scene.add(key);
 
-      const fill = new THREE.DirectionalLight(0xbfd4ff, 0.9);
-      fill.position.set(-1.5, 2, 4);
+      // Warm rim from the sun's direction, so the sun still shows on the robot
+      // without being responsible for lighting it.
+      const rim = new THREE.DirectionalLight(0xffc488, 1.5);
+      rim.position.set(4, 2.2, -5);
+      this.scene.add(rim);
+      this.sunLight = rim;
+
+      const fill = new THREE.DirectionalLight(0xbfd4ff, 0.75);
+      fill.position.set(-3, 1.5, 3);
       this.scene.add(fill);
 
       // Thinking dots that orbit the head.
@@ -502,8 +511,8 @@ export default {
       // Stars, fading out as the sky brightens towards the horizon.
       for (let i = 0; i < 260; i++) {
         const sx = rand() * 1024;
-        const sy = rand() * 300;
-        const fade = 1 - sy / 300;
+        const sy = rand() * 290;
+        const fade = 1 - sy / 290;
         s.fillStyle = `rgba(255,255,255,${(0.15 + rand() * 0.6) * fade})`;
         const r = rand() * 1.5 + 0.4;
         s.beginPath();
@@ -512,17 +521,19 @@ export default {
       }
 
       // Sun, low and warm, with a wide bloom.
-      const sunX = 700;
-      const sunY = 362;
-      const glow = s.createRadialGradient(sunX, sunY, 4, sunX, sunY, 230);
+      // Well above the ridges (which start around y=352): at 362 the mountains
+      // were drawn straight over the top of it, so no sun was ever visible.
+      const sunX = 706;
+      const sunY = 318;
+      const glow = s.createRadialGradient(sunX, sunY, 6, sunX, sunY, 260);
       glow.addColorStop(0, 'rgba(255,241,205,0.98)');
       glow.addColorStop(0.18, 'rgba(255,206,142,0.5)');
       glow.addColorStop(1, 'rgba(255,170,110,0)');
       s.fillStyle = glow;
       s.fillRect(sunX - 240, sunY - 240, 480, 480);
-      s.fillStyle = '#fff6dc';
+      s.fillStyle = '#fff8e4';
       s.beginPath();
-      s.arc(sunX, sunY, 30, 0, Math.PI * 2);
+      s.arc(sunX, sunY, 40, 0, Math.PI * 2);
       s.fill();
 
       // Soft cloud bands, lit from the sun side.
@@ -563,14 +574,14 @@ export default {
 
       // Three ranges with haze between them: the further back, the lighter and
       // bluer, which is what actually reads as distance.
-      ridge(352, 40, 72, '#6b7bb0');
-      const haze = s.createLinearGradient(0, 330, 0, 430);
+      ridge(396, 34, 72, '#6b7bb0');
+      const haze = s.createLinearGradient(0, 376, 0, 456);
       haze.addColorStop(0, 'rgba(226,186,186,0)');
       haze.addColorStop(1, 'rgba(226,186,186,0.32)');
       s.fillStyle = haze;
-      s.fillRect(0, 330, 1024, 100);
-      ridge(384, 30, 56, '#495a93');
-      ridge(416, 22, 44, '#2b375f');
+      s.fillRect(0, 376, 1024, 80);
+      ridge(414, 26, 56, '#495a93');
+      ridge(430, 20, 44, '#2b375f');
 
       this.skyTexture = new THREE.CanvasTexture(sc);
       this.skyTexture.colorSpace = THREE.SRGBColorSpace;
@@ -579,12 +590,16 @@ export default {
       // is placed with that third straddling the floor line - otherwise the
       // mountains sit below the horizon and are never seen, which is exactly
       // what happened with the first attempt.
-      const skyH = sizeVec.y * 11;
+      // Sized and placed so the texture maps predictably onto the world: with
+      // the plane 6 robot-heights tall and centred 0.35 of that above the
+      // floor, texture row 318 lands just above the robot's head (the sun) and
+      // rows 396-430 land just above the floor line (the ridges).
+      const skyH = sizeVec.y * 6;
       this.sky = new THREE.Mesh(
-        new THREE.PlaneGeometry(skyH * 2, skyH),
+        new THREE.PlaneGeometry(skyH * 2.2, skyH),
         new THREE.MeshBasicMaterial({ map: this.skyTexture, fog: false, depthWrite: false })
       );
-      this.sky.position.set(0, floorY + skyH * 0.3, -sizeVec.y * 7);
+      this.sky.position.set(0, floorY + skyH * 0.35, -sizeVec.y * 7);
       this.scene.add(this.sky);
 
       // Contact shadow. A soft dark blob under the feet does more for the sense
