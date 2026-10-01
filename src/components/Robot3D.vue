@@ -303,31 +303,43 @@ export default {
       const clipName = this.reducedMotion ? 'Idle' : cfg.clip;
       const next = this.actions[clipName] || this.actions.Idle;
 
-      if (next && next !== this.current) {
-        next.reset();
-        next.enabled = true;
-        next.timeScale = this.reducedMotion ? 0 : cfg.speed;
-        if (cfg.once && !this.reducedMotion) {
-          next.setLoop(THREE.LoopOnce, 1);
-          next.clampWhenFinished = true;
-        } else {
-          next.setLoop(THREE.LoopRepeat, Infinity);
-          next.clampWhenFinished = false;
-        }
-        next.fadeIn(0.25).play();
-        if (this.current) this.current.fadeOut(0.25);
-        this.current = next;
+      // Always cancel the pending settle, whether or not the clip changes.
+      // 'confused' and 'sad' both use the No clip and are both one-shot, so
+      // going straight from one to the other left the previous state's timer
+      // running - and it cut the new state back to Idle early.
+      clearTimeout(this.settleTimer);
 
-        // One-shot states settle back to a looping Idle on their own.
-        clearTimeout(this.settleTimer);
+      if (next) {
+        const sameClip = next === this.current;
+        // Replay a one-shot even when it is the same clip, otherwise the second
+        // state shows nothing at all.
+        if (!sameClip || cfg.once) {
+          next.reset();
+          next.enabled = true;
+          if (cfg.once && !this.reducedMotion) {
+            next.setLoop(THREE.LoopOnce, 1);
+            next.clampWhenFinished = true;
+          } else {
+            next.setLoop(THREE.LoopRepeat, Infinity);
+            next.clampWhenFinished = false;
+          }
+          if (!sameClip) {
+            next.fadeIn(0.25).play();
+            if (this.current) this.current.fadeOut(0.25);
+          } else {
+            next.play();
+          }
+          this.current = next;
+        }
+
+        next.timeScale = this.reducedMotion ? 0 : cfg.speed;
+
         if (cfg.once && !this.reducedMotion) {
           const ms = next.getClip().duration * 1000 / (cfg.speed || 1);
           this.settleTimer = setTimeout(() => {
             if (this.config.once) this.settleToIdle();
           }, ms + 120);
         }
-      } else if (next) {
-        next.timeScale = this.reducedMotion ? 0 : cfg.speed;
       }
 
       if (this.floorRing) this.floorRing.material.color.setHex(cfg.color);
@@ -1196,6 +1208,13 @@ export default {
       if (this.mixer) this.mixer.stopAllAction();
       if (this.scene) {
         this.scene.traverse((o) => {
+          // Sprites carry a material and a canvas texture of their own, and
+          // are not meshes - the numbers, the birds, the sun and the moon were
+          // all being left to forceContextLoss to clean up.
+          if (o.isSprite) {
+            o.material?.map?.dispose();
+            o.material?.dispose();
+          }
           if (o.isMesh) {
             o.geometry?.dispose();
             const mats = Array.isArray(o.material) ? o.material : [o.material];

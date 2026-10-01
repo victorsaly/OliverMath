@@ -110,13 +110,6 @@ export default {
       type: String,
       default: ''
     },
-    // Kept for API compatibility with Home.vue. It no longer gates playback:
-    // pausing the robot during the question/answer sequence hid exactly the
-    // motion that tells the child whose turn it is.
-    isPlayMode: {
-      type: Boolean,
-      default: true
-    },
     // Audio amplitude, 0-1
     audioLevel: {
       type: Number,
@@ -322,6 +315,13 @@ export default {
   text-align: center;
   font-weight: 500;
   z-index: 10;
+}
+
+/* Only the unanchored (2D fallback) bubble uses this: it animates transform,
+   which would override the translate that centres the anchored one over the
+   head - the bubble's corner would sit on the anchor for the length of the
+   animation and then snap into place. */
+.bubble:not(.anchored) {
   animation: bubbleAppear 0.3s ease-out;
 }
 
@@ -373,9 +373,26 @@ export default {
   transition: none;
 }
 
+/* Fades and settles in place, keeping the centring translate intact. */
+.bubble.anchored {
+  animation: bubbleFadeIn 0.28s ease-out;
+}
+
+@keyframes bubbleFadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -100%) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -100%) scale(1);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .bubble.anchored {
     transition: none;
+    animation: none;
   }
 }
 
@@ -402,7 +419,7 @@ export default {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  p.bubble {
+  .bubble {
     animation: none;
   }
   .bot-stage::before {
@@ -412,10 +429,9 @@ export default {
 
 /* Responsive adjustments */
 @media (max-width: 480px) {
-  p.bubble {
-    width: min(250px, 90vw);
-    padding: 12px 16px;
-    font-size: 1rem;
+  .bubble {
+    width: min(250px, 88vw);
+    padding: 10px 14px;
   }
 }
 </style>

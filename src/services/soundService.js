@@ -201,6 +201,13 @@ function applyMusicGain(seconds = 1.2) {
 function scheduleMusicBar() {
   if (!audioContext || !musicGain) return;
 
+  // Muting only ramps the gain to zero, so without this the bar kept
+  // allocating oscillators every six seconds for silence nobody could hear.
+  if (isMuted || !musicWanted) {
+    musicTimer = setTimeout(scheduleMusicBar, 6000);
+    return;
+  }
+
   const chord = PAD_CHORDS[musicStep % PAD_CHORDS.length];
   const now = audioContext.currentTime;
   const barLength = 6;

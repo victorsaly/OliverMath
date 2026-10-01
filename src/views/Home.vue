@@ -315,7 +315,6 @@
       <div class="bot-container">
         <AnimatedBot
           :botState="botState"
-          :isPlayMode="isPlayMode"
           :text="speech_phrases"
           :audioLevel="audioLevel"
           :view="botView"
@@ -1210,6 +1209,16 @@ export default {
       if (window.speechSynthesis) window.speechSynthesis.cancel();
       this.isTalking = false;
       this.stopAudioAnalysis();
+
+      // Pausing the audio means onended never fires, so the work it would have
+      // done has to happen here - otherwise the turn strands with neither the
+      // Play nor the Done button on screen.
+      if (this.isQuery) {
+        this.isQuery = false;
+        this.listen();
+      } else if (!this.isListening) {
+        this.isPlayMode = true;
+      }
     },
 
     toggleDayNight() {
@@ -1561,9 +1570,13 @@ export default {
       
       try {
         const result = await validateAnswer(
-          word, 
+          word,
           this.expectedResultAsNumber,
-          this.text, // The question
+          // The question, NOT this.text. this.text is whatever the robot is
+          // currently saying, and the retry path overwrites it with the
+          // "I didn't hear you" line - so the retry was being validated
+          // without the sum ever being shown to the model.
+          this.currentQuestion || this.text,
           this.selectedLanguage
         );
         
@@ -1600,15 +1613,28 @@ export default {
       const displayText = isSilent ? "(silent)" : String(recordedText);
 
       let validationResult = null;
-      
+
+      // Interim transcripts arrive faster than the validation call returns, so
+      // two of them could both pass the check above, both await, and both score
+      // the same answer. One validation at a time, and re-check afterwards.
+      if (this.validationInFlight) return;
+
       if (!isSilent) {
         // 'I heard: ...' and 'Interpreted as: N' were engineer language shown
         // to a seven-year-old, in English regardless of the chosen language.
         // The transcript now appears in the listening panel instead.
         this.heardText = displayText;
         this.isComputing = true;
-        validationResult = await this.validateWordWithLLM(recordedText);
+        this.validationInFlight = true;
+        try {
+          validationResult = await this.validateWordWithLLM(recordedText);
+        } finally {
+          this.validationInFlight = false;
+        }
         this.isComputing = false;
+
+        // The turn may have been finalised while we were waiting.
+        if (this.answerFinalised) return;
         
         // Show interpreted number if different from what was heard
         if (validationResult?.understood && validationResult.interpretedNumber !== null) {
