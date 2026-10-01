@@ -28,9 +28,9 @@
 // morph: facial morph target, 0-1
 // color: the state light. This is the only signal a pre-reading child can read
 //        without motion, so no two adjacent states share one.
-// halo:  pulse the ring on the FLOOR with audioLevel, to show we can hear the
-//        child. On the floor rather than floating behind the head, so the scene
-//        keeps looking like a place.
+// halo:  pulse the ring on the FLOOR with audioLevel. Green while listening
+//        (we can hear you), blue while speaking (I am talking) - so both sides
+//        of the conversation are visible with the volume all the way down.
 // Note: no procedural mouth or eyes. Bolting flat discs onto this low-poly
 // model fought its art direction - it is designed with solid black eyes and no
 // mouth. Expression comes from the rig's own morph targets, the body clips, the
@@ -41,7 +41,7 @@ const STATES = {
   neutral:   { clip: 'Walking',  color: 0x4ce6ff, speed: 1, walk: true },
   sleepy:    { clip: 'Sitting',  color: 0x5980b2, speed: 0.5 },
   listening: { clip: 'Idle',     color: 0x33e666, speed: 1, halo: true, lean: 0.12 },
-  speaking:  { clip: 'Idle',     color: 0x4cd9ff, speed: 1, bob: true },
+  speaking:  { clip: 'Idle',     color: 0x4cd9ff, speed: 1, bob: true, halo: true },
   thinking:  { clip: 'Idle',     color: 0xffb432, speed: 0.6, lookUp: 0.18, orbit: true },
   computing: { clip: 'Idle',     color: 0xffb432, speed: 0.6, lookUp: 0.18, orbit: true },
   happy:     { clip: 'Yes',      color: 0x33e666, speed: 1, once: true },

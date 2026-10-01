@@ -22,6 +22,9 @@ export const translations = {
     robotView: 'Robot view',
     howToPlay: 'How to play',
     hearIt: 'Tell me how',
+    robotChat: 'Robot chatter',
+    optionOn: 'On',
+    optionOff: 'Off',
     explainSpoken: 'Hi! I am your maths robot. Tap the big play button and I will ask you a maths question. Listen carefully, then say your answer out loud. If you get it right, you win a star!',
     tagline: 'Practise maths by talking to the robot',
     step1: 'Tap the Play button',
@@ -81,6 +84,15 @@ export const translations = {
     correctAnswer: 'Correct answer',
     
     // Phrases - Correct
+    idlePhrases: [
+      "What are you waiting for? Tap play!",
+      "Do you want another question?",
+      "I am ready when you are!",
+      "Shall we practise some more?",
+      "Tip: say your answer loudly and clearly.",
+      "Tip: you can tap repeat to hear the question again.",
+      "Tip: if I mishear you, just say it again."
+    ],
     correctPhrases: [
       "That's right!",
       "Excellent!",
@@ -198,6 +210,9 @@ export const translations = {
     robotView: 'Vista del robot',
     howToPlay: 'Cómo jugar',
     hearIt: 'Explícamelo',
+    robotChat: 'Charla del robot',
+    optionOn: 'Sí',
+    optionOff: 'No',
     explainSpoken: '¡Hola! Soy tu robot de mates. Pulsa el botón grande de play y te haré una pregunta de mates. Escucha con atención y di tu respuesta en voz alta. ¡Si aciertas, ganas una estrella!',
     tagline: 'Practica mates hablando con el robot',
     step1: 'Pulsa el botón de play',
@@ -275,6 +290,15 @@ export const translations = {
     hundredStarsDesc: 'Gana 100 estrellas',
     
     // Phrases - Correct
+    idlePhrases: [
+      "¿A qué esperas? ¡Pulsa play!",
+      "¿Quieres otra pregunta?",
+      "¡Estoy listo cuando tú lo estés!",
+      "¿Practicamos un poco más?",
+      "Consejo: di tu respuesta alto y claro.",
+      "Consejo: puedes pulsar repetir para oír la pregunta otra vez.",
+      "Consejo: si te oigo mal, dilo otra vez."
+    ],
     correctPhrases: [
       "¡Correcto!",
       "¡Excelente!",
@@ -370,6 +394,9 @@ export const translations = {
     robotView: 'Vue du robot',
     howToPlay: 'Comment jouer',
     hearIt: 'Explique-moi',
+    robotChat: 'Bavardage du robot',
+    optionOn: 'Oui',
+    optionOff: 'Non',
     explainSpoken: 'Salut ! Je suis ton robot de maths. Appuie sur le gros bouton play et je te poserai une question de maths. Écoute bien, puis dis ta réponse à voix haute. Si tu as juste, tu gagnes une étoile !',
     tagline: 'Entraîne-toi aux maths en parlant au robot',
     step1: 'Appuie sur le bouton play',
@@ -447,6 +474,15 @@ export const translations = {
     hundredStarsDesc: 'Gagne 100 étoiles',
     
     // Phrases - Correct
+    idlePhrases: [
+      "Qu'est-ce que tu attends ? Appuie sur play !",
+      "Tu veux une autre question ?",
+      "Je suis prêt quand tu veux !",
+      "On s'entraîne encore un peu ?",
+      "Astuce : dis ta réponse fort et clairement.",
+      "Astuce : tu peux appuyer sur répéter pour réécouter la question.",
+      "Astuce : si je t'entends mal, redis-le."
+    ],
     correctPhrases: [
       "C'est exact!",
       "Excellent!",
@@ -542,6 +578,9 @@ export const translations = {
     robotView: 'Roboter-Ansicht',
     howToPlay: 'So wird gespielt',
     hearIt: 'Erklär es mir',
+    robotChat: 'Roboter-Geplauder',
+    optionOn: 'An',
+    optionOff: 'Aus',
     explainSpoken: 'Hallo! Ich bin dein Mathe-Roboter. Tippe auf den großen Play-Knopf und ich stelle dir eine Mathe-Frage. Hör gut zu und sag deine Antwort laut. Wenn sie richtig ist, bekommst du einen Stern!',
     tagline: 'Übe Mathe, indem du mit dem Roboter sprichst',
     step1: 'Tippe auf Play',
@@ -619,6 +658,15 @@ export const translations = {
     hundredStarsDesc: 'Verdiene 100 Sterne',
     
     // Phrases - Correct
+    idlePhrases: [
+      "Worauf wartest du? Tippe auf Play!",
+      "Möchtest du noch eine Frage?",
+      "Ich bin bereit, wenn du es bist!",
+      "Sollen wir noch etwas üben?",
+      "Tipp: sag deine Antwort laut und deutlich.",
+      "Tipp: du kannst auf Wiederholen tippen, um die Frage noch einmal zu hören.",
+      "Tipp: wenn ich dich falsch verstehe, sag es einfach nochmal."
+    ],
     correctPhrases: [
       "Das stimmt!",
       "Ausgezeichnet!",
@@ -714,6 +762,9 @@ export const translations = {
     robotView: 'Vista do robô',
     howToPlay: 'Como jogar',
     hearIt: 'Explica-me',
+    robotChat: 'Conversa do robô',
+    optionOn: 'Sim',
+    optionOff: 'Não',
     explainSpoken: 'Olá! Sou o teu robô de matemática. Toca no botão grande de play e eu faço-te uma pergunta de matemática. Ouve com atenção e diz a tua resposta em voz alta. Se acertares, ganhas uma estrela!',
     tagline: 'Pratica matemática falando com o robô',
     step1: 'Toca no botão play',
@@ -791,6 +842,15 @@ export const translations = {
     hundredStarsDesc: 'Ganhe 100 estrelas',
     
     // Phrases - Correct
+    idlePhrases: [
+      "De que estás à espera? Toca em play!",
+      "Queres outra pergunta?",
+      "Estou pronto quando tu estiveres!",
+      "Vamos praticar mais um pouco?",
+      "Dica: diz a tua resposta alto e com clareza.",
+      "Dica: podes tocar em repetir para ouvir a pergunta outra vez.",
+      "Dica: se eu ouvir mal, diz outra vez."
+    ],
     correctPhrases: [
       "Isso mesmo!",
       "Excelente!",

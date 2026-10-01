@@ -146,6 +146,25 @@
           </div>
 
           <div class="settings-group">
+            <div class="settings-group-header">
+              <ion-icon :icon="volumeIcon" color="secondary"></ion-icon>
+              <span>{{ t('robotChat') }}</span>
+            </div>
+            <div class="settings-options">
+              <button
+                v-for="option in chatOptions"
+                :key="String(option.value)"
+                class="setting-option"
+                :class="{ active: autoChat === option.value }"
+                :aria-pressed="autoChat === option.value"
+                @click="setAutoChat(option.value)"
+              >
+                {{ option.label }}
+              </button>
+            </div>
+          </div>
+
+          <div class="settings-group">
             <button class="setting-option wide" @click="showIntro = true; showSettingsModal = false">
               {{ t('howToPlay') }}
             </button>
@@ -233,6 +252,12 @@
           </ion-button>
         </ion-content>
       </ion-modal>
+
+      <!-- Speech glow. The robot talking is otherwise inaudible AND invisible
+           with the volume down or the device muted, so the screen edges pulse
+           in the speaking colour. Driven by the real amplitude where we have
+           it, with a CSS pulse underneath so it still moves when we do not. -->
+      <div class="speak-glow" :class="botState" v-if="isTalking || isListening" :style="{ '--glow': speakGlow }" aria-hidden="true"></div>
 
       <!-- Bot Container -->
       <div class="bot-container">
@@ -410,6 +435,10 @@ export default {
       showIntro: !localStorage.seenIntro,
       // Set when the next utterance should leave a clean screen behind it.
       clearAfterSpeak: false,
+      // Idle chatter: the robot prompts and offers tips while waiting.
+      autoChat: localStorage.autoChat !== '0',
+      idleTimer: null,
+      bubbleTimer: null,
       
       // Expression states
       isHappy: false,
@@ -565,6 +594,16 @@ export default {
         { value: 'random', label: this.t('randomMode') },
         { value: 'weak_operators', label: this.t('practiceWeakOperators') },
         { value: 'recent_failures', label: this.t('practiceRecentFailures') },
+      ];
+    },
+    // 0-1, used as the strength of the edge glow while the robot talks.
+    speakGlow() {
+      return (0.22 + Math.min(this.audioLevel, 1) * 0.6).toFixed(3);
+    },
+    chatOptions() {
+      return [
+        { value: true, label: this.t('optionOn') },
+        { value: false, label: this.t('optionOff') },
       ];
     },
     viewOptions() {
@@ -1062,6 +1101,69 @@ export default {
      * path so it gets the same voice, the same language and the same talking
      * animation as everything else it says.
      */
+    setAutoChat(value) {
+      this.autoChat = value;
+      try {
+        localStorage.autoChat = value ? '1' : '0';
+      } catch (err) {
+        console.warn('Could not save the chatter preference:', err);
+      }
+      if (value) this.startIdleChat();
+      else this.stopIdleChat();
+    },
+
+    /**
+     * The robot speaks up now and then while nothing is happening - a nudge or
+     * a tip - so an idle screen does not feel abandoned. Only ever when it is
+     * genuinely idle: never over a question, a turn, or its own voice.
+     */
+    startIdleChat() {
+      this.stopIdleChat();
+      if (!this.autoChat) return;
+      this.idleTimer = setInterval(() => {
+        const idle =
+          this.isPlayMode &&
+          !this.isTalking &&
+          !this.isListening &&
+          !this.isComputing &&
+          !this.showIntro &&
+          !this.showSettingsModal &&
+          !this.showHistoryModal &&
+          document.visibilityState === 'visible';
+        if (!idle) return;
+        this.sayIdlePhrase();
+      }, 45000);
+    },
+
+    stopIdleChat() {
+      clearInterval(this.idleTimer);
+      this.idleTimer = null;
+    },
+
+    sayIdlePhrase() {
+      const phrase = getRandomPhrase(this.selectedLanguage, 'idlePhrases');
+      if (!phrase) return;
+      this.isQuery = false;
+      this.clearAfterSpeak = true;
+      this.text = phrase;
+      this.speak();
+      this.scheduleBubbleClear();
+    },
+
+    /**
+     * The bubble is not a permanent fixture. Anything said outside a question
+     * fades off the screen on its own rather than sitting there indefinitely.
+     */
+    scheduleBubbleClear(ms = 90000) {
+      clearTimeout(this.bubbleTimer);
+      this.bubbleTimer = setTimeout(() => {
+        if (this.isPlayMode && !this.isTalking && !this.isListening) {
+          this.text = '';
+          this.speech_phrases = '';
+        }
+      }, ms);
+    },
+
     async explainGame() {
       if (this.isTalking) return;
       // Close the card first: the point of hearing it is to watch the robot
@@ -1563,6 +1665,21 @@ export default {
     },
   },
   async mounted() {
+    // Try to start the music immediately. Browsers block an AudioContext until
+    // the page has been interacted with, so if that is refused we arm a
+    // one-shot listener and start on the very first touch or key instead.
+    startMusic().catch(() => {});
+    this.firstGesture = () => {
+      startMusic().catch(() => {});
+      window.removeEventListener('pointerdown', this.firstGesture);
+      window.removeEventListener('keydown', this.firstGesture);
+    };
+    window.addEventListener('pointerdown', this.firstGesture, { once: true });
+    window.addEventListener('keydown', this.firstGesture, { once: true });
+
+    this.startIdleChat();
+    this.scheduleBubbleClear();
+
     // Check microphone availability
     try {
       await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -1628,6 +1745,13 @@ export default {
   },
   unmounted() {
     stopMusic();
+    this.stopIdleChat();
+    clearTimeout(this.bubbleTimer);
+    clearTimeout(this.rewardTimer);
+    if (this.firstGesture) {
+      window.removeEventListener('pointerdown', this.firstGesture);
+      window.removeEventListener('keydown', this.firstGesture);
+    }
     window.removeEventListener('keydown', this.keyDownHandler);
     // Cleanup audio player
     if (this.audioPlayer) {
@@ -1886,6 +2010,41 @@ ion-modal.settings-modal {
   background: linear-gradient(145deg, #5a4dc4, #3a3192);
 }
 
+
+/* Speech glow -------------------------------------------------------------- */
+
+.speak-glow {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  opacity: var(--glow, 0.3);
+  animation: glow-breathe 1.8s ease-in-out infinite;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 48%,
+    rgba(76, 217, 255, 0.42) 100%
+  );
+}
+
+.speak-glow.listening {
+  background: radial-gradient(
+    ellipse at center,
+    transparent 48%,
+    rgba(51, 230, 102, 0.42) 100%
+  );
+}
+
+@keyframes glow-breathe {
+  0%, 100% { filter: brightness(0.85); }
+  50% { filter: brightness(1.25); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .speak-glow {
+    animation: none;
+  }
+}
 
 /* Listening panel ---------------------------------------------------------- */
 
