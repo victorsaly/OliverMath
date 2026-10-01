@@ -33,7 +33,7 @@
     <!-- Speech bubble. When the 3D scene reports where the head is on screen
          the bubble follows it, so it reads as coming from the robot rather
          than hovering at the top of the page. -->
-    <p v-if="text" class="bubble speech" :class="{ anchored: !!anchor }" :style="bubbleStyle">
+    <p v-if="text" class="bubble speech" :class="{ anchored: !!anchor, snap: snapBubble }" :style="bubbleStyle">
       {{ text }}
     </p>
   </div>
@@ -137,6 +137,9 @@ export default {
     return {
       use3D: this.supports3D(),
       anchor: null,
+      // Suppresses the follow transition for one tick when the bubble appears,
+      // so it does not slide in from wherever the head was last time.
+      snapBubble: false,
       animations: ANIMATIONS
     };
   },
@@ -173,6 +176,16 @@ export default {
         return 1.3;
       }
       return 1;
+    }
+  },
+  watch: {
+    text(value, previous) {
+      if (value && !previous) {
+        this.snapBubble = true;
+        this.$nextTick(() => {
+          requestAnimationFrame(() => { this.snapBubble = false; });
+        });
+      }
     }
   },
   methods: {
@@ -281,7 +294,11 @@ p.bubble.anchored {
   position: absolute;
   margin: 0;
   transform: translate(-50%, -100%);
-  transition: left 0.25s ease-out, top 0.25s ease-out;
+  transition: left 0.35s ease-out, top 0.35s ease-out;
+}
+
+p.bubble.anchored.snap {
+  transition: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

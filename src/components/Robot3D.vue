@@ -760,16 +760,18 @@ export default {
       // Lights. Night is lit coolly and dimly, but never to nothing - the robot
       // still has to be readable, and this is a child's game, not a horror.
       if (this.keyLight) {
-        this.keyLight.intensity = 0.55 + day * 2.2;
+        // Floor of 1.25 rather than 0.55: at night the robot was readable but
+        // murky, and it is the thing the child is meant to be looking at.
+        this.keyLight.intensity = 1.25 + day * 1.6;
         this.keyLight.color.setHex(0xffffff).lerp(new THREE.Color(0xffc48a), golden);
         if (day < 0.25) this.keyLight.color.lerp(new THREE.Color(0x9fb4ff), 1 - day * 4);
       }
       if (this.rimLight) {
-        this.rimLight.intensity = 0.4 + day * 1.5;
+        this.rimLight.intensity = 0.7 + day * 1.2;
         this.rimLight.position.set(sunX * 5, Math.max(0.6, sunY * 4), -5);
       }
       if (this.hemiLight) {
-        this.hemiLight.intensity = 0.5 + day * 2.1;
+        this.hemiLight.intensity = 1.15 + day * 1.5;
         this.hemiLight.color.setHex(0x9fb4ff).lerp(new THREE.Color(0xcfe0ff), day);
       }
     },
@@ -891,13 +893,13 @@ export default {
       this.model.updateWorldMatrix(true, true);
       const box = new THREE.Box3().setFromObject(face);
       const h = box.max.y - box.min.y;
-      const cx = (box.min.x + box.max.x) / 2;
 
-      // Where the speech bubble should point: just above the crown, stored in
-      // the model's local space so it survives the model being rotated.
-      this.headAnchorPoint = this.model.worldToLocal(
-        new THREE.Vector3(cx, box.max.y + h * 0.26, box.max.z)
-      );
+      // The speech bubble tracks the head BONE's world position, not a fixed
+      // point on the model. A model-local point swings sideways whenever the
+      // model turns - which it does constantly for gaze tracking - so the
+      // bubble slid out from one side of the head and back.
+      this.headBone = this.model.getObjectByName('Head') || this.neck;
+      this.headAnchorLift = h * 0.95;
     },
 
     /**
@@ -1060,14 +1062,30 @@ export default {
       // bubble can sit just above it instead of being pinned to the top of the
       // page. Only emitted when it actually moves, to avoid a parent re-render
       // on every single frame.
-      if (this.headAnchorPoint && this.$refs.host) {
-        const p = this.headAnchorPoint.clone();
-        this.model.localToWorld(p);
-        p.project(this.camera);
-        const x = (p.x * 0.5 + 0.5) * 100;
-        const y = (-p.y * 0.5 + 0.5) * 100;
+      if (this.headBone && this.$refs.host) {
+        if (!this.anchorVec) this.anchorVec = new this.THREE.Vector3();
+        this.headBone.getWorldPosition(this.anchorVec);
+        this.anchorVec.y += this.headAnchorLift;
+        this.anchorVec.project(this.camera);
+
+        const rawX = (this.anchorVec.x * 0.5 + 0.5) * 100;
+        const rawY = (-this.anchorVec.y * 0.5 + 0.5) * 100;
+
+        // Low-pass the result. The walk cycle and the head bob move the bone
+        // every frame, and an unfiltered anchor made the bubble twitch along
+        // with it.
+        if (!this.smoothAnchor) {
+          this.smoothAnchor = { x: rawX, y: rawY };
+        } else {
+          const k = Math.min(1, delta * 3.5);
+          this.smoothAnchor.x += (rawX - this.smoothAnchor.x) * k;
+          this.smoothAnchor.y += (rawY - this.smoothAnchor.y) * k;
+        }
+
+        const x = this.smoothAnchor.x;
+        const y = this.smoothAnchor.y;
         const last = this.lastAnchor;
-        if (!last || Math.abs(last.x - x) > 0.3 || Math.abs(last.y - y) > 0.3) {
+        if (!last || Math.abs(last.x - x) > 0.4 || Math.abs(last.y - y) > 0.4) {
           this.lastAnchor = { x, y };
           this.$emit('anchor', { x, y });
         }
