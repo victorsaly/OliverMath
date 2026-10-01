@@ -12,6 +12,7 @@
         :audioLevel="audioLevel"
         :view="view"
         :headroom="headroom"
+        :bodyColor="bodyColor"
         size="100%"
         @unsupported="use3D = false"
         @anchor="onAnchor"
@@ -119,6 +120,11 @@ export default {
       type: String,
       default: 'auto',
       validator: (v) => ['auto', 'face', 'full'].includes(v)
+    },
+    // Hex for the 3D robot's body panels.
+    bodyColor: {
+      type: String,
+      default: null
     }
   },
   data() {

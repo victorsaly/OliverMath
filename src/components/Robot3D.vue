@@ -87,7 +87,9 @@ export default {
     headroom: { type: Number, default: 0.1 },
     // Fraction kept clear BELOW the robot, so the dock at the bottom of the
     // screen does not sit over its legs.
-    footroom: { type: Number, default: 0.24 }
+    footroom: { type: Number, default: 0.24 },
+    // Hex for the robot's body panels. null keeps the model's own yellow.
+    bodyColor: { type: String, default: null }
   },
   emits: ['unsupported', 'ready', 'anchor'],
   data() {
@@ -113,6 +115,9 @@ export default {
     },
     footroom() {
       this.computeFraming();
+    },
+    bodyColor() {
+      this.applyBodyColor();
     }
   },
   async mounted() {
@@ -154,11 +159,20 @@ export default {
       this.scene = new THREE.Scene();
       this.camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100);
 
-      // Soft, even light. No shadow maps - this runs on a child's phone.
-      this.scene.add(new THREE.HemisphereLight(0xffffff, 0x444466, 2.2));
-      const key = new THREE.DirectionalLight(0xffffff, 1.6);
-      key.position.set(2, 4, 3);
-      this.scene.add(key);
+      // Lit to match the painted sky: a cool sky/ground hemisphere, a warm key
+      // coming from where the sun is drawn (back and to the right, low), and a
+      // soft fill from the camera so the face never goes black. No shadow maps
+      // - this runs on a child's phone.
+      this.scene.add(new THREE.HemisphereLight(0x9fb6e8, 0x2a3350, 1.5));
+
+      const sun = new THREE.DirectionalLight(0xffd3a0, 2.3);
+      sun.position.set(4, 2.4, -5);
+      this.scene.add(sun);
+      this.sunLight = sun;
+
+      const fill = new THREE.DirectionalLight(0xbfd4ff, 0.9);
+      fill.position.set(-1.5, 2, 4);
+      this.scene.add(fill);
 
       // Thinking dots that orbit the head.
       this.orbit = new THREE.Group();
@@ -230,6 +244,7 @@ export default {
       this.baseRotation = this.model.rotation.y;
       this.createEnvironment(box, sizeVec);
       this.createFaceAnchor();
+      this.applyBodyColor();
       this.bindPointer();
 
       this.mixer = new THREE.AnimationMixer(this.model);
@@ -315,6 +330,11 @@ export default {
     applyMorph(name) {
       this.baseMorphName = name || null;
       this.updateMorphs();
+    },
+
+    applyBodyColor() {
+      if (!this.bodyMaterial || !this.bodyColor || !this.THREE) return;
+      this.bodyMaterial.color = new this.THREE.Color(this.bodyColor);
     },
 
     setTalkMorph(amount) {
@@ -613,6 +633,58 @@ export default {
       this.scene.add(this.floorRing);
 
       this.createFloatingMath(floorY, sizeVec);
+      this.createBirds(floorY, sizeVec);
+    },
+
+    /**
+     * A few birds crossing the sky. Drawn as a simple two-stroke silhouette,
+     * which is all a bird at this distance ever is, and flapped by squashing
+     * the sprite vertically rather than by swapping frames.
+     */
+    createBirds(floorY, sizeVec) {
+      const THREE = this.THREE;
+
+      const c = document.createElement('canvas');
+      c.width = 64;
+      c.height = 64;
+      const x = c.getContext('2d');
+      x.strokeStyle = '#1d2740';
+      x.lineWidth = 5;
+      x.lineCap = 'round';
+      x.beginPath();
+      x.moveTo(8, 34);
+      x.quadraticCurveTo(22, 20, 32, 32);
+      x.quadraticCurveTo(42, 20, 56, 34);
+      x.stroke();
+      this.birdTexture = new THREE.CanvasTexture(c);
+
+      this.birds = [];
+      for (let i = 0; i < 5; i++) {
+        const sprite = new THREE.Sprite(
+          new THREE.SpriteMaterial({
+            map: this.birdTexture,
+            transparent: true,
+            opacity: 0.5 + Math.random() * 0.3,
+            depthWrite: false,
+            fog: false
+          })
+        );
+        const scale = sizeVec.y * (0.1 + Math.random() * 0.1);
+        sprite.scale.set(scale, scale, 1);
+        sprite.position.set(
+          (Math.random() - 0.5) * sizeVec.y * 9,
+          floorY + sizeVec.y * (1.9 + Math.random() * 1.3),
+          -sizeVec.y * (3 + Math.random() * 3)
+        );
+        sprite.userData = {
+          speed: sizeVec.y * (0.12 + Math.random() * 0.1),
+          flap: Math.random() * Math.PI * 2,
+          baseScale: scale
+        };
+        this.scene.add(sprite);
+        this.birds.push(sprite);
+      }
+      this.birdWrapX = sizeVec.y * 5;
     },
 
     /**
@@ -788,6 +860,17 @@ export default {
       // alone carries the travel, and the camera stays locked.
       if (cfg.walk && !this.reducedMotion && this.groundTexture) {
         this.groundTexture.offset.y -= delta * 0.45;
+      }
+
+      if (this.birds && !this.reducedMotion) {
+        this.birds.forEach((b) => {
+          b.position.x += b.userData.speed * delta;
+          b.position.y += Math.sin(t * 0.8 + b.userData.flap) * delta * 0.06;
+          // Squash vertically to suggest a wingbeat.
+          const flap = 0.72 + Math.abs(Math.sin(t * 5 + b.userData.flap)) * 0.42;
+          b.scale.set(b.userData.baseScale, b.userData.baseScale * flap, 1);
+          if (b.position.x > this.birdWrapX) b.position.x = -this.birdWrapX;
+        });
       }
 
       // Drift the background numbers upward, wrapping back to the floor. Still

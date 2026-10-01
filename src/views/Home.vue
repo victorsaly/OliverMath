@@ -147,6 +147,25 @@
 
           <div class="settings-group">
             <div class="settings-group-header">
+              <ion-icon :icon="star" color="warning"></ion-icon>
+              <span>{{ t('robotColour') }}</span>
+            </div>
+            <div class="settings-options">
+              <button
+                v-for="colour in colourOptions"
+                :key="colour.value"
+                class="colour-swatch"
+                :class="{ active: botColour === colour.value }"
+                :style="{ background: colour.value }"
+                :aria-label="colour.label"
+                :aria-pressed="botColour === colour.value"
+                @click="setBotColour(colour.value)"
+              ></button>
+            </div>
+          </div>
+
+          <div class="settings-group">
+            <div class="settings-group-header">
               <ion-icon :icon="volumeIcon" color="secondary"></ion-icon>
               <span>{{ t('robotChat') }}</span>
             </div>
@@ -267,6 +286,7 @@
           :text="speech_phrases"
           :audioLevel="audioLevel"
           :view="botView"
+          :bodyColor="botColour"
           size="200px"
           @click="changeStatus('laughing')"
           aria-live="polite"
@@ -437,6 +457,8 @@ export default {
       clearAfterSpeak: false,
       // Idle chatter: the robot prompts and offers tips while waiting.
       autoChat: localStorage.autoChat !== '0',
+      // Body panel colour. Defaults to the model's own yellow.
+      botColour: localStorage.botColour || '#d9a441',
       idleTimer: null,
       bubbleTimer: null,
       
@@ -599,6 +621,16 @@ export default {
     // 0-1, used as the strength of the edge glow while the robot talks.
     speakGlow() {
       return (0.22 + Math.min(this.audioLevel, 1) * 0.6).toFixed(3);
+    },
+    colourOptions() {
+      return [
+        { value: '#d9a441', label: 'Yellow' },
+        { value: '#4a9de0', label: 'Blue' },
+        { value: '#5fbf7a', label: 'Green' },
+        { value: '#d2679b', label: 'Pink' },
+        { value: '#a079e0', label: 'Purple' },
+        { value: '#e07a52', label: 'Orange' },
+      ];
     },
     chatOptions() {
       return [
@@ -1101,6 +1133,15 @@ export default {
      * path so it gets the same voice, the same language and the same talking
      * animation as everything else it says.
      */
+    setBotColour(value) {
+      this.botColour = value;
+      try {
+        localStorage.botColour = value;
+      } catch (err) {
+        console.warn('Could not save the robot colour:', err);
+      }
+    },
+
     setAutoChat(value) {
       this.autoChat = value;
       try {
@@ -2010,6 +2051,24 @@ ion-modal.settings-modal {
   background: linear-gradient(145deg, #5a4dc4, #3a3192);
 }
 
+
+.colour-swatch {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  cursor: pointer;
+}
+
+.colour-swatch.active {
+  border-color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.28);
+}
+
+.colour-swatch:focus-visible {
+  outline: 3px solid #ffd700;
+  outline-offset: 3px;
+}
 
 /* Speech glow -------------------------------------------------------------- */
 
