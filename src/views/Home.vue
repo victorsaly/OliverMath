@@ -18,7 +18,7 @@
            put when the star count grows a digit and the right group widens. -->
       <p class="wordmark" aria-label="Oliver Math">
         <ion-icon :icon="calculatorIcon" class="wordmark-icon" aria-hidden="true"></ion-icon>
-        <span class="wordmark-oliver">Oliver</span><span class="wordmark-math">Math</span>
+        <span class="wordmark-words"><span class="wordmark-oliver">Oliver</span><span class="wordmark-math">Math</span></span>
       </p>
 
       <div class="hud-right">
@@ -2090,10 +2090,12 @@ ion-modal.settings-modal {
   height: 48px;
   display: flex;
   align-items: center;
-  gap: 5px;
+  /* Only the icon is spaced away; the two words sit tight together so they
+     read as one mark rather than two labels. */
+  gap: 7px;
   font-size: clamp(15px, 4.4vw, 21px);
   font-weight: 800;
-  letter-spacing: -0.3px;
+  letter-spacing: -0.4px;
   white-space: nowrap;
   pointer-events: none;
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.55);
@@ -2118,10 +2120,24 @@ ion-modal.settings-modal {
   animation: wordmark-pulse 4s ease-in-out infinite;
 }
 
+.wordmark-words {
+  display: inline-flex;
+  gap: 2px;
+}
+
+/* Tilted and gently rocking - a calculator sitting perfectly straight looked
+   like a toolbar icon rather than part of a logo. */
 .wordmark-icon {
-  font-size: 1.15em;
+  font-size: 1.3em;
   color: #ffd700;
-  animation: wordmark-pulse 4s ease-in-out infinite;
+  transform-origin: 50% 70%;
+  animation: wordmark-wiggle 3.2s ease-in-out infinite;
+}
+
+@keyframes wordmark-wiggle {
+  0%, 100% { transform: rotate(-9deg) translateY(0); filter: brightness(1); }
+  35% { transform: rotate(7deg) translateY(-1px); filter: brightness(1.3); }
+  70% { transform: rotate(-4deg) translateY(0.5px); filter: brightness(1.1); }
 }
 
 @keyframes wordmark-pulse {

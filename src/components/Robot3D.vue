@@ -163,7 +163,8 @@ export default {
       // coming from where the sun is drawn (back and to the right, low), and a
       // soft fill from the camera so the face never goes black. No shadow maps
       // - this runs on a child's phone.
-      this.scene.add(new THREE.HemisphereLight(0xcfe0ff, 0x3a4668, 2.4));
+      this.hemiLight = new THREE.HemisphereLight(0xcfe0ff, 0x3a4668, 2.4);
+      this.scene.add(this.hemiLight);
 
       // Key from the FRONT. The previous version put the only strong light
       // behind the robot to match where the sun is painted, which backlit it
@@ -171,13 +172,14 @@ export default {
       const key = new THREE.DirectionalLight(0xfff1dd, 2.6);
       key.position.set(2.5, 3.5, 4);
       this.scene.add(key);
+      this.keyLight = key;
 
       // Warm rim from the sun's direction, so the sun still shows on the robot
       // without being responsible for lighting it.
       const rim = new THREE.DirectionalLight(0xffc488, 1.5);
       rim.position.set(4, 2.2, -5);
       this.scene.add(rim);
-      this.sunLight = rim;
+      this.rimLight = rim;
 
       const fill = new THREE.DirectionalLight(0xbfd4ff, 0.75);
       fill.position.set(-3, 1.5, 3);
@@ -482,15 +484,14 @@ export default {
       this.ground.position.y = floorY;
       this.scene.add(this.ground);
 
-      // Sky: a dusk gradient with a sun and two mountain ranges, painted into a
-      // canvas. Two ranges rather than one because the lighter, higher range
-      // behind the darker one is what creates the sense of distance.
+      // Sky, painted for full DAYLIGHT. The day/night cycle then multiplies a
+      // tint over it, and multiply can only darken - so the brightest state has
+      // to be the one in the texture.
       const sc = document.createElement('canvas');
       sc.width = 1024;
       sc.height = 512;
       const s = sc.getContext('2d');
 
-      // Deterministic noise, so the sky is identical on every reload.
       let seed = 20260101;
       const rand = () => {
         seed = (seed * 1103515245 + 12345) % 2147483648;
@@ -498,49 +499,19 @@ export default {
       };
 
       const sky = s.createLinearGradient(0, 0, 0, 512);
-      sky.addColorStop(0, '#0a1230');
-      sky.addColorStop(0.3, '#23356e');
-      sky.addColorStop(0.56, '#5b5c9e');
-      sky.addColorStop(0.74, '#a96f96');
-      sky.addColorStop(0.86, '#e79a74');
-      sky.addColorStop(0.95, '#f7c489');
-      sky.addColorStop(1, '#fbe0ad');
+      sky.addColorStop(0, '#2e6fd0');
+      sky.addColorStop(0.35, '#6aa6e8');
+      sky.addColorStop(0.62, '#a8cdf2');
+      sky.addColorStop(0.82, '#dceaf8');
+      sky.addColorStop(1, '#f3f0e4');
       s.fillStyle = sky;
       s.fillRect(0, 0, 1024, 512);
 
-      // Stars, fading out as the sky brightens towards the horizon.
-      for (let i = 0; i < 260; i++) {
-        const sx = rand() * 1024;
-        const sy = rand() * 290;
-        const fade = 1 - sy / 290;
-        s.fillStyle = `rgba(255,255,255,${(0.15 + rand() * 0.6) * fade})`;
-        const r = rand() * 1.5 + 0.4;
-        s.beginPath();
-        s.arc(sx, sy, r, 0, Math.PI * 2);
-        s.fill();
-      }
-
-      // Sun, low and warm, with a wide bloom.
-      // Well above the ridges (which start around y=352): at 362 the mountains
-      // were drawn straight over the top of it, so no sun was ever visible.
-      const sunX = 706;
-      const sunY = 318;
-      const glow = s.createRadialGradient(sunX, sunY, 6, sunX, sunY, 260);
-      glow.addColorStop(0, 'rgba(255,241,205,0.98)');
-      glow.addColorStop(0.18, 'rgba(255,206,142,0.5)');
-      glow.addColorStop(1, 'rgba(255,170,110,0)');
-      s.fillStyle = glow;
-      s.fillRect(sunX - 240, sunY - 240, 480, 480);
-      s.fillStyle = '#fff8e4';
-      s.beginPath();
-      s.arc(sunX, sunY, 40, 0, Math.PI * 2);
-      s.fill();
-
-      // Soft cloud bands, lit from the sun side.
+      // Daytime clouds, white and soft.
       const cloud = (cx0, cy0, w0, h0, alpha) => {
         const g2 = s.createRadialGradient(cx0, cy0, 2, cx0, cy0, w0);
-        g2.addColorStop(0, `rgba(255,214,196,${alpha})`);
-        g2.addColorStop(1, 'rgba(255,214,196,0)');
+        g2.addColorStop(0, `rgba(255,255,255,${alpha})`);
+        g2.addColorStop(1, 'rgba(255,255,255,0)');
         s.fillStyle = g2;
         s.save();
         s.translate(cx0, cy0);
@@ -550,13 +521,10 @@ export default {
         s.fill();
         s.restore();
       };
-      for (let i = 0; i < 9; i++) {
-        cloud(rand() * 1024, 250 + rand() * 120, 70 + rand() * 150, 14 + rand() * 20, 0.1 + rand() * 0.16);
+      for (let i = 0; i < 11; i++) {
+        cloud(rand() * 1024, 170 + rand() * 150, 80 + rand() * 160, 16 + rand() * 24, 0.3 + rand() * 0.4);
       }
 
-      // Mountain ranges. Each is a random walk clamped around a base height,
-      // drawn from the shared deterministic seed so the horizon never changes
-      // between reloads.
       const ridge = (baseY, amp, step, fill) => {
         s.fillStyle = fill;
         s.beginPath();
@@ -572,28 +540,19 @@ export default {
         s.fill();
       };
 
-      // Three ranges with haze between them: the further back, the lighter and
-      // bluer, which is what actually reads as distance.
-      ridge(396, 34, 72, '#6b7bb0');
+      // Three ranges, each darker and sharper than the one behind it.
+      ridge(396, 34, 72, '#9db6d8');
       const haze = s.createLinearGradient(0, 376, 0, 456);
-      haze.addColorStop(0, 'rgba(226,186,186,0)');
-      haze.addColorStop(1, 'rgba(226,186,186,0.32)');
+      haze.addColorStop(0, 'rgba(255,255,255,0)');
+      haze.addColorStop(1, 'rgba(255,255,255,0.4)');
       s.fillStyle = haze;
       s.fillRect(0, 376, 1024, 80);
-      ridge(414, 26, 56, '#495a93');
-      ridge(430, 20, 44, '#2b375f');
+      ridge(414, 26, 56, '#6f87b4');
+      ridge(430, 20, 44, '#44588a');
 
       this.skyTexture = new THREE.CanvasTexture(sc);
       this.skyTexture.colorSpace = THREE.SRGBColorSpace;
 
-      // The ridges are painted in the lower third of the texture, so the plane
-      // is placed with that third straddling the floor line - otherwise the
-      // mountains sit below the horizon and are never seen, which is exactly
-      // what happened with the first attempt.
-      // Sized and placed so the texture maps predictably onto the world: with
-      // the plane 6 robot-heights tall and centred 0.35 of that above the
-      // floor, texture row 318 lands just above the robot's head (the sun) and
-      // rows 396-430 land just above the floor line (the ridges).
       const skyH = sizeVec.y * 6;
       this.sky = new THREE.Mesh(
         new THREE.PlaneGeometry(skyH * 2.2, skyH),
@@ -601,6 +560,74 @@ export default {
       );
       this.sky.position.set(0, floorY + skyH * 0.35, -sizeVec.y * 7);
       this.scene.add(this.sky);
+      this.skyHeight = skyH;
+
+      // Stars on their own layer, so they can fade in at night rather than
+      // being baked into a sky that is bright by day.
+      const stc = document.createElement('canvas');
+      stc.width = 1024;
+      stc.height = 512;
+      const st = stc.getContext('2d');
+      for (let i = 0; i < 320; i++) {
+        const sx = rand() * 1024;
+        const sy2 = rand() * 300;
+        const fade = 1 - sy2 / 300;
+        st.fillStyle = `rgba(255,255,255,${(0.25 + rand() * 0.7) * fade})`;
+        st.beginPath();
+        st.arc(sx, sy2, rand() * 1.6 + 0.4, 0, Math.PI * 2);
+        st.fill();
+      }
+      this.starsTexture = new THREE.CanvasTexture(stc);
+      this.stars = new THREE.Mesh(
+        new THREE.PlaneGeometry(skyH * 2.2, skyH),
+        new THREE.MeshBasicMaterial({
+          map: this.starsTexture,
+          transparent: true,
+          opacity: 0,
+          fog: false,
+          depthWrite: false
+        })
+      );
+      this.stars.position.copy(this.sky.position);
+      this.stars.position.z += 0.01;
+      this.scene.add(this.stars);
+
+      // Sun and moon as sprites that actually travel across the sky.
+      const disc = (inner, outer, core) => {
+        const dc = document.createElement('canvas');
+        dc.width = 256;
+        dc.height = 256;
+        const d = dc.getContext('2d');
+        const g3 = d.createRadialGradient(128, 128, 4, 128, 128, 126);
+        g3.addColorStop(0, inner);
+        g3.addColorStop(0.16, core);
+        g3.addColorStop(1, outer);
+        d.fillStyle = g3;
+        d.fillRect(0, 0, 256, 256);
+        const tex = new THREE.CanvasTexture(dc);
+        tex.colorSpace = THREE.SRGBColorSpace;
+        return tex;
+      };
+
+      this.sunTexture = disc('rgba(255,252,235,1)', 'rgba(255,196,120,0)', 'rgba(255,228,160,0.62)');
+      this.moonTexture = disc('rgba(245,248,255,1)', 'rgba(170,195,255,0)', 'rgba(205,220,255,0.5)');
+
+      const bodySize = sizeVec.y * 2.6;
+      this.sunSprite = new THREE.Sprite(
+        new THREE.SpriteMaterial({ map: this.sunTexture, transparent: true, fog: false, depthWrite: false })
+      );
+      this.sunSprite.scale.set(bodySize, bodySize, 1);
+      this.scene.add(this.sunSprite);
+
+      this.moonSprite = new THREE.Sprite(
+        new THREE.SpriteMaterial({ map: this.moonTexture, transparent: true, fog: false, depthWrite: false })
+      );
+      this.moonSprite.scale.set(bodySize * 0.72, bodySize * 0.72, 1);
+      this.scene.add(this.moonSprite);
+
+      this.skyFloorY = floorY;
+      this.orbitRadius = sizeVec.y * 3.1;
+      this.orbitZ = -sizeVec.y * 6.4;
 
       // Contact shadow. A soft dark blob under the feet does more for the sense
       // of the robot being grounded than any amount of lighting work, and costs
@@ -649,6 +676,83 @@ export default {
 
       this.createFloatingMath(floorY, sizeVec);
       this.createBirds(floorY, sizeVec);
+    },
+
+    /**
+     * Day/night cycle. The sun and moon travel on opposite ends of the same
+     * arc; everything else - sky tint, fog, stars, ground, lights - is derived
+     * from how high the sun is, so there is one source of truth for the time of
+     * day and nothing can drift out of step with anything else.
+     *
+     * Deliberately a wide swing between bright day and genuinely dark night,
+     * rather than a polite shift: the change should be obvious to a child who
+     * glances up.
+     */
+    updateDayNight(t) {
+      if (!this.sunSprite || !this.THREE) return;
+      const THREE = this.THREE;
+
+      // One full day every three minutes, starting mid-morning.
+      const CYCLE = 180;
+      const phase = ((t / CYCLE) + 0.15) % 1;
+      const angle = phase * Math.PI * 2;
+
+      const sunY = Math.sin(angle);
+      const sunX = Math.cos(angle);
+
+      this.sunSprite.position.set(
+        sunX * this.orbitRadius,
+        this.skyFloorY + this.skyHeight * 0.18 + sunY * this.orbitRadius,
+        this.orbitZ
+      );
+      this.moonSprite.position.set(
+        -sunX * this.orbitRadius,
+        this.skyFloorY + this.skyHeight * 0.18 - sunY * this.orbitRadius,
+        this.orbitZ
+      );
+
+      // 1 in full daylight, 0 once the sun is below the horizon.
+      const day = THREE.MathUtils.smoothstep(sunY, -0.18, 0.3);
+      // Peaks while the sun is near the horizon, for the warm band at dawn/dusk.
+      const golden = Math.max(0, 1 - Math.abs(sunY) * 3.2);
+
+      this.sunSprite.material.opacity = THREE.MathUtils.smoothstep(sunY, -0.22, 0.02);
+      this.moonSprite.material.opacity = THREE.MathUtils.smoothstep(-sunY, -0.22, 0.02);
+      this.stars.material.opacity = (1 - day) * 0.95;
+
+      // Sky tint: white by day, warm at the horizon, deep blue at night.
+      const DAY = new THREE.Color(0xffffff);
+      const DUSK = new THREE.Color(0xffb184);
+      const NIGHT = new THREE.Color(0x1b2550);
+      const tint = NIGHT.clone().lerp(DAY, day);
+      tint.lerp(DUSK, golden * 0.55);
+      this.sky.material.color.copy(tint);
+
+      // Ground and fog follow the sky, or the robot ends up standing on a
+      // daylit floor at midnight.
+      if (this.ground) this.ground.material.color.copy(tint).multiplyScalar(0.9);
+      if (this.scene.fog) {
+        this.scene.fog.color.copy(tint).multiplyScalar(0.55);
+      }
+      if (this.contactShadow) {
+        this.contactShadow.material.opacity = 0.35 + day * 0.65;
+      }
+
+      // Lights. Night is lit coolly and dimly, but never to nothing - the robot
+      // still has to be readable, and this is a child's game, not a horror.
+      if (this.keyLight) {
+        this.keyLight.intensity = 0.55 + day * 2.2;
+        this.keyLight.color.setHex(0xffffff).lerp(new THREE.Color(0xffc48a), golden);
+        if (day < 0.25) this.keyLight.color.lerp(new THREE.Color(0x9fb4ff), 1 - day * 4);
+      }
+      if (this.rimLight) {
+        this.rimLight.intensity = 0.4 + day * 1.5;
+        this.rimLight.position.set(sunX * 5, Math.max(0.6, sunY * 4), -5);
+      }
+      if (this.hemiLight) {
+        this.hemiLight.intensity = 0.5 + day * 2.1;
+        this.hemiLight.color.setHex(0x9fb4ff).lerp(new THREE.Color(0xcfe0ff), day);
+      }
     },
 
     /**
@@ -876,6 +980,9 @@ export default {
       if (cfg.walk && !this.reducedMotion && this.groundTexture) {
         this.groundTexture.offset.y -= delta * 0.45;
       }
+
+      // Reduced motion holds the scene at midday rather than cycling.
+      this.updateDayNight(this.reducedMotion ? 45 : t);
 
       if (this.birds && !this.reducedMotion) {
         this.birds.forEach((b) => {
