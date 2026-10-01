@@ -12,6 +12,11 @@
         <button class="hud-btn help" @click="showIntro = true" :aria-label="t('howToPlay')">
           <ion-icon :icon="helpIcon" aria-hidden="true"></ion-icon>
         </button>
+        <!-- Tapping holds the sky at day or night; the automatic cycle can be
+             restored from Settings. The icon shows what the tap will give you. -->
+        <button class="hud-btn sky" @click="toggleDayNight" :aria-label="t('dayNight')">
+          <ion-icon :icon="dayMode === 'night' ? sunIcon : moonIcon" aria-hidden="true"></ion-icon>
+        </button>
       </div>
 
       <!-- Wordmark. Absolutely centred rather than a flex child, so it stays
@@ -148,6 +153,25 @@
                 :class="{ active: botView === option.value }"
                 :aria-pressed="botView === option.value"
                 @click="setBotView(option.value)"
+              >
+                {{ option.label }}
+              </button>
+            </div>
+          </div>
+
+          <div class="settings-group">
+            <div class="settings-group-header">
+              <ion-icon :icon="sunIcon" color="warning"></ion-icon>
+              <span>{{ t('dayNight') }}</span>
+            </div>
+            <div class="settings-options">
+              <button
+                v-for="option in dayOptions"
+                :key="option.value"
+                class="setting-option"
+                :class="{ active: dayMode === option.value }"
+                :aria-pressed="dayMode === option.value"
+                @click="setDayMode(option.value)"
               >
                 {{ option.label }}
               </button>
@@ -296,6 +320,7 @@
           :audioLevel="audioLevel"
           :view="botView"
           :bodyColor="botColour"
+          :dayMode="dayMode"
           size="200px"
           @click="changeStatus('laughing')"
           aria-live="polite"
@@ -383,7 +408,7 @@ import {
   SpeechConfig,
   SpeechRecognizer,
 } from "microsoft-cognitiveservices-speech-sdk";
-import { star, play, speedometer, calculator, mic, volumeHigh, sync, alertCircle, refresh, volumeMute, timeOutline, trashOutline, globe, fitness, settingsOutline, close, stopCircle, helpCircle } from "ionicons/icons";
+import { star, play, speedometer, calculator, mic, volumeHigh, sync, alertCircle, refresh, volumeMute, timeOutline, trashOutline, globe, fitness, settingsOutline, close, stopCircle, helpCircle, sunny, moon } from "ionicons/icons";
 import { OPERATORS, LEVELS, NUMBER_RANGES, SCORING } from "@/config/gameConfig";
 import { getRandomInt } from "@/utils/helpers";
 import { getSpeechToken, getCachedAudio, validateAnswer } from "@/services/apiService";
@@ -418,6 +443,8 @@ export default {
       playIcon: play,
       doneIcon: stopCircle,
       helpIcon: helpCircle,
+      sunIcon: sunny,
+      moonIcon: moon,
       speedometerIcon: speedometer,
       calculatorIcon: calculator,
       micIcon: mic,
@@ -466,6 +493,8 @@ export default {
       clearAfterSpeak: false,
       // Idle chatter: the robot prompts and offers tips while waiting.
       autoChat: localStorage.autoChat !== '0',
+      // auto | day | night
+      dayMode: localStorage.dayMode || 'auto',
       // Body panel colour. Defaults to the model's own yellow.
       botColour: localStorage.botColour || '#d9a441',
       idleTimer: null,
@@ -630,6 +659,13 @@ export default {
     // 0-1, used as the strength of the edge glow while the robot talks.
     speakGlow() {
       return (0.22 + Math.min(this.audioLevel, 1) * 0.6).toFixed(3);
+    },
+    dayOptions() {
+      return [
+        { value: 'auto', label: this.t('viewAuto') },
+        { value: 'day', label: this.t('optionDay') },
+        { value: 'night', label: this.t('optionNight') },
+      ];
     },
     colourOptions() {
       return [
@@ -1142,6 +1178,19 @@ export default {
      * path so it gets the same voice, the same language and the same talking
      * animation as everything else it says.
      */
+    toggleDayNight() {
+      this.setDayMode(this.dayMode === 'night' ? 'day' : 'night');
+    },
+
+    setDayMode(value) {
+      this.dayMode = value;
+      try {
+        localStorage.dayMode = value;
+      } catch (err) {
+        console.warn('Could not save the day/night preference:', err);
+      }
+    },
+
     setBotColour(value) {
       this.botColour = value;
       try {
@@ -1943,6 +1992,11 @@ ion-modal.settings-modal {
 .hud-btn.help {
   border-color: rgba(255, 215, 0, 0.45);
   color: #ffd700;
+}
+
+.hud-btn.sky {
+  border-color: rgba(160, 200, 255, 0.5);
+  color: #cfe4ff;
 }
 
 /* 48px, comfortably above the 44px minimum. The old icon buttons were 28px. */

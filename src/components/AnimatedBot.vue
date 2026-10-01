@@ -13,6 +13,7 @@
         :view="view"
         :headroom="headroom"
         :bodyColor="bodyColor"
+        :dayMode="dayMode"
         size="100%"
         @unsupported="use3D = false"
         @anchor="onAnchor"
@@ -125,6 +126,11 @@ export default {
     bodyColor: {
       type: String,
       default: null
+    },
+    // auto | day | night
+    dayMode: {
+      type: String,
+      default: 'auto'
     }
   },
   data() {

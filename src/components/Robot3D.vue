@@ -89,7 +89,13 @@ export default {
     // screen does not sit over its legs.
     footroom: { type: Number, default: 0.24 },
     // Hex for the robot's body panels. null keeps the model's own yellow.
-    bodyColor: { type: String, default: null }
+    bodyColor: { type: String, default: null },
+    // 'auto' runs the cycle; 'day' and 'night' hold, easing there first.
+    dayMode: {
+      type: String,
+      default: 'auto',
+      validator: (v) => ['auto', 'day', 'night'].includes(v)
+    }
   },
   emits: ['unsupported', 'ready', 'anchor'],
   data() {
@@ -622,7 +628,7 @@ export default {
       this.moonSprite = new THREE.Sprite(
         new THREE.SpriteMaterial({ map: this.moonTexture, transparent: true, fog: false, depthWrite: false })
       );
-      this.moonSprite.scale.set(bodySize * 0.72, bodySize * 0.72, 1);
+      this.moonSprite.scale.set(bodySize * 0.95, bodySize * 0.95, 1);
       this.scene.add(this.moonSprite);
 
       this.skyFloorY = floorY;
@@ -688,14 +694,27 @@ export default {
      * rather than a polite shift: the change should be obvious to a child who
      * glances up.
      */
-    updateDayNight(t) {
+    updateDayNight(t, delta) {
       if (!this.sunSprite || !this.THREE) return;
       const THREE = this.THREE;
 
-      // One full day every three minutes, starting mid-morning.
+      // One full day every three minutes, starting mid-morning. In a held mode
+      // the phase eases round to noon or midnight by the shortest route, so
+      // tapping the button plays a sunset rather than cutting to black.
       const CYCLE = 180;
-      const phase = ((t / CYCLE) + 0.15) % 1;
-      const angle = phase * Math.PI * 2;
+      if (this.cyclePhase === undefined) this.cyclePhase = 0.15;
+
+      if (this.dayMode === 'auto') {
+        this.cyclePhase = ((t / CYCLE) + 0.15) % 1;
+      } else {
+        const target = this.dayMode === 'day' ? 0.25 : 0.75;
+        let d = target - this.cyclePhase;
+        d -= Math.round(d);
+        const step = Math.sign(d) * Math.min(Math.abs(d), (delta || 0.016) * 0.18);
+        this.cyclePhase = (this.cyclePhase + step + 1) % 1;
+      }
+
+      const angle = this.cyclePhase * Math.PI * 2;
 
       const sunY = Math.sin(angle);
       const sunX = Math.cos(angle);
@@ -982,7 +1001,7 @@ export default {
       }
 
       // Reduced motion holds the scene at midday rather than cycling.
-      this.updateDayNight(this.reducedMotion ? 45 : t);
+      this.updateDayNight(this.reducedMotion ? 45 : t, delta);
 
       if (this.birds && !this.reducedMotion) {
         this.birds.forEach((b) => {
