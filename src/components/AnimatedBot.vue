@@ -17,6 +17,7 @@
         size="100%"
         @unsupported="use3D = false"
         @anchor="onAnchor"
+        @ready="sceneReady = true"
       />
       <Vue3Lottie
         v-else
@@ -147,6 +148,8 @@ export default {
     return {
       use3D: this.supports3D(),
       anchor: null,
+      // Set once the 3D scene has finished loading its model and environment.
+      sceneReady: false,
       // Suppresses the follow transition for one tick when the bubble appears,
       // so it does not slide in from wherever the head was last time.
       snapBubble: false,
@@ -169,9 +172,13 @@ export default {
      * and the model load asynchronously, so rendering before then put the
      * bubble in the static flow position at the top of the column and it jumped
      * across the screen the moment the scene reported where the head was.
+     *
+     * Waits for the scene's ready event as well as the first anchor: the model,
+     * the environment and the background numbers all have to be in place, or
+     * the bubble arrives before the thing it is pointing at.
      */
     bubbleReady() {
-      return !this.use3D || !!this.anchor;
+      return !this.use3D || (this.sceneReady && !!this.anchor);
     },
 
     bubbleStyle() {

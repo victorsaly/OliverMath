@@ -277,6 +277,11 @@ export default {
 
       this.clock = new THREE.Clock();
       this.resize();
+      // resize() recomputes the framing against the real aspect ratio, which
+      // moves the target away from where the camera was placed a moment ago.
+      // Snap to it rather than letting the first second of playback ease there,
+      // because that drift drags the speech bubble across the screen with it.
+      this.snapCamera();
       this.observeSize();
       this.observeVisibility();
       this.applyState();
@@ -1099,6 +1104,18 @@ export default {
       }
 
       this.renderer.render(this.scene, this.camera);
+    },
+
+    /**
+     * Put the camera exactly on the active framing, with no easing.
+     */
+    snapCamera() {
+      const want = this.framing && this.framing[this.activeView];
+      if (!want || !this.camera) return;
+      this.camera.position.copy(want.pos);
+      if (!this.lookTarget) this.lookTarget = want.target.clone();
+      else this.lookTarget.copy(want.target);
+      this.camera.lookAt(this.lookTarget);
     },
 
     resize() {
