@@ -84,7 +84,10 @@ export default {
     },
     // Fraction of the frame kept clear above the robot for the speech bubble.
     // 0 fills the frame; 0.5 leaves a third of the height empty at the top.
-    headroom: { type: Number, default: 0.1 }
+    headroom: { type: Number, default: 0.1 },
+    // Fraction kept clear BELOW the robot, so the dock at the bottom of the
+    // screen does not sit over its legs.
+    footroom: { type: Number, default: 0.24 }
   },
   emits: ['unsupported', 'ready', 'anchor'],
   data() {
@@ -106,6 +109,9 @@ export default {
     // The bubble appears and disappears between questions, so the amount of
     // reserved space changes with it.
     headroom() {
+      this.computeFraming();
+    },
+    footroom() {
       this.computeFraming();
     }
   },
@@ -373,15 +379,19 @@ export default {
       // room for it instead of letting the two collide. Looking ABOVE the
       // subject pushes the subject down the frame; the extra fitted height is
       // the empty band that leaves at the top.
+      // Headroom pushes the robot down the frame, footroom pushes it up. The
+      // difference is how far the camera looks off-centre; the sum is the extra
+      // height it has to fit, which is the empty space at top and bottom.
       const HEADROOM = this.headroom;
-      const lift = sizeVec.y * HEADROOM * 0.5;
+      const FOOTROOM = this.footroom;
+      const lift = sizeVec.y * (HEADROOM - FOOTROOM) * 0.5;
 
       this.framing = {
         full: {
           pos: new THREE.Vector3(
             0,
             center.y + lift,
-            fit(sizeVec.y * (1 + HEADROOM), bodyWidth, 1.06)
+            fit(sizeVec.y * (1 + HEADROOM + FOOTROOM), bodyWidth, 1.04)
           ),
           target: new THREE.Vector3(0, center.y + lift, 0)
         },
@@ -558,6 +568,63 @@ export default {
       this.floorRing.rotation.x = -Math.PI / 2;
       this.floorRing.position.set(0, floorY + sizeVec.y * 0.008, 0);
       this.scene.add(this.floorRing);
+
+      this.createFloatingMath(floorY, sizeVec);
+    },
+
+    /**
+     * Digits and operators drifting through the background. This is the scene
+     * saying what the app is for: without it the robot could be advertising
+     * anything. Kept faint and slow so it never competes with the question.
+     */
+    createFloatingMath(floorY, sizeVec) {
+      const THREE = this.THREE;
+      const GLYPHS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '+', '−', '×', '÷', '='];
+
+      const textureFor = (glyph) => {
+        const c = document.createElement('canvas');
+        c.width = 128;
+        c.height = 128;
+        const x = c.getContext('2d');
+        x.font = 'bold 92px ui-rounded, system-ui, sans-serif';
+        x.textAlign = 'center';
+        x.textBaseline = 'middle';
+        x.fillStyle = '#cfe4ff';
+        x.fillText(glyph, 64, 70);
+        const tex = new THREE.CanvasTexture(c);
+        tex.colorSpace = THREE.SRGBColorSpace;
+        return tex;
+      };
+
+      this.mathTextures = GLYPHS.map(textureFor);
+      this.mathSprites = [];
+
+      for (let i = 0; i < 16; i++) {
+        const tex = this.mathTextures[i % this.mathTextures.length];
+        const sprite = new THREE.Sprite(
+          new THREE.SpriteMaterial({
+            map: tex,
+            transparent: true,
+            opacity: 0.1 + Math.random() * 0.16,
+            depthWrite: false,
+            fog: false
+          })
+        );
+        const scale = sizeVec.y * (0.16 + Math.random() * 0.2);
+        sprite.scale.set(scale, scale, 1);
+        sprite.position.set(
+          (Math.random() - 0.5) * sizeVec.y * 6,
+          floorY + sizeVec.y * (0.3 + Math.random() * 2.4),
+          -sizeVec.y * (1.2 + Math.random() * 3.4)
+        );
+        sprite.userData.speed = sizeVec.y * (0.025 + Math.random() * 0.045);
+        sprite.userData.sway = Math.random() * Math.PI * 2;
+        this.scene.add(sprite);
+        this.mathSprites.push(sprite);
+      }
+
+      this.mathCeiling = floorY + sizeVec.y * 3;
+      this.mathFloor = floorY + sizeVec.y * 0.2;
     },
     /**
      * Measures the head in world space to find the point the speech bubble
@@ -576,7 +643,7 @@ export default {
       // Where the speech bubble should point: just above the crown, stored in
       // the model's local space so it survives the model being rotated.
       this.headAnchorPoint = this.model.worldToLocal(
-        new THREE.Vector3(cx, box.max.y + h * 0.18, box.max.z)
+        new THREE.Vector3(cx, box.max.y + h * 0.5, box.max.z)
       );
     },
 
@@ -678,6 +745,18 @@ export default {
       // alone carries the travel, and the camera stays locked.
       if (cfg.walk && !this.reducedMotion && this.groundTexture) {
         this.groundTexture.offset.y -= delta * 0.45;
+      }
+
+      // Drift the background numbers upward, wrapping back to the floor. Still
+      // under reduced motion - they carry no information, so they simply hang.
+      if (this.mathSprites && !this.reducedMotion) {
+        this.mathSprites.forEach((sprite) => {
+          sprite.position.y += sprite.userData.speed * delta;
+          sprite.position.x += Math.sin(t * 0.3 + sprite.userData.sway) * delta * 0.05;
+          if (sprite.position.y > this.mathCeiling) {
+            sprite.position.y = this.mathFloor;
+          }
+        });
       }
 
       // The listening ring on the floor swells with the child's voice. It is

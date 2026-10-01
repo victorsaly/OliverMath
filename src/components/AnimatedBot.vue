@@ -136,7 +136,7 @@ export default {
     // Reserve space at the top of the 3D frame when a speech bubble is showing,
     // so the bubble never lands on the robot's face.
     headroom() {
-      return this.text ? 0.32 : 0.1;
+      return this.text ? 0.16 : 0.04;
     },
 
     bubbleStyle() {
@@ -144,7 +144,9 @@ export default {
       // Clamped so the bubble never leaves the viewport when the robot walks
       // towards an edge or the camera pulls in close.
       const x = Math.min(82, Math.max(18, this.anchor.x));
-      const y = Math.min(88, Math.max(14, this.anchor.y));
+      // Biased upward a little: the tail should clear the crown rather than
+      // touch it, and a bubble that overlaps the head reads as covering it.
+      const y = Math.min(84, Math.max(12, this.anchor.y - 2));
       return { left: `${x}%`, top: `${y}%` };
     },
 

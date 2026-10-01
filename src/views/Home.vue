@@ -36,6 +36,23 @@
     </div>
 
 
+    <!-- First-run help. The app previously explained itself with a single
+         14-word sentence in a speech bubble and nothing else. -->
+    <div class="intro-backdrop" v-if="showIntro" role="dialog" aria-modal="true" aria-labelledby="intro-title">
+      <div class="intro-card">
+        <p class="intro-brand" id="intro-title">Oliver Math</p>
+        <p class="intro-tagline">{{ t('tagline') }}</p>
+
+        <ol class="intro-steps">
+          <li><span class="intro-num">1</span>{{ t('step1') }}</li>
+          <li><span class="intro-num">2</span>{{ t('step2') }}</li>
+          <li><span class="intro-num">3</span>{{ t('step3') }}</li>
+        </ol>
+
+        <button class="intro-go" @click="dismissIntro">{{ t('gotIt') }}</button>
+      </div>
+    </div>
+
     <!-- Settings Modal -->
     <ion-modal 
       :is-open="showSettingsModal" 
@@ -111,6 +128,12 @@
                 {{ option.label }}
               </button>
             </div>
+          </div>
+
+          <div class="settings-group">
+            <button class="setting-option wide" @click="showIntro = true; showSettingsModal = false">
+              {{ t('howToPlay') }}
+            </button>
           </div>
 
           <!-- Practice Mode -->
@@ -214,6 +237,29 @@
     <!-- Transparent dock over the scene: a status pill and one round control.
          No toolbar chrome - the 3D world runs edge to edge behind it. -->
     <div class="dock">
+      <!-- Listening panel: a pre-reading child needs to know the microphone is
+           open without reading a word, so this leads with an animated mic and
+           level bars, with the transcript underneath only once there is one. -->
+      <transition name="panel">
+        <div class="listen-panel" v-if="isListening" role="status" aria-live="polite">
+          <span class="listen-bars" aria-hidden="true">
+            <i></i><i></i><i></i><i></i><i></i>
+          </span>
+          <span class="listen-text">{{ t('yourTurn') }}</span>
+          <span class="listen-heard" v-if="heardText">{{ heardText }}</span>
+        </div>
+      </transition>
+
+      <!-- Correct answer: the star and the equation carry it, not the words. -->
+      <transition name="panel">
+        <div class="reward-panel" v-if="reward" role="status" aria-live="polite">
+          <ion-icon :icon="star" class="reward-star" aria-hidden="true"></ion-icon>
+          <span class="reward-points">+{{ reward.points }}</span>
+          <span class="reward-equation">{{ reward.equation }}</span>
+          <span class="reward-streak" v-if="reward.streak >= 3">{{ t('streak') }} {{ reward.streak }}</span>
+        </div>
+      </transition>
+
       <div class="status-pill" :class="botState" v-if="statusText" role="status" aria-live="polite">
         <ion-icon :icon="statusIcon" aria-hidden="true"></ion-icon>
         <span>{{ statusText }}</span>
@@ -339,6 +385,13 @@ export default {
       answerFinalised: false,
       // 3D camera framing preference: auto | face | full
       botView: localStorage.botView || 'auto',
+      // What the recogniser last heard, shown in the listening panel.
+      heardText: '',
+      // Transient celebration shown on a correct answer.
+      reward: null,
+      rewardTimer: null,
+      // First-run help. Shown once, reopenable from settings.
+      showIntro: !localStorage.seenIntro,
       
       // Expression states
       isHappy: false,
@@ -770,6 +823,8 @@ export default {
       // Started here rather than on mount: browsers only allow an AudioContext
       // to start from a user gesture, and Play is the first real one.
       startMusic();
+      this.heardText = '';
+      this.reward = null;
       
       // Brief surprised expression when starting new question
       this.showExpression('surprised', 800);
@@ -942,7 +997,8 @@ export default {
       // frozen grey-gear robot - telling the child to wait at the exact moment
       // it needed them to talk. isListening gives them the green listening
       // robot and "Your turn!" instead.
-      this.showToast(this.t('yourTurn'), "success");
+      // No toast: the listening panel in the dock carries this now, and four
+      // stacked 4-second toasts per answer was the noisiest thing on screen.
       this.isComputing = false;
       this.isListening = true;
       var sc = SpeechConfig.fromAuthorizationToken(
@@ -963,6 +1019,30 @@ export default {
      * Persist the robot camera framing. localStorage is written directly here
      * to match how every other preference in this view is stored.
      */
+    /**
+     * Celebration panel for a correct answer. Replaces a plain text toast with
+     * something a child who cannot read fluently can still understand: a big
+     * star, the points earned, and the equation they just solved.
+     */
+    showReward(points) {
+      clearTimeout(this.rewardTimer);
+      this.reward = {
+        points,
+        equation: `${this.number1} ${this.getOperatorSymbolForHistory(this.currentOperator)} ${this.number2} = ${this.expectedResultAsNumber}`,
+        streak: this.consecutiveCorrect
+      };
+      this.rewardTimer = setTimeout(() => { this.reward = null; }, 2600);
+    },
+
+    dismissIntro() {
+      this.showIntro = false;
+      try {
+        localStorage.seenIntro = '1';
+      } catch (err) {
+        console.warn('Could not save the intro flag:', err);
+      }
+    },
+
     setBotView(value) {
       this.botView = value;
       try {
@@ -1010,7 +1090,6 @@ export default {
       // Signals that a new session has started with the speech service
       this.speechRecording.speechStartDetected = function () {
         console.log("speechStartDetected");
-        self.showToast("I'm Listening", "success");
         self.isListening = true;
         self.isComputing = false;
       };
@@ -1241,7 +1320,10 @@ export default {
       let validationResult = null;
       
       if (!isSilent) {
-        this.showToast(`I heard: "${displayText}"`, "secondary");
+        // 'I heard: ...' and 'Interpreted as: N' were engineer language shown
+        // to a seven-year-old, in English regardless of the chosen language.
+        // The transcript now appears in the listening panel instead.
+        this.heardText = displayText;
         this.isComputing = true;
         validationResult = await this.validateWordWithLLM(recordedText);
         this.isComputing = false;
@@ -1249,7 +1331,7 @@ export default {
         // Show interpreted number if different from what was heard
         if (validationResult?.understood && validationResult.interpretedNumber !== null) {
           const interpreted = validationResult.interpretedNumber;
-          this.showToast(`Interpreted as: ${interpreted}`, validationResult.correct ? "success" : "warning");
+          this.heardText = String(interpreted);
         }
       }
 
@@ -1302,6 +1384,7 @@ export default {
         
         const points = this.calculatePoints();
         this.stars = Math.min(this.stars + points, 100); // Cap at 100 stars
+        this.showReward(points);
         
         // Play sound and show celebration
         playCorrectSound(this.consecutiveCorrect);
@@ -1749,6 +1832,204 @@ ion-modal.settings-modal {
   background: linear-gradient(145deg, #5a4dc4, #3a3192);
 }
 
+
+/* Listening panel ---------------------------------------------------------- */
+
+.listen-panel,
+.reward-panel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-radius: 20px;
+  background: rgba(10, 14, 26, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: #ffffff;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+}
+
+.listen-panel {
+  border-color: rgba(51, 230, 102, 0.55);
+}
+
+.listen-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 22px;
+}
+
+.listen-bars i {
+  width: 4px;
+  border-radius: 2px;
+  background: #6ef09a;
+  animation: listen-bar 0.9s ease-in-out infinite;
+}
+
+.listen-bars i:nth-child(1) { height: 40%; animation-delay: 0s; }
+.listen-bars i:nth-child(2) { height: 70%; animation-delay: 0.12s; }
+.listen-bars i:nth-child(3) { height: 100%; animation-delay: 0.24s; }
+.listen-bars i:nth-child(4) { height: 65%; animation-delay: 0.36s; }
+.listen-bars i:nth-child(5) { height: 45%; animation-delay: 0.48s; }
+
+@keyframes listen-bar {
+  0%, 100% { transform: scaleY(0.4); }
+  50% { transform: scaleY(1); }
+}
+
+.listen-text {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.listen-heard {
+  padding: 3px 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.12);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* Reward panel ------------------------------------------------------------- */
+
+.reward-panel {
+  border-color: rgba(255, 215, 0, 0.55);
+}
+
+.reward-star {
+  font-size: 26px;
+  color: #ffd700;
+}
+
+.reward-points {
+  font-size: 20px;
+  font-weight: 800;
+  color: #ffd700;
+}
+
+.reward-equation {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+}
+
+.reward-streak {
+  padding: 3px 10px;
+  border-radius: 12px;
+  background: rgba(255, 215, 0, 0.18);
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffd700;
+}
+
+.panel-enter-active,
+.panel-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.panel-enter-from,
+.panel-leave-to {
+  opacity: 0;
+  transform: translateY(8px) scale(0.96);
+}
+
+/* Intro card --------------------------------------------------------------- */
+
+.intro-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(6, 10, 20, 0.72);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.intro-card {
+  width: min(360px, 100%);
+  padding: 26px 24px;
+  border-radius: 26px;
+  background: linear-gradient(160deg, #1d2a4d, #141d36);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+  text-align: center;
+  color: #ffffff;
+}
+
+.intro-brand {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.4px;
+  color: #ffd700;
+}
+
+.intro-tagline {
+  margin: 6px 0 20px;
+  font-size: 15px;
+  line-height: 1.4;
+  color: #cbd6e8;
+}
+
+.intro-steps {
+  margin: 0 0 22px;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+
+.intro-steps li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.intro-num {
+  flex: 0 0 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #2a74ea;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.intro-go {
+  width: 100%;
+  height: 52px;
+  border: none;
+  border-radius: 16px;
+  background: linear-gradient(145deg, #2a74ea, #1b57bc);
+  color: #ffffff;
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.intro-go:focus-visible {
+  outline: 3px solid #ffd700;
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .listen-bars i {
+    animation: none;
+  }
+  .panel-enter-active,
+  .panel-leave-active {
+    transition: none;
+  }
+}
 
 /* Status pill: carries state in colour AND an icon AND a word, so it does not
    depend on colour alone. Replaces the ion-chip, whose shadow DOM overrode the
