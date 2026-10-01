@@ -11,7 +11,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       filename: 'service-worker.js',
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,svg,jpg,jpeg,gif,webp,mp3,wav,ogg}'],
+        globPatterns: ['**/*.{js,css,html,ico,svg,jpg,jpeg,gif,webp,mp3,wav,ogg,glb}'],
         // Exclude icon files that are already in manifest to avoid conflicts
         globIgnores: ['**/assets/icon/**'],
         navigateFallback: '/OliverMath/index.html',

@@ -4,65 +4,25 @@
     <p v-if="text" class="bubble speech">
       {{ text }}
     </p>
-    
-    <!-- Lottie Animations - use v-show to keep all loaded, show only active one -->
-    <div class="lottie-wrapper">
-      <Vue3Lottie
-        v-if="currentAnimationType === 'idle'"
-        :key="'idle'"
-        :animationData="animations.idle"
-        :loop="shouldLoop"
-        :autoPlay="shouldAutoPlay"
-        :speed="animationSpeed"
-        :width="size"
-        :height="size"
+
+    <div class="bot-stage">
+      <!-- 3D robot. Falls back to the Lottie robot if WebGL is unavailable
+           or the model fails to load. -->
+      <!-- The 3D robot fills the stage, which is sized responsively in CSS so
+           it can grow on a phone without overflowing a short screen. -->
+      <Robot3D
+        v-if="use3D"
+        :botState="botState"
+        :audioLevel="audioLevel"
+        size="100%"
+        @unsupported="use3D = false"
       />
       <Vue3Lottie
-        v-else-if="currentAnimationType === 'happy'"
-        :key="'happy'"
-        :animationData="animations.happy"
-        :loop="shouldLoop"
-        :autoPlay="shouldAutoPlay"
-        :speed="animationSpeed"
-        :width="size"
-        :height="size"
-      />
-      <Vue3Lottie
-        v-else-if="currentAnimationType === 'sad'"
-        :key="'sad'"
-        :animationData="animations.sad"
-        :loop="shouldLoop"
-        :autoPlay="shouldAutoPlay"
-        :speed="animationSpeed"
-        :width="size"
-        :height="size"
-      />
-      <Vue3Lottie
-        v-else-if="currentAnimationType === 'talking'"
-        :key="'talking'"
-        :animationData="animations.talking"
-        :loop="shouldLoop"
-        :autoPlay="shouldAutoPlay"
-        :speed="animationSpeed"
-        :width="size"
-        :height="size"
-      />
-      <Vue3Lottie
-        v-else-if="currentAnimationType === 'thinking'"
-        :key="'thinking'"
-        :animationData="animations.thinking"
-        :loop="shouldLoop"
-        :autoPlay="shouldAutoPlay"
-        :speed="animationSpeed"
-        :width="size"
-        :height="size"
-      />
-      <Vue3Lottie
-        v-else-if="currentAnimationType === 'listening'"
-        :key="'listening'"
-        :animationData="animations.listening"
-        :loop="shouldLoop"
-        :autoPlay="shouldAutoPlay"
+        v-else
+        :key="currentAnimationType"
+        :animationData="animations[currentAnimationType]"
+        :loop="true"
+        :autoPlay="true"
         :speed="animationSpeed"
         :width="size"
         :height="size"
@@ -72,9 +32,9 @@
 </template>
 
 <script>
+import { defineAsyncComponent, markRaw } from 'vue';
 import { Vue3Lottie } from 'vue3-lottie';
 
-// Import all animation states
 import robotIdle from '@/assets/lottie/robot-idle.json';
 import robotHappy from '@/assets/lottie/robot-happy.json';
 import robotSad from '@/assets/lottie/robot-sad.json';
@@ -82,10 +42,40 @@ import robotTalking from '@/assets/lottie/robot-talking.json';
 import robotThinking from '@/assets/lottie/robot-thinking.json';
 import robotListening from '@/assets/lottie/robot-listening.json';
 
+// Module-level and markRaw'd: these never change, so there is no reason to pay
+// for deep reactive proxies over six large nested objects.
+const ANIMATIONS = markRaw({
+  idle: robotIdle,
+  happy: robotHappy,
+  sad: robotSad,
+  talking: robotTalking,
+  thinking: robotThinking,
+  listening: robotListening
+});
+
+const STATE_TO_ANIMATION = {
+  neutral: 'idle',
+  thinking: 'thinking',
+  speaking: 'talking',
+  listening: 'listening',
+  computing: 'thinking',
+  laughing: 'happy',
+  happy: 'happy',
+  sad: 'sad',
+  excited: 'happy',
+  proud: 'happy',
+  surprised: 'happy',
+  confused: 'thinking',
+  broken: 'sad',
+  sleepy: 'idle'
+};
+
 export default {
   name: 'AnimatedBot',
   components: {
-    Vue3Lottie
+    Vue3Lottie,
+    // Async so three.js and the 464KB model stay out of the entry chunk.
+    Robot3D: defineAsyncComponent(() => import('./Robot3D.vue'))
   },
   props: {
     botState: {
@@ -101,16 +91,18 @@ export default {
       type: String,
       default: ''
     },
+    // Kept for API compatibility with Home.vue. It no longer gates playback:
+    // pausing the robot during the question/answer sequence hid exactly the
+    // motion that tells the child whose turn it is.
     isPlayMode: {
       type: Boolean,
       default: true
     },
-    // Audio amplitude for lip sync (0-1)
+    // Audio amplitude, 0-1
     audioLevel: {
       type: Number,
       default: 0
     },
-    // Bot size
     size: {
       type: String,
       default: '200px'
@@ -118,79 +110,40 @@ export default {
   },
   data() {
     return {
-      // Map of animation data files
-      animations: {
-        idle: robotIdle,
-        happy: robotHappy,
-        sad: robotSad,
-        talking: robotTalking,
-        thinking: robotThinking,
-        listening: robotListening
-      }
+      use3D: this.supports3D(),
+      animations: ANIMATIONS
     };
   },
   computed: {
-    // Map botState to the animation type string
     currentAnimationType() {
-      const stateToAnimation = {
-        neutral: 'idle',
-        thinking: 'thinking',
-        speaking: 'talking',
-        listening: 'listening',
-        computing: 'thinking',
-        laughing: 'happy',
-        happy: 'happy',
-        sad: 'sad',
-        excited: 'happy',
-        proud: 'happy',
-        surprised: 'happy',
-        confused: 'thinking',
-        broken: 'sad',
-        sleepy: 'idle'
-      };
-      
-      return stateToAnimation[this.botState] || 'idle';
+      return STATE_TO_ANIMATION[this.botState] || 'idle';
     },
-    
-    // Determine if animations should loop
-    shouldLoop() {
-      // Only loop when in play mode (waiting for question)
-      if (!this.isPlayMode) {
-        return false; // Don't loop during question/answer sequence
-      }
-      return true;
-    },
-    
-    // Determine if animations should auto-play
-    shouldAutoPlay() {
-      // Only auto-play when in play mode
-      return this.isPlayMode;
-    },
-    
-    // Adjust animation speed based on state and audio level
+
     animationSpeed() {
-      // Speed up talking animation based on audio level
       if (this.botState === 'speaking' && this.audioLevel > 0) {
-        return 1 + (this.audioLevel * 0.8); // 1x to 1.8x speed
+        return 1 + (this.audioLevel * 0.8);
       }
-      
-      // Slow down for sleepy state
       if (this.botState === 'sleepy') {
         return 0.5;
       }
-      
-      // Speed up for excited states
       if (['excited', 'laughing', 'happy'].includes(this.botState)) {
         return 1.3;
       }
-      
       return 1;
     }
   },
   methods: {
-    onAnimationLoop() {
-      // Can be used to trigger events on animation loop
-      this.$emit('animation-loop');
+    // Cheap capability probe before we try to load three.js at all.
+    supports3D() {
+      try {
+        const canvas = document.createElement('canvas');
+        return !!(
+          window.WebGLRenderingContext &&
+          (canvas.getContext('webgl2') || canvas.getContext('webgl'))
+        );
+      } catch {
+        return false;
+      }
     }
   }
 };
@@ -206,37 +159,58 @@ export default {
   width: 100%;
 }
 
-.lottie-wrapper {
+.bot-stage {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  filter: drop-shadow(0 4px 20px rgba(0, 0, 0, 0.15));
-  transition: transform 0.3s ease, filter 0.3s ease;
+  /* Bounded by viewport height as well as width, so a short phone in landscape
+     cannot push the Play button off screen. */
+  width: min(300px, 70vw, 40vh);
+  aspect-ratio: 1;
 }
 
-/* State-based visual effects */
-.animated-bot-container.happy .lottie-wrapper,
-.animated-bot-container.excited .lottie-wrapper,
-.animated-bot-container.laughing .lottie-wrapper {
-  filter: drop-shadow(0 4px 25px rgba(255, 200, 50, 0.4));
+/* The state glow sits on a pseudo-element so we animate opacity rather than
+   the filter itself, which would re-rasterise the whole robot every frame. */
+.bot-stage::before {
+  content: '';
+  position: absolute;
+  inset: 10%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(76, 230, 255, 0.35), transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease, background 0.3s ease;
+  pointer-events: none;
 }
 
-.animated-bot-container.sad .lottie-wrapper,
-.animated-bot-container.broken .lottie-wrapper {
-  filter: drop-shadow(0 4px 15px rgba(100, 100, 150, 0.3));
+.animated-bot-container.happy .bot-stage::before,
+.animated-bot-container.excited .bot-stage::before,
+.animated-bot-container.laughing .bot-stage::before,
+.animated-bot-container.proud .bot-stage::before {
+  background: radial-gradient(circle, rgba(255, 200, 50, 0.4), transparent 70%);
+  opacity: 1;
 }
 
-.animated-bot-container.speaking .lottie-wrapper {
-  filter: drop-shadow(0 4px 25px rgba(100, 200, 255, 0.4));
+.animated-bot-container.sad .bot-stage::before,
+.animated-bot-container.broken .bot-stage::before {
+  background: radial-gradient(circle, rgba(100, 100, 150, 0.3), transparent 70%);
+  opacity: 1;
 }
 
-.animated-bot-container.listening .lottie-wrapper {
-  filter: drop-shadow(0 4px 25px rgba(50, 230, 130, 0.4));
+.animated-bot-container.speaking .bot-stage::before {
+  background: radial-gradient(circle, rgba(100, 200, 255, 0.4), transparent 70%);
+  opacity: 1;
 }
 
-.animated-bot-container.thinking .lottie-wrapper,
-.animated-bot-container.computing .lottie-wrapper {
-  filter: drop-shadow(0 4px 25px rgba(255, 180, 50, 0.4));
+.animated-bot-container.listening .bot-stage::before {
+  background: radial-gradient(circle, rgba(50, 230, 130, 0.4), transparent 70%);
+  opacity: 1;
+}
+
+.animated-bot-container.thinking .bot-stage::before,
+.animated-bot-container.computing .bot-stage::before {
+  background: radial-gradient(circle, rgba(255, 180, 50, 0.4), transparent 70%);
+  opacity: 1;
 }
 
 /* Speech bubble styles */
@@ -251,7 +225,7 @@ p.bubble {
   justify-content: center;
   background: linear-gradient(145deg, #ffffff, #f0f4f8);
   border-radius: 20px;
-  box-shadow: 
+  box-shadow:
     0 4px 15px rgba(0, 0, 0, 0.1),
     0 1px 3px rgba(0, 0, 0, 0.08);
   font-size: 1.1rem;
@@ -260,6 +234,7 @@ p.bubble {
   text-align: center;
   font-weight: 500;
   z-index: 10;
+  animation: bubbleAppear 0.3s ease-out;
 }
 
 p.bubble::after {
@@ -269,16 +244,11 @@ p.bubble::after {
   left: 50%;
   transform: translateX(-50%);
   border: 10px solid transparent;
-  border-top-color: #ffffff;
+  /* Matches the bubble's bottom gradient stop so the tail has no seam. */
+  border-top-color: #f0f4f8;
   border-bottom: 0;
 }
 
-/* Empty bubble (no text) should be hidden */
-p.bubble:empty {
-  display: none;
-}
-
-/* Animation for speech bubble appearance */
 @keyframes bubbleAppear {
   from {
     opacity: 0;
@@ -290,8 +260,13 @@ p.bubble:empty {
   }
 }
 
-p.bubble {
-  animation: bubbleAppear 0.3s ease-out;
+@media (prefers-reduced-motion: reduce) {
+  p.bubble {
+    animation: none;
+  }
+  .bot-stage::before {
+    transition: none;
+  }
 }
 
 /* Responsive adjustments */
