@@ -97,11 +97,12 @@ new THREE.ColorKeyframeTrack(".material.color", times, [
 // Boolean track
 new THREE.BooleanKeyframeTrack(".visible", [0, 0.5, 1], [true, false, true]);
 
-// String track (for morph targets)
-new THREE.StringKeyframeTrack(
+// Morph target weights are numeric, so they need a NumberKeyframeTrack -
+// a StringKeyframeTrack cannot interpolate between values.
+new THREE.NumberKeyframeTrack(
   ".morphTargetInfluences[smile]",
   [0, 1],
-  ["0", "1"],
+  [0, 1],
 );
 ```
 

@@ -448,8 +448,13 @@ export default {
     animation: none;
   }
 
-  .operator-bar,
-  .progress-fill {
+  .operator-bar {
+    transition: none;
+  }
+
+  /* Deep: .progress-fill is rendered by Achievements.vue, so a scoped
+     selector compiled with this component's id can never match it. */
+  :deep(.progress-fill) {
     transition: none;
   }
 }

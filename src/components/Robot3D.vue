@@ -211,6 +211,21 @@ export default {
         new GLTFLoader().load(MODEL_URL, resolve, undefined, reject);
       });
 
+      // The component can unmount while the model is still downloading, in
+      // which case teardown() has already run and the rest of this function
+      // would rebuild a scene nobody will ever see - against refs that are
+      // gone. Dispose what arrived and stop.
+      if (this.destroyed) {
+        gltf.scene.traverse((o) => {
+          if (o.isMesh) {
+            o.geometry?.dispose();
+            const mats = Array.isArray(o.material) ? o.material : [o.material];
+            mats.forEach((m) => m?.dispose());
+          }
+        });
+        return;
+      }
+
       this.model = gltf.scene;
       this.scene.add(this.model);
 
@@ -1184,20 +1199,28 @@ export default {
     // Stop rendering when the robot is off-screen or the tab is hidden, so we
     // are not draining a phone battery behind a modal.
     observeVisibility() {
-      this.io = new IntersectionObserver(([entry]) => {
-        if (entry.isIntersecting) this.start();
+      // Both conditions gate rendering. Checking them separately meant
+      // becoming visible resumed the loop even while the robot was scrolled off
+      // screen, and vice versa.
+      this.onScreen = true;
+      const sync = () => {
+        if (this.onScreen && !document.hidden) this.start();
         else this.stop();
+      };
+      this.syncRendering = sync;
+
+      this.io = new IntersectionObserver(([entry]) => {
+        this.onScreen = entry.isIntersecting;
+        sync();
       });
       this.io.observe(this.$refs.host);
 
-      this.onVisibility = () => {
-        if (document.hidden) this.stop();
-        else this.start();
-      };
+      this.onVisibility = sync;
       document.addEventListener('visibilitychange', this.onVisibility);
     },
 
     teardown() {
+      this.destroyed = true;
       this.stop();
       clearTimeout(this.settleTimer);
       if (this.motionQuery) this.motionQuery.removeEventListener('change', this.onMotionChange);

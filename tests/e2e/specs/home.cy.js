@@ -1,85 +1,127 @@
 /// <reference types="cypress" />
 
+// The chrome was rebuilt in the 3D redesign: the ion-header toolbar was
+// replaced by a floating HUD, the full-width play button by a round control in
+// a dock, and the ion-chip status indicator by a purpose-built pill. These
+// specs follow the current markup.
+
 describe('Oliver Math - Home Page', () => {
   beforeEach(() => {
     cy.visit('/');
-    // Wait for Ionic components to initialize
     cy.get('ion-app').should('exist');
+    // The first-run help card covers the screen, so dismiss it.
+    cy.get('body').then(($body) => {
+      if ($body.find('.intro-go').length) {
+        cy.get('.intro-go').click();
+      }
+    });
   });
 
-  it('should display the home page with play button', () => {
-    cy.get('.play-button').should('be.visible');
-    // Button shows "Play" (from i18n) not "Play Math"
-    cy.get('.play-button').should('contain.text', 'Play');
+  it('shows the play control', () => {
+    cy.get('.round-btn.play').should('be.visible');
   });
 
-  it('should display the bot container', () => {
-    cy.get('.bot-container').should('be.visible');
+  it('shows the robot stage', () => {
+    cy.get('.bot-container').should('exist');
   });
 
-  it('should display settings button in header', () => {
-    // Settings button is an ion-button in the header
-    cy.get('ion-header ion-button').first().should('exist');
+  it('shows the wordmark', () => {
+    cy.get('.wordmark').should('contain.text', 'Oliver');
+    cy.get('.wordmark').should('contain.text', 'Math');
   });
 
-  it('should display stars counter in header', () => {
-    cy.get('ion-chip[color="warning"]').should('exist');
+  it('shows the floating HUD controls', () => {
+    cy.get('.hud .hud-btn').should('have.length.at.least', 3);
   });
 
-  it('should display status indicator', () => {
-    cy.get('.status-indicator').should('exist');
+  it('shows the star counter', () => {
+    cy.get('.hud-stars').should('be.visible');
+  });
+
+  it('shows the status pill', () => {
+    cy.get('.status-pill').should('exist');
   });
 });
 
-describe('Oliver Math - Settings Modal', () => {
+describe('Oliver Math - Settings', () => {
   beforeEach(() => {
     cy.visit('/');
     cy.get('ion-app').should('exist');
+    cy.get('body').then(($body) => {
+      if ($body.find('.intro-go').length) {
+        cy.get('.intro-go').click();
+      }
+    });
   });
 
-  it('should open settings modal when clicking settings button', () => {
-    cy.get('ion-header ion-button').first().click();
-    cy.get('ion-modal').should('be.visible');
-  });
-
-  it('should display settings groups in modal', () => {
-    cy.get('ion-header ion-button').first().click();
+  it('opens the settings modal from the HUD', () => {
+    cy.get('.hud-btn').first().click();
     cy.get('ion-modal').should('be.visible');
     cy.get('.settings-group').should('have.length.at.least', 1);
   });
 
-  it('should navigate to stats page via chip', () => {
-    cy.get('ion-chip[color="warning"]').click();
+  it('offers robot colour swatches', () => {
+    cy.get('.hud-btn').first().click();
+    cy.get('ion-modal').should('be.visible');
+    cy.get('.colour-swatch').should('have.length.at.least', 4);
+  });
+
+  it('navigates to stats from the star counter', () => {
+    cy.get('.hud-stars').click();
     cy.url().should('include', '/stats');
   });
 });
 
+describe('Oliver Math - Help', () => {
+  it('can be reopened after it has been dismissed', () => {
+    cy.visit('/');
+    cy.get('ion-app').should('exist');
+    cy.get('body').then(($body) => {
+      if ($body.find('.intro-go').length) {
+        cy.get('.intro-go').click();
+      }
+    });
+    cy.get('.hud-btn.help').click();
+    cy.get('.intro-card').should('be.visible');
+    cy.get('.intro-steps li').should('have.length', 3);
+  });
+});
+
 describe('Oliver Math - Accessibility', () => {
-  it('should have proper page structure', () => {
+  beforeEach(() => {
     cy.visit('/');
-    // Ionic components may render in shadow DOM, check for key elements
-    cy.get('ion-header').should('exist');
+    cy.get('ion-app').should('exist');
+    cy.get('body').then(($body) => {
+      if ($body.find('.intro-go').length) {
+        cy.get('.intro-go').click();
+      }
+    });
+  });
+
+  it('has the expected page structure', () => {
     cy.get('ion-content').should('exist');
-    cy.get('ion-footer').should('exist');
-    cy.get('ion-toolbar').should('exist');
+    cy.get('.hud').should('exist');
+    cy.get('.dock').should('exist');
   });
 
-  it('should have interactive elements', () => {
-    cy.visit('/');
-    // Check star chip exists with navigation
-    cy.get('ion-chip[color="warning"]').should('exist');
-    // Play button exists
-    cy.get('.play-button').should('exist');
+  it('labels every icon-only control', () => {
+    cy.get('.hud-btn').each(($el) => {
+      cy.wrap($el).should('have.attr', 'aria-label').and('not.be.empty');
+    });
   });
 
-  it('should be mobile responsive', () => {
-    cy.visit('/');
-    // Test at mobile viewport
+  it('does not disable pinch zoom', () => {
+    cy.get('meta[name="viewport"]')
+      .should('have.attr', 'content')
+      .and('not.contain', 'user-scalable=no')
+      .and('not.contain', 'maximum-scale');
+  });
+
+  it('is usable at phone and tablet widths', () => {
     cy.viewport(375, 667);
-    cy.get('.play-button').should('be.visible');
-    
-    // Test at tablet viewport
+    cy.get('.round-btn.play').should('be.visible');
+
     cy.viewport(768, 1024);
-    cy.get('.play-button').should('be.visible');
+    cy.get('.round-btn.play').should('be.visible');
   });
 });

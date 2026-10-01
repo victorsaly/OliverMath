@@ -58,7 +58,7 @@
     <!-- First-run help. The app previously explained itself with a single
          14-word sentence in a speech bubble and nothing else. -->
     <div class="intro-backdrop" v-if="showIntro" role="dialog" aria-modal="true" aria-labelledby="intro-title">
-      <div class="intro-card">
+      <div class="intro-card" ref="introCard">
         <p class="intro-brand" id="intro-title">
           <span class="wordmark-oliver">Oliver</span><span class="wordmark-math">Math</span>
         </p>
@@ -361,7 +361,7 @@
       </div>
 
       <button
-        v-if="isPlayMode && botState !== 'broken'"
+        v-if="isPlayMode"
         class="round-btn play"
         @click="askQuestion"
         :disabled="isComputing"
@@ -572,6 +572,28 @@ export default {
     };
   },
   watch: {
+    // aria-modal only tells assistive tech that the rest of the page is inert;
+    // it does not make it so. Without this, keyboard and screen-reader users
+    // could tab straight out of the card and onto the controls behind it.
+    showIntro: {
+      immediate: true,
+      handler(open) {
+        if (open) {
+          this.introReturnFocus = document.activeElement;
+          this.$nextTick(() => {
+            const first = this.$refs.introCard?.querySelector('button');
+            if (first) first.focus();
+            document.addEventListener('keydown', this.onIntroKeydown);
+          });
+        } else {
+          document.removeEventListener('keydown', this.onIntroKeydown);
+          if (this.introReturnFocus && this.introReturnFocus.focus) {
+            this.introReturnFocus.focus();
+          }
+          this.introReturnFocus = null;
+        }
+      }
+    },
     // Music through the speaker is picked straight back up by an open
     // microphone, so pull it down whenever the robot is talking or listening
     // and bring it back once the turn is over.
@@ -1320,6 +1342,35 @@ export default {
       await this.speak();
     },
 
+    /**
+     * Escape closes the card; Tab cycles within it.
+     */
+    onIntroKeydown(e) {
+      if (!this.showIntro) return;
+
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        this.dismissIntro();
+        return;
+      }
+
+      if (e.key !== 'Tab') return;
+
+      const focusable = this.$refs.introCard?.querySelectorAll('button, [href], [tabindex]:not([tabindex="-1"])');
+      if (!focusable || !focusable.length) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    },
+
     dismissIntro() {
       this.showIntro = false;
       try {
@@ -1380,9 +1431,13 @@ export default {
         self.isComputing = false;
       };
 
-      this.speechRecording.recognizing  = function (s, e) {
-        window.console.log('recognizing ', e.result.text);
-        self.validateSpeechRecording(e.result.text, false);
+      this.speechRecording.recognizing = function (s, e) {
+        // Display only. This used to run the full validation path for every
+        // partial hypothesis, which fired a backend call each time, let two
+        // concurrent validations score the same answer, and could finalise a
+        // turn from an interim - closing the recogniser before the final-only
+        // path restored the Play button. One spoken number, one score.
+        self.heardText = e.result.text || '';
       };
 
       this.speechRecording.recognizeOnceAsync(
@@ -1904,6 +1959,7 @@ export default {
   },
   unmounted() {
     stopMusic();
+    document.removeEventListener('keydown', this.onIntroKeydown);
     this.stopIdleChat();
     clearTimeout(this.bubbleTimer);
     clearTimeout(this.rewardTimer);
@@ -2176,8 +2232,9 @@ ion-modal.settings-modal {
 
 
 .colour-swatch {
-  width: 40px;
-  height: 40px;
+  /* 44px: the minimum touch target, which the rest of this redesign holds to. */
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   border: 3px solid transparent;
   cursor: pointer;
