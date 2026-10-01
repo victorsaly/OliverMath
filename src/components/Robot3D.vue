@@ -79,7 +79,10 @@ export default {
       type: String,
       default: 'auto',
       validator: (v) => ['auto', 'face', 'full'].includes(v)
-    }
+    },
+    // Fraction of the frame kept clear above the robot for the speech bubble.
+    // 0 fills the frame; 0.5 leaves a third of the height empty at the top.
+    headroom: { type: Number, default: 0.1 }
   },
   emits: ['unsupported', 'ready'],
   data() {
@@ -97,6 +100,11 @@ export default {
   watch: {
     botState() {
       this.applyState();
+    },
+    // The bubble appears and disappears between questions, so the amount of
+    // reserved space changes with it.
+    headroom() {
+      this.computeFraming();
     }
   },
   async mounted() {
@@ -349,18 +357,29 @@ export default {
       const faceWidth = headSize ? headSize.x * 2.2 : sizeVec.x * 0.9;
       const faceY = headCenter ? headCenter.y : maxY - sizeVec.y * 0.18;
 
+      // The speech bubble occupies the top of the screen, so the scene reserves
+      // room for it instead of letting the two collide. Looking ABOVE the
+      // subject pushes the subject down the frame; the extra fitted height is
+      // the empty band that leaves at the top.
+      const HEADROOM = this.headroom;
+      const lift = sizeVec.y * HEADROOM * 0.5;
+
       this.framing = {
         full: {
           pos: new THREE.Vector3(
             0,
-            center.y + sizeVec.y * 0.04,
-            fit(sizeVec.y * 1.08, bodyWidth, 1.02)
+            center.y + lift,
+            fit(sizeVec.y * (1 + HEADROOM), bodyWidth, 1.06)
           ),
-          target: new THREE.Vector3(0, center.y, 0)
+          target: new THREE.Vector3(0, center.y + lift, 0)
         },
         face: {
-          pos: new THREE.Vector3(0, faceY, fit(faceHeight, faceWidth, 1.02)),
-          target: new THREE.Vector3(0, faceY, 0)
+          pos: new THREE.Vector3(
+            0,
+            faceY + faceHeight * HEADROOM * 0.5,
+            fit(faceHeight * (1 + HEADROOM), faceWidth, 1.06)
+          ),
+          target: new THREE.Vector3(0, faceY + faceHeight * HEADROOM * 0.5, 0)
         }
       };
     },

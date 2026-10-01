@@ -11,6 +11,7 @@
         :botState="botState"
         :audioLevel="audioLevel"
         :view="view"
+        :headroom="headroom"
         size="100%"
         @unsupported="use3D = false"
       />
@@ -126,6 +127,12 @@ export default {
   computed: {
     currentAnimationType() {
       return STATE_TO_ANIMATION[this.botState] || 'idle';
+    },
+
+    // Reserve space at the top of the 3D frame when a speech bubble is showing,
+    // so the bubble never lands on the robot's face.
+    headroom() {
+      return this.text ? 0.55 : 0.12;
     },
 
     animationSpeed() {
