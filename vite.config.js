@@ -63,11 +63,14 @@ export default defineConfig({
         ]
       },
       manifest: {
-        name: 'Oliver Math',
-        short_name: 'OliverMath',
-        description: 'A fun math learning app for kids',
-        theme_color: '#3880ff',
-        background_color: '#000000',
+        name: 'Oliver Math - talk to the robot, practise maths',
+        short_name: 'Oliver Math',
+        description: 'A voice-controlled maths game for children aged 7+. A 3D robot asks the questions, your child answers out loud, and correct answers earn stars.',
+        lang: 'en-GB',
+        theme_color: '#1f63d6',
+        // Was #000000, which flashed black on every cold start of an app whose
+        // first screen is a bright sky.
+        background_color: '#1f63d6',
         display: 'standalone',
         orientation: 'portrait-primary',
         start_url: '/OliverMath/',
@@ -76,27 +79,24 @@ export default defineConfig({
         categories: ['education', 'kids', 'games'],
         icons: [
           {
-            src: 'assets/icon/icon.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'any'
-          },
-          {
-            src: 'assets/icon/icon.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'maskable'
-          },
-          {
-            src: 'assets/icon/icon.png',
+            src: 'assets/icon/icon-192.png',
             sizes: '192x192',
             type: 'image/png',
             purpose: 'any'
           },
           {
-            src: 'assets/icon/favicon.png',
-            sizes: '64x64',
-            type: 'image/png'
+            src: 'assets/icon/icon-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any'
+          },
+          {
+            // Padded to a safe zone. The previous maskable entry reused the
+            // unpadded square, so Android's circular mask cropped the artwork.
+            src: 'assets/icon/icon-maskable-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable'
           }
         ]
       }
