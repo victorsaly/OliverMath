@@ -219,6 +219,20 @@
           {{ isComputing ? t('thinking') : t('play') }}
         </ion-button>
       </ion-toolbar>
+      <!-- Lets the child end their turn themselves instead of waiting for the
+           recogniser to time out. Only shown while the mic is actually open. -->
+      <ion-toolbar v-else-if="isListening">
+        <ion-button
+          expand="block"
+          size="large"
+          @click="finishAnswering"
+          class="done-button"
+          :aria-label="t('stop')"
+        >
+          <ion-icon :icon="doneIcon" slot="start"></ion-icon>
+          {{ t('stop') }}
+        </ion-button>
+      </ion-toolbar>
     </ion-footer>
   </ion-page>
 </template>
@@ -248,7 +262,7 @@ import {
   SpeechConfig,
   SpeechRecognizer,
 } from "microsoft-cognitiveservices-speech-sdk";
-import { star, play, speedometer, calculator, mic, volumeHigh, sync, alertCircle, refresh, volumeMute, timeOutline, trashOutline, globe, fitness, settingsOutline, close } from "ionicons/icons";
+import { star, play, speedometer, calculator, mic, volumeHigh, sync, alertCircle, refresh, volumeMute, timeOutline, trashOutline, globe, fitness, settingsOutline, close, stopCircle } from "ionicons/icons";
 import { OPERATORS, LEVELS, NUMBER_RANGES, SCORING } from "@/config/gameConfig";
 import { getRandomInt } from "@/utils/helpers";
 import { getSpeechToken, getCachedAudio, validateAnswer } from "@/services/apiService";
@@ -283,6 +297,7 @@ export default {
       star,
       starIcon: star,
       playIcon: play,
+      doneIcon: stopCircle,
       speedometerIcon: speedometer,
       calculatorIcon: calculator,
       micIcon: mic,
@@ -315,6 +330,9 @@ export default {
       isResolved: false,
       // Bounds the "I didn't hear you" retry to one attempt per question.
       silenceRetried: false,
+      // Set once a turn has an outcome, so a correct interim transcript cannot
+      // be scored again by the final result that follows it.
+      answerFinalised: false,
       
       // Expression states
       isHappy: false,
@@ -722,6 +740,7 @@ export default {
       // single denied permission or cold backend hid the Play button forever.
       this.isError = false;
       this.silenceRetried = false;
+      this.answerFinalised = false;
       
       // Brief surprised expression when starting new question
       this.showExpression('surprised', 800);
@@ -912,6 +931,36 @@ export default {
       this.listenForSpeechRecordingEvents();
     },
     /**
+     * Close the recogniser and release the microphone. Safe to call more than
+     * once, and safe to call while recognizeOnceAsync is still in flight - its
+     * callbacks null-check the handle before touching it.
+     */
+    stopListening() {
+      const recogniser = this.speechRecording;
+      this.speechRecording = null;
+      this.isListening = false;
+      this.isComputing = false;
+
+      if (!recogniser) return;
+      try {
+        recogniser.close();
+      } catch (err) {
+        console.warn('Could not close the speech recogniser:', err);
+      }
+    },
+    /**
+     * "Done" button: the child says they have finished speaking. Ends the turn
+     * without scoring it, so tapping Done is never punished - the worst case is
+     * they press Play again.
+     */
+    finishAnswering() {
+      if (this.answerFinalised) return;
+      this.answerFinalised = true;
+      this.stopListening();
+      this.isQuery = false;
+      this.isPlayMode = true;
+    },
+    /**
      * React to speech recording events
      */
     listenForSpeechRecordingEvents() {
@@ -932,24 +981,25 @@ export default {
 
       this.speechRecording.recognizeOnceAsync(
         function (result) {
+          // The turn may already be over - a correct interim transcript stops
+          // listening, and the child can tap Done - so release the recogniser
+          // and drop the late result rather than scoring it twice.
+          const wasAlreadyFinalised = self.answerFinalised;
+          self.stopListening();
+          if (wasAlreadyFinalised) return;
           self.validateSpeechRecording(result.text, true);
-          self.isListening = false;
-          self.isComputing = false;
-          self.speechRecording.close();
-          self.speechRecording = null;
         },
         function (err) {
           console.log("err recognizeOnceAsync", err);
-          self.showToast("Unable to connect to the server.", "danger");
-          self.isListening = false;
-          self.isComputing = false;
+          self.stopListening();
+          if (self.answerFinalised) return;
           self.isQuery = false;
-          self.isError = true;
-          self.text = "Unable to recognized the voice. Internal error";
-          self.showToast(self.text);
-
-          self.speechRecording.close();
-          self.speechRecording = null;
+          self.text = self.t('didntHear');
+          self.showToast(self.text, "warning");
+          // Deliberately NOT isError: that makes botState 'broken', which hides
+          // the Play button. A failed recognition is transient and not the
+          // child's fault, so leave them a way to try again.
+          self.isPlayMode = true;
         }
       );
     },
@@ -1140,6 +1190,10 @@ export default {
      * Process speech recognition result
      */
     async validateSpeechRecording(recordedText, isFinalResult) {
+      // The turn already has an outcome. Interim transcripts keep arriving after
+      // a correct answer, and each one used to re-run the whole scoring block.
+      if (this.answerFinalised) return;
+
       const isSilent = recordedText === undefined || recordedText === '';
       const displayText = isSilent ? "(silent)" : String(recordedText);
 
@@ -1180,17 +1234,27 @@ export default {
           return;
         }
 
+        this.answerFinalised = true;
         this.speak();
         this.isPlayMode = true;
         return;
       }
 
-      if (isFinalResult) {
+      // Count the question whenever the turn actually gets an outcome. Gating
+      // this on isFinalResult alone skewed accuracy above 100%, because a
+      // correct answer recognised from an interim transcript incremented the
+      // correct count without ever incrementing the total.
+      if (this.isResolved || isFinalResult) {
         this.totalQuestionsAnswered++;
         localStorage.totalQuestions = this.totalQuestionsAnswered;
       }
 
       if (this.isResolved) {
+        // Right answer - the turn is over, so let go of the microphone instead
+        // of leaving it open to collect the child's celebration noises.
+        this.answerFinalised = true;
+        this.stopListening();
+
         this.consecutiveCorrect++;
         this.totalCorrectAnswers++;
         localStorage.totalCorrect = this.totalCorrectAnswers;
@@ -1250,8 +1314,10 @@ export default {
         this.checkDifficultyAdjustment();
         
       } else if (isFinalResult) {
+        // Genuinely wrong - a number was recognised and it did not match.
+        this.answerFinalised = true;
         this.consecutiveCorrect = 0;
-        
+
         // Play incorrect sound
         playIncorrectSound();
         
@@ -1549,6 +1615,28 @@ ion-footer ion-toolbar {
 }
 
 .play-button ion-icon {
+  font-size: 24px;
+  margin-right: 8px;
+}
+
+/* Same size and weight as Play: it occupies the same slot and is just as
+   important to a child who has finished speaking.
+   Deliberately NOT success green - green plus a checkmark is the correct-answer
+   signal, and a control must not borrow the vocabulary of feedback. Indigo is
+   distinct from the primary-blue Play button; white on it is 7.99:1. */
+.done-button {
+  --border-radius: 16px;
+  --background: #4a3fb0;
+  --background-activated: #3a3192;
+  --background-hover: #3a3192;
+  --color: #ffffff;
+  font-size: 18px;
+  font-weight: 600;
+  height: 56px;
+  text-transform: none;
+}
+
+.done-button ion-icon {
   font-size: 24px;
   margin-right: 8px;
 }

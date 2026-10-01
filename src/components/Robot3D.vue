@@ -57,12 +57,23 @@ const STATES = {
 
 const MODEL_URL = `${import.meta.env.BASE_URL}models/RobotExpressive.glb`;
 
+// States whose animation is carried by the body rather than the face, so the
+// camera pulls back for them. Everything else is about expression, where a
+// close framing reads far better on a phone.
+const BODY_VIEW_STATES = new Set(['excited', 'laughing', 'proud', 'broken', 'sleepy']);
+
 export default {
   name: 'Robot3D',
   props: {
     botState: { type: String, default: 'neutral' },
     audioLevel: { type: Number, default: 0 },
-    size: { type: String, default: '200px' }
+    size: { type: String, default: '200px' },
+    // 'auto' picks per state; 'face' and 'full' pin the framing.
+    view: {
+      type: String,
+      default: 'auto',
+      validator: (v) => ['auto', 'face', 'full'].includes(v)
+    }
   },
   emits: ['unsupported', 'ready'],
   data() {
@@ -71,6 +82,10 @@ export default {
   computed: {
     config() {
       return STATES[this.botState] || STATES.neutral;
+    },
+    activeView() {
+      if (this.view !== 'auto') return this.view;
+      return BODY_VIEW_STATES.has(this.botState) ? 'full' : 'face';
     }
   },
   watch: {
@@ -158,13 +173,30 @@ export default {
       const box = new THREE.Box3().setFromObject(this.model);
       const sizeVec = box.getSize(new THREE.Vector3());
       const center = box.getCenter(new THREE.Vector3());
-      const fitDist =
-        (sizeVec.y / 2) / Math.tan((this.camera.fov * Math.PI) / 180 / 2);
+      const halfFov = (this.camera.fov * Math.PI) / 180 / 2;
+      const fitFor = (height) => (height / 2) / Math.tan(halfFov);
 
-      // 1.18 rather than a looser fit: the robot should fill the stage, since
-      // its face is now carrying the state. Still leaves headroom for Jump.
-      this.camera.position.set(0, center.y + sizeVec.y * 0.06, fitDist * 1.18);
-      this.camera.lookAt(0, center.y, 0);
+      // Two framings, both derived from the model's own bounds so a different
+      // GLB can be dropped in without retuning anything.
+      //   full - the whole robot, with headroom for Jump and Dance
+      //   face - head and shoulders, where the mouth and morph targets live
+      const faceHeight = sizeVec.y * 0.3;
+      const faceY = box.max.y - sizeVec.y * 0.12;
+      this.framing = {
+        full: {
+          pos: new THREE.Vector3(0, center.y + sizeVec.y * 0.06, fitFor(sizeVec.y) * 1.18),
+          target: new THREE.Vector3(0, center.y, 0)
+        },
+        face: {
+          pos: new THREE.Vector3(0, faceY, fitFor(faceHeight) * 1.25),
+          target: new THREE.Vector3(0, faceY, 0)
+        }
+      };
+
+      const start = this.framing[this.activeView];
+      this.lookTarget = start.target.clone();
+      this.camera.position.copy(start.pos);
+      this.camera.lookAt(this.lookTarget);
       this.halo.position.set(0, center.y + sizeVec.y * 0.1, -0.9);
       this.orbit.position.set(0, box.max.y + 0.18, 0);
 
@@ -391,6 +423,24 @@ export default {
           ? 1 + Math.min(this.audioLevel, 1) * 0.12
           : 1;
         this.halo.scale.setScalar(scale);
+      }
+
+      // Dolly between the face and full-body framings. Snapped rather than eased
+      // under reduced motion, since a moving camera is itself motion.
+      if (this.framing && this.lookTarget) {
+        const want = this.framing[this.activeView];
+        if (this.reducedMotion) {
+          this.camera.position.copy(want.pos);
+          this.lookTarget.copy(want.target);
+        } else {
+          const ease = 1 - Math.pow(0.0015, delta);
+          this.camera.position.lerp(want.pos, ease);
+          this.lookTarget.lerp(want.target, ease);
+        }
+        this.camera.lookAt(this.lookTarget);
+        // Keep the state ring centred behind whatever is framed, so the
+        // listening pulse stays visible in the close face view too.
+        if (this.halo) this.halo.position.y = this.lookTarget.y;
       }
 
       this.renderer.render(this.scene, this.camera);

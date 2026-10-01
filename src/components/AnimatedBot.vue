@@ -14,6 +14,7 @@
         v-if="use3D"
         :botState="botState"
         :audioLevel="audioLevel"
+        :view="view"
         size="100%"
         @unsupported="use3D = false"
       />
@@ -106,6 +107,13 @@ export default {
     size: {
       type: String,
       default: '200px'
+    },
+    // 3D camera framing: 'auto' shows the face for expression states and pulls
+    // back to the full body for Dance/Jump/ThumbsUp. 'face' or 'full' pin it.
+    view: {
+      type: String,
+      default: 'auto',
+      validator: (v) => ['auto', 'face', 'full'].includes(v)
     }
   },
   data() {
