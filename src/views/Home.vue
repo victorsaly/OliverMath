@@ -404,11 +404,16 @@ import {
   IonList
 } from "@ionic/vue";
 import AnimatedBot from "@/components/AnimatedBot.vue";
-import {
-  AudioConfig,
-  SpeechConfig,
-  SpeechRecognizer,
-} from "microsoft-cognitiveservices-speech-sdk";
+// The Azure Speech SDK is 455KB - a third of the entry payload - and is not
+// needed until the child taps Play. Loaded on demand, and the module cached on
+// first use so later turns pay nothing.
+let speechSdk = null;
+async function loadSpeechSdk() {
+  if (!speechSdk) {
+    speechSdk = await import("microsoft-cognitiveservices-speech-sdk");
+  }
+  return speechSdk;
+}
 import { star, play, speedometer, calculator, mic, volumeHigh, sync, alertCircle, refresh, volumeMute, timeOutline, trashOutline, globe, fitness, settingsOutline, close, stopCircle, helpCircle, sunny, moon } from "ionicons/icons";
 import { OPERATORS, LEVELS, NUMBER_RANGES, SCORING } from "@/config/gameConfig";
 import { getRandomInt } from "@/utils/helpers";
@@ -963,13 +968,14 @@ export default {
     },
     async enableMicrophone() {
       var self = this;
+      this.sdk = await loadSpeechSdk();
       if (!this.isMicrophoneEnabled) {
         self.speech_phrases = "enabling microphone..";
         self.isMicrophoneEnabled = true;
         await navigator.mediaDevices
           .getUserMedia({ audio: true, video: false })
           .then(function (e) {
-            self.audioConfig = AudioConfig.fromMicrophoneInput(e.id);
+            self.audioConfig = self.sdk.AudioConfig.fromMicrophoneInput(e.id);
             self.speech_phrases = "microphone enabled";
           })
           .catch(function () {
@@ -981,7 +987,10 @@ export default {
       }
     },
     async askQuestion() {
-      this.audioConfig = AudioConfig.fromDefaultMicrophoneInput();
+      // Pull the Speech SDK in before anything touches it. First tap pays the
+      // download; every later one hits the cached module.
+      this.sdk = await loadSpeechSdk();
+      this.audioConfig = this.sdk.AudioConfig.fromDefaultMicrophoneInput();
       this.isResolved = false;
       var self = this;
       this.isComputing = true;
@@ -1176,7 +1185,7 @@ export default {
       // stacked 4-second toasts per answer was the noisiest thing on screen.
       this.isComputing = false;
       this.isListening = true;
-      var sc = SpeechConfig.fromAuthorizationToken(
+      var sc = this.sdk.SpeechConfig.fromAuthorizationToken(
          
         this.token,
         this.speechRegion
@@ -1184,7 +1193,7 @@ export default {
       // Use language-specific speech recognition
       sc.speechRecognitionLanguage = SPEECH_VOICES[this.selectedLanguage] || 'en-GB';
       this.speechConfig = sc;
-      this.speechRecording = new SpeechRecognizer(
+      this.speechRecording = new this.sdk.SpeechRecognizer(
         this.speechConfig,
         this.audioConfig
       );
@@ -2087,8 +2096,8 @@ ion-modal.settings-modal {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: calc(env(safe-area-inset-top, 0px) + 12px) 16px 12px;
+  gap: 8px;
+  padding: calc(env(safe-area-inset-top, 0px) + 10px) 12px 10px;
   pointer-events: none;
 }
 
@@ -2102,7 +2111,8 @@ ion-modal.settings-modal {
 .hud-left {
   display: flex;
   align-items: center;
-  gap: 10px;
+  flex: 0 0 auto;
+  gap: 8px;
 }
 
 .hud-btn.help {
@@ -2117,8 +2127,9 @@ ion-modal.settings-modal {
 
 /* 48px, comfortably above the 44px minimum. The old icon buttons were 28px. */
 .hud-btn {
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2156,10 +2167,11 @@ ion-modal.settings-modal {
 .hud-stars {
   display: flex;
   align-items: center;
-  gap: 6px;
-  height: 48px;
-  padding: 0 16px;
-  border-radius: 24px;
+  flex: 0 0 auto;
+  gap: 5px;
+  height: 44px;
+  padding: 0 12px;
+  border-radius: 22px;
   border: 1px solid rgba(255, 215, 0, 0.45);
   background: rgba(16, 24, 40, 0.42);
   backdrop-filter: blur(10px);
@@ -2252,28 +2264,50 @@ ion-modal.settings-modal {
 
 /* Wordmark ----------------------------------------------------------------- */
 
+/* A flex child between the two button groups, NOT absolutely centred.
+   Centring it with position:absolute meant it was laid out independently of
+   the buttons, so on a phone it sat straight on top of them - the icons
+   appeared to collapse and the words overlapped them. As a flex item it gets
+   its own space and shrinks before anything collides. */
 .wordmark {
-  position: absolute;
-  left: 50%;
-  top: calc(env(safe-area-inset-top, 0px) + 12px);
-  transform: translateX(-50%);
+  flex: 0 1 auto;
+  min-width: 0;
   margin: 0;
-  height: 48px;
+  height: 44px;
   display: flex;
   align-items: center;
+  justify-content: center;
   /* Only the icon is spaced away; the two words sit tight together so they
      read as one mark rather than two labels. */
-  gap: 7px;
-  font-size: clamp(15px, 4.4vw, 21px);
+  gap: 6px;
+  font-size: clamp(14px, 3.6vw, 21px);
   font-weight: 800;
   letter-spacing: -0.4px;
   white-space: nowrap;
+  overflow: hidden;
   pointer-events: none;
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.55);
 }
 
-/* Below this the buttons either side would collide with it. */
-@media (max-width: 340px) {
+/* Five controls plus a wordmark do not fit across a phone. Measured against
+   the real widths: 3 x 44 left + 44 + stars right + gutters leaves under
+   120px in the middle, which is less than the mark needs. Below this the
+   mark steps down to the icon alone, which still brands the screen without
+   crowding the controls. */
+@media (max-width: 480px) {
+  .wordmark-words {
+    display: none;
+  }
+
+  .wordmark-icon {
+    font-size: 26px;
+  }
+}
+
+/* At 320px the two button groups need 283px of a 296px content box, so even
+   the icon alone would be squeezed to a clipped sliver. Drop the mark
+   entirely rather than show a broken one. */
+@media (max-width: 359px) {
   .wordmark {
     display: none;
   }
