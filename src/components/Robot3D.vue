@@ -717,7 +717,7 @@ export default {
         const target = this.dayMode === 'day' ? 0.25 : 0.75;
         let d = target - this.cyclePhase;
         d -= Math.round(d);
-        const step = Math.sign(d) * Math.min(Math.abs(d), (delta || 0.016) * 0.18);
+        const step = Math.sign(d) * Math.min(Math.abs(d), (delta || 0.016) * 0.28);
         this.cyclePhase = (this.cyclePhase + step + 1) % 1;
       }
 
@@ -906,7 +906,7 @@ export default {
       // model turns - which it does constantly for gaze tracking - so the
       // bubble slid out from one side of the head and back.
       this.headBone = this.model.getObjectByName('Head') || this.neck;
-      this.headAnchorLift = h * 0.95;
+      this.headAnchorLift = h * 1.3;
     },
 
     /**
