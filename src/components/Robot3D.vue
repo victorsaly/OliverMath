@@ -28,7 +28,9 @@
 // morph: facial morph target, 0-1
 // color: the state light. This is the only signal a pre-reading child can read
 //        without motion, so no two adjacent states share one.
-// halo:  pulse a ring with audioLevel (used to show we are hearing the child)
+// halo:  pulse the ring on the FLOOR with audioLevel, to show we can hear the
+//        child. On the floor rather than floating behind the head, so the scene
+//        keeps looking like a place.
 // mouth: which mouth shape to show. The model has no jaw or mouth of its own,
 //        so one is built procedurally - see createMouth(). This is the signal a
 //        child reads first, so talking and listening get different shapes as
@@ -152,13 +154,6 @@ export default {
       key.position.set(2, 4, 3);
       this.scene.add(key);
 
-      // The state light: a ring behind the robot, always facing the camera.
-      this.halo = new THREE.Mesh(
-        new THREE.TorusGeometry(0.95, 0.07, 12, 48),
-        new THREE.MeshBasicMaterial({ color: 0x4ce6ff, transparent: true, opacity: 0.55 })
-      );
-      this.scene.add(this.halo);
-
       // Thinking dots that orbit the head.
       this.orbit = new THREE.Group();
       const dotGeo = new THREE.SphereGeometry(0.055, 10, 10);
@@ -225,12 +220,11 @@ export default {
       this.camera.position.copy(start.pos);
       this.camera.lookAt(this.lookTarget);
 
-      // Ring sits behind the robot, scaled to whatever it is framing.
-      this.halo.scale.setScalar((sizeVec.y * 0.55) / 0.95);
-      this.halo.position.set(0, center.y + sizeVec.y * 0.1, -sizeVec.y * 0.5);
       this.orbit.position.set(0, box.max.y + sizeVec.y * 0.1, 0);
       this.baseRotation = this.model.rotation.y;
       this.createEnvironment(box, sizeVec);
+      this.createEyes();
+      this.bindPointer();
       this.createMouth();
 
       this.mixer = new THREE.AnimationMixer(this.model);
@@ -291,8 +285,12 @@ export default {
         next.timeScale = this.reducedMotion ? 0 : cfg.speed;
       }
 
-      if (this.halo) this.halo.material.color.setHex(cfg.color);
-      if (this.backdrop) this.backdrop.material.color.setHex(cfg.color);
+      if (this.floorRing) this.floorRing.material.color.setHex(cfg.color);
+      // The irises carry the state colour too, so the eyes are part of the
+      // signal rather than decoration.
+      if (this.eyes) {
+        this.eyes.forEach((eye) => eye.iris.material.color.setHex(cfg.color));
+      }
       if (this.bodyMaterial) {
         this.bodyMaterial.emissive = new THREE.Color(cfg.color);
         this.bodyMaterial.emissiveIntensity = 0.22;
@@ -394,57 +392,153 @@ export default {
      */
     createEnvironment(box, sizeVec) {
       const THREE = this.THREE;
+      const floorY = box.min.y;
+      const HORIZON = 0x2f3c66;
 
-      // Ground: banded stripes that scroll towards the camera.
-      const groundCanvas = document.createElement('canvas');
-      groundCanvas.width = 64;
-      groundCanvas.height = 64;
-      const g = groundCanvas.getContext('2d');
-      g.fillStyle = '#2b3a5c';
-      g.fillRect(0, 0, 64, 64);
-      g.fillStyle = '#35456b';
-      g.fillRect(0, 0, 64, 32);
-      this.groundTexture = new THREE.CanvasTexture(groundCanvas);
+      // Fog is what makes this read as a place rather than a plane: the ground
+      // dissolves into the sky at distance instead of ending on a hard edge.
+      this.scene.fog = new THREE.Fog(HORIZON, sizeVec.y * 2.2, sizeVec.y * 9);
+
+      // Ground: subtle tonal variation plus a faint grid, so the scroll is
+      // readable as travel without turning into a strobing stripe pattern.
+      const gc = document.createElement('canvas');
+      gc.width = 128;
+      gc.height = 128;
+      const g = gc.getContext('2d');
+      g.fillStyle = '#24314e';
+      g.fillRect(0, 0, 128, 128);
+      for (let i = 0; i < 420; i++) {
+        const v = 28 + Math.random() * 26;
+        g.fillStyle = `rgba(${v + 14},${v + 22},${v + 42},0.55)`;
+        g.fillRect(Math.random() * 128, Math.random() * 128, 2.5, 2.5);
+      }
+      g.strokeStyle = 'rgba(126,163,214,0.14)';
+      g.lineWidth = 1;
+      g.strokeRect(0.5, 0.5, 127, 127);
+      this.groundTexture = new THREE.CanvasTexture(gc);
       this.groundTexture.wrapS = THREE.RepeatWrapping;
       this.groundTexture.wrapT = THREE.RepeatWrapping;
-      this.groundTexture.repeat.set(6, 6);
+      this.groundTexture.repeat.set(10, 10);
+      this.groundTexture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
 
       this.ground = new THREE.Mesh(
-        new THREE.PlaneGeometry(sizeVec.y * 8, sizeVec.y * 8),
-        new THREE.MeshBasicMaterial({
-          map: this.groundTexture,
-          transparent: true,
-          opacity: 0.85
-        })
+        new THREE.PlaneGeometry(sizeVec.y * 16, sizeVec.y * 16),
+        new THREE.MeshBasicMaterial({ map: this.groundTexture, fog: true })
       );
       this.ground.rotation.x = -Math.PI / 2;
-      this.ground.position.y = box.min.y;
+      this.ground.position.y = floorY;
       this.scene.add(this.ground);
 
-      // Backdrop: a radial glow that picks up the state colour, giving the
-      // scene depth without hiding the page behind the canvas.
-      const skyCanvas = document.createElement('canvas');
-      skyCanvas.width = 128;
-      skyCanvas.height = 128;
-      const s = skyCanvas.getContext('2d');
-      const grad = s.createRadialGradient(64, 64, 8, 64, 64, 64);
-      grad.addColorStop(0, 'rgba(255,255,255,0.85)');
-      grad.addColorStop(1, 'rgba(255,255,255,0)');
-      s.fillStyle = grad;
-      s.fillRect(0, 0, 128, 128);
-      this.backdropTexture = new THREE.CanvasTexture(skyCanvas);
+      // Sky: a dusk gradient with a sun and two mountain ranges, painted into a
+      // canvas. Two ranges rather than one because the lighter, higher range
+      // behind the darker one is what creates the sense of distance.
+      const sc = document.createElement('canvas');
+      sc.width = 1024;
+      sc.height = 512;
+      const s = sc.getContext('2d');
 
-      this.backdrop = new THREE.Mesh(
-        new THREE.PlaneGeometry(sizeVec.y * 4, sizeVec.y * 4),
+      const sky = s.createLinearGradient(0, 0, 0, 512);
+      sky.addColorStop(0, '#15224a');
+      sky.addColorStop(0.45, '#39518c');
+      sky.addColorStop(0.72, '#7b6ba8');
+      sky.addColorStop(0.88, '#e09a72');
+      sky.addColorStop(1, '#f6c48a');
+      s.fillStyle = sky;
+      s.fillRect(0, 0, 1024, 512);
+
+      // Sun, low and warm, with a soft bloom around it.
+      const sunX = 718;
+      const sunY = 348;
+      const glow = s.createRadialGradient(sunX, sunY, 6, sunX, sunY, 190);
+      glow.addColorStop(0, 'rgba(255,236,190,0.95)');
+      glow.addColorStop(0.25, 'rgba(255,198,130,0.42)');
+      glow.addColorStop(1, 'rgba(255,170,110,0)');
+      s.fillStyle = glow;
+      s.fillRect(sunX - 200, sunY - 200, 400, 400);
+      s.fillStyle = '#fff1cf';
+      s.beginPath();
+      s.arc(sunX, sunY, 34, 0, Math.PI * 2);
+      s.fill();
+
+      // Deterministic ridges: a fixed seed keeps the horizon identical between
+      // reloads, so the scene does not look different every time it is opened.
+      const ridge = (baseY, amp, step, fill, seed) => {
+        let n = seed;
+        const rand = () => {
+          n = (n * 1103515245 + 12345) % 2147483648;
+          return n / 2147483648;
+        };
+        s.fillStyle = fill;
+        s.beginPath();
+        s.moveTo(0, 512);
+        let y = baseY;
+        for (let x = 0; x <= 1024; x += step) {
+          y += (rand() - 0.5) * amp;
+          y = Math.max(baseY - amp * 1.6, Math.min(baseY + amp * 1.2, y));
+          s.lineTo(x, y);
+        }
+        s.lineTo(1024, 512);
+        s.closePath();
+        s.fill();
+      };
+
+      ridge(372, 34, 64, '#4a5a8e', 9281);
+      ridge(410, 26, 48, '#2f3c66', 4517);
+
+      this.skyTexture = new THREE.CanvasTexture(sc);
+      this.skyTexture.colorSpace = THREE.SRGBColorSpace;
+
+      this.sky = new THREE.Mesh(
+        new THREE.PlaneGeometry(sizeVec.y * 26, sizeVec.y * 13),
+        new THREE.MeshBasicMaterial({ map: this.skyTexture, fog: false, depthWrite: false })
+      );
+      this.sky.position.set(0, floorY + sizeVec.y * 3, -sizeVec.y * 8);
+      this.scene.add(this.sky);
+
+      // Contact shadow. A soft dark blob under the feet does more for the sense
+      // of the robot being grounded than any amount of lighting work, and costs
+      // one textured quad instead of a shadow map.
+      const shc = document.createElement('canvas');
+      shc.width = 128;
+      shc.height = 128;
+      const sh = shc.getContext('2d');
+      const blob = sh.createRadialGradient(64, 64, 2, 64, 64, 62);
+      blob.addColorStop(0, 'rgba(0,0,0,0.55)');
+      blob.addColorStop(0.55, 'rgba(0,0,0,0.22)');
+      blob.addColorStop(1, 'rgba(0,0,0,0)');
+      sh.fillStyle = blob;
+      sh.fillRect(0, 0, 128, 128);
+      this.shadowTexture = new THREE.CanvasTexture(shc);
+
+      this.contactShadow = new THREE.Mesh(
+        new THREE.PlaneGeometry(sizeVec.y * 0.85, sizeVec.y * 0.85),
         new THREE.MeshBasicMaterial({
-          map: this.backdropTexture,
+          map: this.shadowTexture,
           transparent: true,
-          opacity: 0.5,
-          depthWrite: false
+          depthWrite: false,
+          fog: false
         })
       );
-      this.backdrop.position.set(0, box.min.y + sizeVec.y * 0.55, -sizeVec.y * 0.9);
-      this.scene.add(this.backdrop);
+      this.contactShadow.rotation.x = -Math.PI / 2;
+      this.contactShadow.position.set(0, floorY + sizeVec.y * 0.004, 0);
+      this.scene.add(this.contactShadow);
+
+      // The listening indicator now lies ON the floor rather than floating
+      // behind the robot's head. Same information, no hovering circle.
+      this.floorRing = new THREE.Mesh(
+        new THREE.RingGeometry(sizeVec.y * 0.34, sizeVec.y * 0.4, 56),
+        new THREE.MeshBasicMaterial({
+          color: 0x33e666,
+          transparent: true,
+          opacity: 0,
+          side: THREE.DoubleSide,
+          depthWrite: false,
+          fog: false
+        })
+      );
+      this.floorRing.rotation.x = -Math.PI / 2;
+      this.floorRing.position.set(0, floorY + sizeVec.y * 0.008, 0);
+      this.scene.add(this.floorRing);
     },
     /**
      * The model ships no mouth or jaw, so build one and parent it to the head
@@ -496,6 +590,64 @@ export default {
       });
     },
 
+    /**
+     * The model's eye sockets are flat black blocks with nothing in them. These
+     * add a glowing iris with a highlight dot, which is what makes the robot
+     * feel like it is looking at you rather than past you. Parented to the head
+     * mesh, so they follow every head movement.
+     */
+    createEyes() {
+      const THREE = this.THREE;
+      const face = this.morphMesh;
+      if (!face || !face.geometry) return;
+
+      const box = face.geometry.boundingBox;
+      const w = box.max.x - box.min.x;
+      const h = box.max.y - box.min.y;
+
+      this.eyes = [-1, 1].map((side) => {
+        const group = new THREE.Group();
+        group.position.set(
+          (box.min.x + box.max.x) / 2 + side * w * 0.21,
+          box.min.y + h * 0.62,
+          box.max.z + h * 0.02
+        );
+
+        const iris = new THREE.Mesh(
+          new THREE.CircleGeometry(w * 0.075, 20),
+          new THREE.MeshBasicMaterial({ color: 0x7fe6ff })
+        );
+        const shine = new THREE.Mesh(
+          new THREE.CircleGeometry(w * 0.026, 12),
+          new THREE.MeshBasicMaterial({ color: 0xffffff })
+        );
+        shine.position.set(w * 0.026, w * 0.026, w * 0.004);
+
+        group.add(iris);
+        group.add(shine);
+        face.add(group);
+        return { group, iris, home: group.position.clone(), span: w * 0.045 };
+      });
+    },
+
+    /**
+     * Track the pointer so the robot can look at it. Normalised to -1..1 across
+     * the canvas. Touch devices have no hover, so the gaze simply stays centred
+     * there - the idle sway below keeps it alive either way.
+     */
+    bindPointer() {
+      this.pointer = { x: 0, y: 0 };
+      this.onPointerMove = (e) => {
+        const host = this.$refs.host;
+        if (!host) return;
+        const r = host.getBoundingClientRect();
+        if (!r.width || !r.height) return;
+        this.pointer.x = Math.max(-1, Math.min(1, ((e.clientX - r.left) / r.width) * 2 - 1));
+        this.pointer.y = Math.max(-1, Math.min(1, ((e.clientY - r.top) / r.height) * 2 - 1));
+      };
+      window.addEventListener('pointermove', this.onPointerMove, { passive: true });
+    },
+
     setMouth(shape) {
       if (!this.mouthParts) return;
       const active = this.mouthParts[shape] || this.mouthParts.line;
@@ -529,10 +681,26 @@ export default {
         // Speaking bobs the head; listening leans in and pulses the ring with
         // the amplitude we are given. These are what separate "I am talking"
         // from "it is your turn" - the distinction the 2D robot lost.
+        // Gaze. The head turns a little towards the pointer and the eyes move
+        // further, which is how real gaze reads - eyes lead, head follows. When
+        // thinking, the robot looks away and up instead, because being stared
+        // at while it "thinks" undercuts the whole gesture.
+        const p = this.pointer || { x: 0, y: 0 };
+        const idleSway = Math.sin(t * 0.7) * 0.06;
+        const gazeX = cfg.lookUp ? idleSway : p.x * 0.45 + idleSway * 0.3;
+        const gazeY = cfg.lookUp ? -cfg.lookUp : p.y * 0.22;
+
         if (this.neck) {
           const bob = cfg.bob ? Math.sin(t * 9) * 0.06 * (0.35 + this.audioLevel) : 0;
-          const lookUp = cfg.lookUp ? Math.sin(t * 1.4) * 0.05 - cfg.lookUp : 0;
-          this.neck.rotation.x = bob + lookUp;
+          this.neck.rotation.x = bob + gazeY * 0.5 + (cfg.lookUp ? Math.sin(t * 1.4) * 0.05 : 0);
+          this.neck.rotation.y = gazeX * 0.45;
+        }
+
+        if (this.eyes) {
+          this.eyes.forEach((eye) => {
+            eye.group.position.x = eye.home.x + gazeX * eye.span;
+            eye.group.position.y = eye.home.y - gazeY * eye.span * 0.7;
+          });
         }
         if (this.model) {
           const lean = cfg.lean ? cfg.lean : 0;
@@ -563,20 +731,29 @@ export default {
       }
 
       // Scroll the ground under the walking robot. The model stays at the
-      // origin; the floor moving is what reads as travelling.
-      if (this.groundTexture && cfg.walk && !this.reducedMotion) {
-        this.groundTexture.offset.y -= delta * 0.5;
+      // origin; the floor moving is what reads as travelling. The camera bob is
+      // small and off-phase with the step, which is what stops it looking like
+      // a model sliding over a texture.
+      // No camera bob: a moving camera on top of a walk cycle reads as unsteady
+      // rather than lively, and it fought the framing dolly. The ground scroll
+      // alone carries the travel, and the camera stays locked.
+      if (cfg.walk && !this.reducedMotion && this.groundTexture) {
+        this.groundTexture.offset.y -= delta * 0.45;
       }
 
-      if (this.halo) {
-        const pulse = cfg.halo
-          ? 0.45 + Math.min(this.audioLevel, 1) * 0.55 + Math.sin(t * 4) * 0.08
-          : 0.4;
-        this.halo.material.opacity = this.reducedMotion ? 0.5 : Math.max(0.2, pulse);
-        const scale = cfg.halo && !this.reducedMotion
-          ? 1 + Math.min(this.audioLevel, 1) * 0.12
-          : 1;
-        this.halo.scale.setScalar(scale);
+      // The listening ring on the floor swells with the child's voice. It is
+      // only visible while we are actually listening, so the scene stays clean
+      // the rest of the time.
+      if (this.floorRing) {
+        const target = cfg.halo ? 0.75 : 0;
+        const current = this.floorRing.material.opacity;
+        this.floorRing.material.opacity = current + (target - current) * Math.min(1, delta * 6);
+
+        if (cfg.halo) {
+          const amp = Math.min(this.audioLevel, 1);
+          const scale = this.reducedMotion ? 1 : 1 + amp * 0.3 + Math.sin(t * 3.2) * 0.04;
+          this.floorRing.scale.setScalar(scale);
+        }
       }
 
       // Dolly between the face and full-body framings. Snapped rather than eased
@@ -592,9 +769,6 @@ export default {
           this.lookTarget.lerp(want.target, ease);
         }
         this.camera.lookAt(this.lookTarget);
-        // Keep the state ring centred behind whatever is framed, so the
-        // listening pulse stays visible in the close face view too.
-        if (this.halo) this.halo.position.y = this.lookTarget.y;
       }
 
       this.renderer.render(this.scene, this.camera);
@@ -639,6 +813,7 @@ export default {
       clearTimeout(this.settleTimer);
       if (this.motionQuery) this.motionQuery.removeEventListener('change', this.onMotionChange);
       if (this.onVisibility) document.removeEventListener('visibilitychange', this.onVisibility);
+      if (this.onPointerMove) window.removeEventListener('pointermove', this.onPointerMove);
       if (this.ro) this.ro.disconnect();
       if (this.io) this.io.disconnect();
       if (this.mixer) this.mixer.stopAllAction();

@@ -1,5 +1,5 @@
 <template>
-  <div class="animated-bot-container" :class="botState">
+  <div class="animated-bot-container" :class="[botState, { 'no-3d': !use3D }]">
     <!-- The robot is a full-bleed backdrop; the bubble floats over it. -->
     <div class="bot-stage">
       <!-- 3D robot. Falls back to the Lottie robot if WebGL is unavailable
@@ -193,72 +193,47 @@ export default {
   z-index: 0;
 }
 
-/* The state glow sits on a pseudo-element so we animate opacity rather than
-   the filter itself, which would re-rasterise the whole robot every frame. */
-.bot-stage::before {
+/* The glow circle that used to sit behind the robot is gone: the 3D scene now
+   carries state through the robot's own colour, the floor ring and the mouth,
+   and a hovering disc broke the illusion of a real place. Kept only for the
+   2D Lottie fallback, which has no scene of its own. */
+.animated-bot-container.no-3d .bot-stage::before {
   content: '';
   position: absolute;
   left: 50%;
   top: 50%;
-  width: min(420px, 85%);
+  width: min(380px, 80%);
   aspect-ratio: 1;
   transform: translate(-50%, -50%);
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(76, 230, 255, 0.35), transparent 70%);
-  opacity: 0;
-  transition: opacity 0.3s ease, background 0.3s ease;
+  background: radial-gradient(circle, rgba(76, 230, 255, 0.28), transparent 70%);
   pointer-events: none;
 }
 
-.animated-bot-container.happy .bot-stage::before,
-.animated-bot-container.excited .bot-stage::before,
-.animated-bot-container.laughing .bot-stage::before,
-.animated-bot-container.proud .bot-stage::before {
-  background: radial-gradient(circle, rgba(255, 200, 50, 0.4), transparent 70%);
-  opacity: 1;
-}
-
-.animated-bot-container.sad .bot-stage::before,
-.animated-bot-container.broken .bot-stage::before {
-  background: radial-gradient(circle, rgba(100, 100, 150, 0.3), transparent 70%);
-  opacity: 1;
-}
-
-.animated-bot-container.speaking .bot-stage::before {
-  background: radial-gradient(circle, rgba(100, 200, 255, 0.4), transparent 70%);
-  opacity: 1;
-}
-
-.animated-bot-container.listening .bot-stage::before {
-  background: radial-gradient(circle, rgba(50, 230, 130, 0.4), transparent 70%);
-  opacity: 1;
-}
-
-.animated-bot-container.thinking .bot-stage::before,
-.animated-bot-container.computing .bot-stage::before {
-  background: radial-gradient(circle, rgba(255, 180, 50, 0.4), transparent 70%);
-  opacity: 1;
-}
-
 /* Speech bubble styles */
+/* Translucent glass rather than a solid white card, so the scene reads through
+   it and it sits in the world instead of on top of it. Dark + blur rather than
+   light + transparency: white text on this composites to better than 7:1 even
+   over a bright backdrop, whereas a translucent white panel would have put dark
+   text over whatever happened to be behind it. */
 p.bubble {
   position: relative;
-  width: min(300px, 80vw);
-  padding: 15px 20px;
-  margin-top: 8px;
-  margin-bottom: 35px;
-  min-height: 60px;
+  width: min(270px, 74vw);
+  padding: 11px 16px;
+  margin-top: 4px;
+  margin-bottom: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(145deg, #ffffff, #f0f4f8);
-  border-radius: 20px;
-  box-shadow:
-    0 4px 15px rgba(0, 0, 0, 0.1),
-    0 1px 3px rgba(0, 0, 0, 0.08);
-  font-size: 1.1rem;
-  line-height: 1.4;
-  color: #2d3748;
+  background: rgba(12, 18, 32, 0.62);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 18px;
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.3);
+  font-size: 1rem;
+  line-height: 1.35;
+  color: #ffffff;
   text-align: center;
   font-weight: 500;
   z-index: 10;
@@ -268,12 +243,11 @@ p.bubble {
 p.bubble::after {
   content: '';
   position: absolute;
-  bottom: -10px;
+  bottom: -9px;
   left: 50%;
   transform: translateX(-50%);
-  border: 10px solid transparent;
-  /* Matches the bubble's bottom gradient stop so the tail has no seam. */
-  border-top-color: #f0f4f8;
+  border: 9px solid transparent;
+  border-top-color: rgba(12, 18, 32, 0.62);
   border-bottom: 0;
 }
 

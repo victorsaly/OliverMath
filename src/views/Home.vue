@@ -1690,10 +1690,12 @@ ion-modal.settings-modal {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-  padding: 12px 16px calc(env(safe-area-inset-bottom, 0px) + 20px);
+  /* Tight cluster: the status and the control belong together, so they read as
+     one group rather than two things at opposite ends of a bar. */
+  gap: 6px;
+  padding: 8px 16px calc(env(safe-area-inset-bottom, 0px) + 12px);
   pointer-events: none;
-  background: linear-gradient(to top, rgba(10, 14, 26, 0.72), transparent);
+  background: linear-gradient(to top, rgba(10, 14, 26, 0.62), transparent);
 }
 
 .dock > * {
@@ -1703,15 +1705,15 @@ ion-modal.settings-modal {
 /* One big round control instead of a full-width rectangle, which read as a
    form submit rather than a game. 84px is a generous target for a child. */
 .round-btn {
-  width: 84px;
-  height: 84px;
+  width: 72px;
+  height: 72px;
   display: flex;
   align-items: center;
   justify-content: center;
   border: none;
   border-radius: 50%;
   color: #ffffff;
-  font-size: 38px;
+  font-size: 33px;
   cursor: pointer;
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.38);
   transition: transform 0.18s ease, box-shadow 0.18s ease;
@@ -1738,7 +1740,7 @@ ion-modal.settings-modal {
 
 .dock-label {
   color: #ffffff;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   letter-spacing: 0.2px;
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
@@ -1751,8 +1753,8 @@ ion-modal.settings-modal {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 18px;
-  border-radius: 22px;
+  padding: 6px 14px;
+  border-radius: 20px;
   background: rgba(10, 14, 26, 0.78);
   border: 1px solid rgba(255, 255, 255, 0.18);
   backdrop-filter: blur(10px);
