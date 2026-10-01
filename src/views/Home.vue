@@ -2289,25 +2289,12 @@ ion-modal.settings-modal {
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.55);
 }
 
-/* Five controls plus a wordmark do not fit across a phone. Measured against
-   the real widths: 3 x 44 left + 44 + stars right + gutters leaves under
-   120px in the middle, which is less than the mark needs. Below this the
-   mark steps down to the icon alone, which still brands the screen without
-   crowding the controls. */
-@media (max-width: 480px) {
-  .wordmark-words {
-    display: none;
-  }
-
-  .wordmark-icon {
-    font-size: 26px;
-  }
-}
-
-/* At 320px the two button groups need 283px of a 296px content box, so even
-   the icon alone would be squeezed to a clipped sliver. Drop the mark
-   entirely rather than show a broken one. */
-@media (max-width: 359px) {
+/* Hidden outright on phones. Five controls plus a mark do not fit across a
+   phone at any size that leaves the mark legible: at 320px the two button
+   groups alone need 283px of a 296px content box. Showing just the icon still
+   crowded the controls on a real device, so the mark is desktop and tablet
+   only - the app is identified by its own icon on a phone home screen anyway. */
+@media (max-width: 767px) {
   .wordmark {
     display: none;
   }

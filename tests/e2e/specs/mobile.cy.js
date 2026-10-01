@@ -46,6 +46,10 @@ PHONES.forEach(({ name, w, h }) => {
       dismissIntro();
     });
 
+    it('hides the wordmark, which cannot fit beside five controls', () => {
+      cy.get('.wordmark').should('not.be.visible');
+    });
+
     it('does not overlap the HUD groups with the wordmark', () => {
       rectOf('.hud-left').then((left) => {
         rectOf('.wordmark').then((mark) => {
@@ -101,6 +105,17 @@ PHONES.forEach(({ name, w, h }) => {
         });
       });
     });
+  });
+});
+
+describe('Desktop layout', () => {
+  it('shows the wordmark when there is room for it', () => {
+    cy.viewport(1024, 768);
+    cy.visit('/');
+    cy.get('ion-app').should('exist');
+    dismissIntro();
+    cy.get('.wordmark').should('be.visible');
+    cy.get('.wordmark').should('contain.text', 'Oliver');
   });
 });
 
