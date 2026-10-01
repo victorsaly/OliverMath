@@ -38,7 +38,7 @@
 
     <!-- First-run help. The app previously explained itself with a single
          14-word sentence in a speech bubble and nothing else. -->
-    <div class="intro-backdrop" v-if="showIntro" role="dialog" aria-modal="true" aria-labelledby="intro-title">
+    <div class="intro-backdrop" :class="{ speaking: isTalking }" v-if="showIntro" role="dialog" aria-modal="true" aria-labelledby="intro-title">
       <div class="intro-card">
         <p class="intro-brand" id="intro-title">Oliver Math</p>
         <p class="intro-tagline">{{ t('tagline') }}</p>
@@ -48,6 +48,14 @@
           <li><span class="intro-num">2</span>{{ t('step2') }}</li>
           <li><span class="intro-num">3</span>{{ t('step3') }}</li>
         </ol>
+
+        <!-- Spoken explanation. The written steps above are no use to a child
+             who cannot read yet, and tapping this is also the user gesture the
+             browser needs before any audio can play. -->
+        <button class="intro-hear" @click="explainGame" :disabled="isTalking">
+          <ion-icon :icon="volumeIcon" aria-hidden="true"></ion-icon>
+          {{ t('hearIt') }}
+        </button>
 
         <button class="intro-go" @click="dismissIntro">{{ t('gotIt') }}</button>
       </div>
@@ -1034,6 +1042,18 @@ export default {
       this.rewardTimer = setTimeout(() => { this.reward = null; }, 2600);
     },
 
+    /**
+     * The robot explains the game out loud. Routed through the normal speak()
+     * path so it gets the same voice, the same language and the same talking
+     * animation as everything else it says.
+     */
+    async explainGame() {
+      if (this.isTalking) return;
+      this.isQuery = false;
+      this.text = this.t('explainSpoken');
+      await this.speak();
+    },
+
     dismissIntro() {
       this.showIntro = false;
       try {
@@ -2002,6 +2022,52 @@ ion-modal.settings-modal {
   background: #2a74ea;
   font-size: 15px;
   font-weight: 800;
+}
+
+.intro-hear {
+  width: 100%;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  border: 1px solid rgba(255, 215, 0, 0.5);
+  border-radius: 16px;
+  background: rgba(255, 215, 0, 0.12);
+  color: #ffd700;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.intro-hear ion-icon {
+  font-size: 20px;
+}
+
+.intro-hear[disabled] {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.intro-hear:focus-visible {
+  outline: 3px solid #ffd700;
+  outline-offset: 3px;
+}
+
+/* While the robot is explaining, thin the dimming so the child can watch it
+   talk rather than listening to a covered screen. */
+.intro-backdrop.speaking {
+  background: rgba(6, 10, 20, 0.3);
+}
+
+.intro-backdrop.speaking .intro-card {
+  opacity: 0.82;
+}
+
+.intro-backdrop,
+.intro-card {
+  transition: background 0.4s ease, opacity 0.4s ease;
 }
 
 .intro-go {
