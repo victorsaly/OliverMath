@@ -34,7 +34,9 @@
 //        child reads first, so talking and listening get different shapes as
 //        well as different colours.
 const STATES = {
-  neutral:   { clip: 'Idle',     color: 0x4ce6ff, speed: 1, mouth: 'line' },
+  // Waiting for Play: the robot strolls and the ground scrolls under it, so the
+  // idle screen reads as "going somewhere" rather than a frozen model.
+  neutral:   { clip: 'Walking',  color: 0x4ce6ff, speed: 1, mouth: 'smile', walk: true },
   sleepy:    { clip: 'Sitting',  color: 0x5980b2, speed: 0.5, mouth: 'line' },
   listening: { clip: 'Idle',     color: 0x33e666, speed: 1, halo: true, lean: 0.12, mouth: 'smile' },
   speaking:  { clip: 'Idle',     color: 0x4cd9ff, speed: 1, bob: true, mouth: 'talk' },
@@ -228,6 +230,7 @@ export default {
       this.halo.position.set(0, center.y + sizeVec.y * 0.1, -sizeVec.y * 0.5);
       this.orbit.position.set(0, box.max.y + sizeVec.y * 0.1, 0);
       this.baseRotation = this.model.rotation.y;
+      this.createEnvironment(box, sizeVec);
       this.createMouth();
 
       this.mixer = new THREE.AnimationMixer(this.model);
@@ -289,6 +292,7 @@ export default {
       }
 
       if (this.halo) this.halo.material.color.setHex(cfg.color);
+      if (this.backdrop) this.backdrop.material.color.setHex(cfg.color);
       if (this.bodyMaterial) {
         this.bodyMaterial.emissive = new THREE.Color(cfg.color);
         this.bodyMaterial.emissiveIntensity = 0.22;
@@ -319,6 +323,69 @@ export default {
       });
     },
 
+    /**
+     * A ground the robot stands on and a soft backdrop behind it, so it reads
+     * as being somewhere rather than floating. The ground texture scrolls while
+     * the Walking clip plays, which is what sells the movement - the robot
+     * itself stays at the origin.
+     *
+     * Both are drawn into canvases rather than loaded as images: no extra
+     * network requests, and they recolour per state for free.
+     */
+    createEnvironment(box, sizeVec) {
+      const THREE = this.THREE;
+
+      // Ground: banded stripes that scroll towards the camera.
+      const groundCanvas = document.createElement('canvas');
+      groundCanvas.width = 64;
+      groundCanvas.height = 64;
+      const g = groundCanvas.getContext('2d');
+      g.fillStyle = '#2b3a5c';
+      g.fillRect(0, 0, 64, 64);
+      g.fillStyle = '#35456b';
+      g.fillRect(0, 0, 64, 32);
+      this.groundTexture = new THREE.CanvasTexture(groundCanvas);
+      this.groundTexture.wrapS = THREE.RepeatWrapping;
+      this.groundTexture.wrapT = THREE.RepeatWrapping;
+      this.groundTexture.repeat.set(6, 6);
+
+      this.ground = new THREE.Mesh(
+        new THREE.PlaneGeometry(sizeVec.y * 8, sizeVec.y * 8),
+        new THREE.MeshBasicMaterial({
+          map: this.groundTexture,
+          transparent: true,
+          opacity: 0.85
+        })
+      );
+      this.ground.rotation.x = -Math.PI / 2;
+      this.ground.position.y = box.min.y;
+      this.scene.add(this.ground);
+
+      // Backdrop: a radial glow that picks up the state colour, giving the
+      // scene depth without hiding the page behind the canvas.
+      const skyCanvas = document.createElement('canvas');
+      skyCanvas.width = 128;
+      skyCanvas.height = 128;
+      const s = skyCanvas.getContext('2d');
+      const grad = s.createRadialGradient(64, 64, 8, 64, 64, 64);
+      grad.addColorStop(0, 'rgba(255,255,255,0.85)');
+      grad.addColorStop(1, 'rgba(255,255,255,0)');
+      s.fillStyle = grad;
+      s.fillRect(0, 0, 128, 128);
+      this.backdropTexture = new THREE.CanvasTexture(skyCanvas);
+
+      this.backdrop = new THREE.Mesh(
+        new THREE.PlaneGeometry(sizeVec.y * 4, sizeVec.y * 4),
+        new THREE.MeshBasicMaterial({
+          map: this.backdropTexture,
+          transparent: true,
+          opacity: 0.5,
+          depthWrite: false
+        })
+      );
+      this.backdrop.position.set(0, box.min.y + sizeVec.y * 0.55, -sizeVec.y * 0.9);
+      this.scene.add(this.backdrop);
+    },
     /**
      * The model ships no mouth or jaw, so build one and parent it to the head
      * mesh - that way it follows every head rotation and bob for free.
@@ -416,14 +483,29 @@ export default {
         if (this.orbit && cfg.orbit) this.orbit.rotation.y = t * 1.6;
       }
 
-      // Lip sync: the mouth opens with the speech amplitude, so "I am talking"
-      // is legible without reading the status text.
+      // Lip sync. audioLevel comes from an analyser on the cached TTS audio
+      // element, but speakWithBrowser() - the SpeechSynthesis fallback - has no
+      // audio element at all, so the level sits flat at 0 and the mouth would
+      // never move. Fall back to a synthetic jabber envelope whenever real
+      // amplitude stops arriving, so talking always looks like talking.
       if (this.mouthParts && cfg.mouth === 'talk') {
         const amp = Math.min(Math.max(this.audioLevel, 0), 1);
-        const openY = this.reducedMotion
-          ? 0.7
-          : 0.25 + amp * 1.25 + Math.sin(t * 11) * 0.08;
-        this.mouthParts.open.scale.set(1, Math.max(0.15, openY), 1);
+        if (amp > 0.02) this.lastAmplitudeAt = t;
+        const haveRealAmplitude =
+          this.lastAmplitudeAt !== undefined && t - this.lastAmplitudeAt < 0.4;
+
+        const envelope = haveRealAmplitude
+          ? amp
+          : 0.42 + Math.sin(t * 13) * 0.26 + Math.sin(t * 7.3) * 0.16;
+
+        const openY = this.reducedMotion ? 0.7 : 0.18 + envelope * 1.25;
+        this.mouthParts.open.scale.set(1, Math.max(0.12, openY), 1);
+      }
+
+      // Scroll the ground under the walking robot. The model stays at the
+      // origin; the floor moving is what reads as travelling.
+      if (this.groundTexture && cfg.walk && !this.reducedMotion) {
+        this.groundTexture.offset.y -= delta * 0.5;
       }
 
       if (this.halo) {
@@ -502,7 +584,11 @@ export default {
           if (o.isMesh) {
             o.geometry?.dispose();
             const mats = Array.isArray(o.material) ? o.material : [o.material];
-            mats.forEach((m) => m?.dispose());
+            mats.forEach((m) => {
+              // Canvas textures hold a GPU allocation of their own.
+              m?.map?.dispose();
+              m?.dispose();
+            });
           }
         });
       }
