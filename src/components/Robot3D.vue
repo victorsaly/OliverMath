@@ -1073,16 +1073,21 @@ export default {
       // bubble can sit just above it instead of being pinned to the top of the
       // page. Only emitted when it actually moves, to avoid a parent re-render
       // on every single frame.
-      // Count frames: the first couple run before the mixer has posed the
-      // skeleton, and an unposed head bone reports a world position down at the
-      // origin - which is why the bubble first appeared at the robot's feet and
-      // then climbed to its head.
+      // Where the speech bubble should sit, in percentages of the canvas.
+      //
+      // This is announced only once the anchor has actually STOPPED MOVING for
+      // a few consecutive frames, rather than as soon as a number is available.
+      // Several things settle during the first moments - the mixer poses the
+      // skeleton (an unposed head bone reports a position down at the model
+      // origin), the camera lands on its framing, the layout settles - and
+      // every one of them used to show up as the bubble appearing in the wrong
+      // place and sliding to the right one. Waiting for stillness covers all of
+      // them, including any cause not yet identified.
       this.frameCount = (this.frameCount || 0) + 1;
-      const posed = this.frameCount > 2;
 
-      if (posed && this.headBone && this.$refs.host) {
+      if (this.frameCount > 2 && this.headBone && this.$refs.host) {
         if (!this.anchorVec) this.anchorVec = new this.THREE.Vector3();
-        // Make sure the bone chain's matrices are current before reading it.
+        // Bring the bone chain's matrices up to date before reading it.
         this.headBone.updateWorldMatrix(true, false);
         this.headBone.getWorldPosition(this.anchorVec);
         this.anchorVec.y += this.headAnchorLift;
@@ -1091,9 +1096,8 @@ export default {
         const rawX = (this.anchorVec.x * 0.5 + 0.5) * 100;
         const rawY = (-this.anchorVec.y * 0.5 + 0.5) * 100;
 
-        // Low-pass the result. The walk cycle and the head bob move the bone
-        // every frame, and an unfiltered anchor made the bubble twitch along
-        // with it.
+        // Low-pass the result: the walk cycle and head bob move the bone every
+        // frame, and an unfiltered anchor made the bubble twitch along with it.
         if (!this.smoothAnchor) {
           this.smoothAnchor = { x: rawX, y: rawY };
         } else {
@@ -1104,18 +1108,31 @@ export default {
 
         const x = this.smoothAnchor.x;
         const y = this.smoothAnchor.y;
-        const last = this.lastAnchor;
-        if (!last || Math.abs(last.x - x) > 0.4 || Math.abs(last.y - y) > 0.4) {
-          this.lastAnchor = { x, y };
-          this.$emit('anchor', { x, y });
-        }
 
-        // Announced from here rather than from setup, so "ready" means the
-        // model is posed and the anchor is real, not merely that the files
-        // finished loading.
         if (!this.announcedReady) {
-          this.announcedReady = true;
-          this.$emit('ready');
+          // Still settling? Count how long it has been quiet. The tolerance is
+          // loose enough to count the walk cycle's gentle bob as "settled" -
+          // the robot walks while idle, so a strict threshold would never be
+          // met and the bubble would never appear at all. The frame cap is the
+          // backstop for the same reason: whatever happens, it shows up inside
+          // about a second.
+          const prev = this.prevAnchor;
+          const moved = !prev || Math.abs(prev.x - x) > 0.45 || Math.abs(prev.y - y) > 0.45;
+          this.stillFrames = moved ? 0 : (this.stillFrames || 0) + 1;
+          this.prevAnchor = { x, y };
+
+          if (this.stillFrames >= 6 || this.frameCount > 60) {
+            this.announcedReady = true;
+            this.lastAnchor = { x, y };
+            this.$emit('anchor', { x, y });
+            this.$emit('ready');
+          }
+        } else {
+          const last = this.lastAnchor;
+          if (!last || Math.abs(last.x - x) > 0.4 || Math.abs(last.y - y) > 0.4) {
+            this.lastAnchor = { x, y };
+            this.$emit('anchor', { x, y });
+          }
         }
       }
 
