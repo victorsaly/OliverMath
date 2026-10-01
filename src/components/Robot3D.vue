@@ -461,37 +461,72 @@ export default {
       sc.height = 512;
       const s = sc.getContext('2d');
 
+      // Deterministic noise, so the sky is identical on every reload.
+      let seed = 20260101;
+      const rand = () => {
+        seed = (seed * 1103515245 + 12345) % 2147483648;
+        return seed / 2147483648;
+      };
+
       const sky = s.createLinearGradient(0, 0, 0, 512);
-      sky.addColorStop(0, '#15224a');
-      sky.addColorStop(0.45, '#39518c');
-      sky.addColorStop(0.72, '#7b6ba8');
-      sky.addColorStop(0.88, '#e09a72');
-      sky.addColorStop(1, '#f6c48a');
+      sky.addColorStop(0, '#0a1230');
+      sky.addColorStop(0.3, '#23356e');
+      sky.addColorStop(0.56, '#5b5c9e');
+      sky.addColorStop(0.74, '#a96f96');
+      sky.addColorStop(0.86, '#e79a74');
+      sky.addColorStop(0.95, '#f7c489');
+      sky.addColorStop(1, '#fbe0ad');
       s.fillStyle = sky;
       s.fillRect(0, 0, 1024, 512);
 
-      // Sun, low and warm, with a soft bloom around it.
-      const sunX = 718;
-      const sunY = 348;
-      const glow = s.createRadialGradient(sunX, sunY, 6, sunX, sunY, 190);
-      glow.addColorStop(0, 'rgba(255,236,190,0.95)');
-      glow.addColorStop(0.25, 'rgba(255,198,130,0.42)');
+      // Stars, fading out as the sky brightens towards the horizon.
+      for (let i = 0; i < 260; i++) {
+        const sx = rand() * 1024;
+        const sy = rand() * 300;
+        const fade = 1 - sy / 300;
+        s.fillStyle = `rgba(255,255,255,${(0.15 + rand() * 0.6) * fade})`;
+        const r = rand() * 1.5 + 0.4;
+        s.beginPath();
+        s.arc(sx, sy, r, 0, Math.PI * 2);
+        s.fill();
+      }
+
+      // Sun, low and warm, with a wide bloom.
+      const sunX = 700;
+      const sunY = 362;
+      const glow = s.createRadialGradient(sunX, sunY, 4, sunX, sunY, 230);
+      glow.addColorStop(0, 'rgba(255,241,205,0.98)');
+      glow.addColorStop(0.18, 'rgba(255,206,142,0.5)');
       glow.addColorStop(1, 'rgba(255,170,110,0)');
       s.fillStyle = glow;
-      s.fillRect(sunX - 200, sunY - 200, 400, 400);
-      s.fillStyle = '#fff1cf';
+      s.fillRect(sunX - 240, sunY - 240, 480, 480);
+      s.fillStyle = '#fff6dc';
       s.beginPath();
-      s.arc(sunX, sunY, 34, 0, Math.PI * 2);
+      s.arc(sunX, sunY, 30, 0, Math.PI * 2);
       s.fill();
 
-      // Deterministic ridges: a fixed seed keeps the horizon identical between
-      // reloads, so the scene does not look different every time it is opened.
-      const ridge = (baseY, amp, step, fill, seed) => {
-        let n = seed;
-        const rand = () => {
-          n = (n * 1103515245 + 12345) % 2147483648;
-          return n / 2147483648;
-        };
+      // Soft cloud bands, lit from the sun side.
+      const cloud = (cx0, cy0, w0, h0, alpha) => {
+        const g2 = s.createRadialGradient(cx0, cy0, 2, cx0, cy0, w0);
+        g2.addColorStop(0, `rgba(255,214,196,${alpha})`);
+        g2.addColorStop(1, 'rgba(255,214,196,0)');
+        s.fillStyle = g2;
+        s.save();
+        s.translate(cx0, cy0);
+        s.scale(1, h0 / w0);
+        s.beginPath();
+        s.arc(0, 0, w0, 0, Math.PI * 2);
+        s.fill();
+        s.restore();
+      };
+      for (let i = 0; i < 9; i++) {
+        cloud(rand() * 1024, 250 + rand() * 120, 70 + rand() * 150, 14 + rand() * 20, 0.1 + rand() * 0.16);
+      }
+
+      // Mountain ranges. Each is a random walk clamped around a base height,
+      // drawn from the shared deterministic seed so the horizon never changes
+      // between reloads.
+      const ridge = (baseY, amp, step, fill) => {
         s.fillStyle = fill;
         s.beginPath();
         s.moveTo(0, 512);
@@ -506,8 +541,16 @@ export default {
         s.fill();
       };
 
-      ridge(372, 34, 64, '#4a5a8e', 9281);
-      ridge(410, 26, 48, '#2f3c66', 4517);
+      // Three ranges with haze between them: the further back, the lighter and
+      // bluer, which is what actually reads as distance.
+      ridge(352, 40, 72, '#6b7bb0');
+      const haze = s.createLinearGradient(0, 330, 0, 430);
+      haze.addColorStop(0, 'rgba(226,186,186,0)');
+      haze.addColorStop(1, 'rgba(226,186,186,0.32)');
+      s.fillStyle = haze;
+      s.fillRect(0, 330, 1024, 100);
+      ridge(384, 30, 56, '#495a93');
+      ridge(416, 22, 44, '#2b375f');
 
       this.skyTexture = new THREE.CanvasTexture(sc);
       this.skyTexture.colorSpace = THREE.SRGBColorSpace;
@@ -643,7 +686,7 @@ export default {
       // Where the speech bubble should point: just above the crown, stored in
       // the model's local space so it survives the model being rotated.
       this.headAnchorPoint = this.model.worldToLocal(
-        new THREE.Vector3(cx, box.max.y + h * 0.5, box.max.z)
+        new THREE.Vector3(cx, box.max.y + h * 0.26, box.max.z)
       );
     },
 

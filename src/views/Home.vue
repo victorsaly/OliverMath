@@ -3,9 +3,16 @@
     <!-- Floating HUD. No toolbar: the robot's world is the interface, so the
          controls sit over the scene as glass buttons instead of inside a bar. -->
     <div class="hud">
-      <button class="hud-btn" @click="showSettingsModal = true" :aria-label="t('settings')">
-        <ion-icon :icon="settingsIcon" aria-hidden="true"></ion-icon>
-      </button>
+      <div class="hud-left">
+        <button class="hud-btn" @click="showSettingsModal = true" :aria-label="t('settings')">
+          <ion-icon :icon="settingsIcon" aria-hidden="true"></ion-icon>
+        </button>
+        <!-- Permanent entry point. This used to live only inside the first-run
+             card, which meant it disappeared forever after one dismissal. -->
+        <button class="hud-btn help" @click="showIntro = true" :aria-label="t('howToPlay')">
+          <ion-icon :icon="helpIcon" aria-hidden="true"></ion-icon>
+        </button>
+      </div>
 
       <div class="hud-right">
         <button class="hud-btn" id="language-trigger-header" aria-label="Change language" aria-haspopup="menu">
@@ -38,7 +45,7 @@
 
     <!-- First-run help. The app previously explained itself with a single
          14-word sentence in a speech bubble and nothing else. -->
-    <div class="intro-backdrop" :class="{ speaking: isTalking }" v-if="showIntro" role="dialog" aria-modal="true" aria-labelledby="intro-title">
+    <div class="intro-backdrop" v-if="showIntro" role="dialog" aria-modal="true" aria-labelledby="intro-title">
       <div class="intro-card">
         <p class="intro-brand" id="intro-title">Oliver Math</p>
         <p class="intro-tagline">{{ t('tagline') }}</p>
@@ -322,7 +329,7 @@ import {
   SpeechConfig,
   SpeechRecognizer,
 } from "microsoft-cognitiveservices-speech-sdk";
-import { star, play, speedometer, calculator, mic, volumeHigh, sync, alertCircle, refresh, volumeMute, timeOutline, trashOutline, globe, fitness, settingsOutline, close, stopCircle } from "ionicons/icons";
+import { star, play, speedometer, calculator, mic, volumeHigh, sync, alertCircle, refresh, volumeMute, timeOutline, trashOutline, globe, fitness, settingsOutline, close, stopCircle, helpCircle } from "ionicons/icons";
 import { OPERATORS, LEVELS, NUMBER_RANGES, SCORING } from "@/config/gameConfig";
 import { getRandomInt } from "@/utils/helpers";
 import { getSpeechToken, getCachedAudio, validateAnswer } from "@/services/apiService";
@@ -356,6 +363,7 @@ export default {
       starIcon: star,
       playIcon: play,
       doneIcon: stopCircle,
+      helpIcon: helpCircle,
       speedometerIcon: speedometer,
       calculatorIcon: calculator,
       micIcon: mic,
@@ -398,8 +406,10 @@ export default {
       // Transient celebration shown on a correct answer.
       reward: null,
       rewardTimer: null,
-      // First-run help. Shown once, reopenable from settings.
+      // First-run help. Shown once, reopenable from settings or the HUD.
       showIntro: !localStorage.seenIntro,
+      // Set when the next utterance should leave a clean screen behind it.
+      clearAfterSpeak: false,
       
       // Expression states
       isHappy: false,
@@ -968,6 +978,11 @@ export default {
           audio.onended = () => {
             this.isTalking = false;
             this.stopAudioAnalysis();
+            if (this.clearAfterSpeak) {
+              this.clearAfterSpeak = false;
+              this.text = '';
+              this.speech_phrases = '';
+            }
             // Trigger listening after speech ends
             if (this.isQuery) {
               this.isQuery = false;
@@ -1049,7 +1064,14 @@ export default {
      */
     async explainGame() {
       if (this.isTalking) return;
+      // Close the card first: the point of hearing it is to watch the robot
+      // say it, which a modal over the scene would defeat. Clicking this also
+      // counts as having seen the help, so it does not reappear next launch.
+      this.dismissIntro();
       this.isQuery = false;
+      // Clears the bubble once the line finishes, leaving a clean screen
+      // rather than the explanation sitting there until something replaces it.
+      this.clearAfterSpeak = true;
       this.text = this.t('explainSpoken');
       await this.speak();
     },
@@ -1162,6 +1184,11 @@ export default {
 
       this.greetingSpeech.onend = () => {
         this.isTalking = false;
+        if (this.clearAfterSpeak) {
+          this.clearAfterSpeak = false;
+          this.text = '';
+          this.speech_phrases = '';
+        }
         if (this.isQuery) {
           this.isQuery = false;
           this.listen();
@@ -1727,14 +1754,21 @@ ion-modal.settings-modal {
 }
 
 .hud > *,
+.hud-left > *,
 .hud-right > * {
   pointer-events: auto;
 }
 
-.hud-right {
+.hud-right,
+.hud-left {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.hud-btn.help {
+  border-color: rgba(255, 215, 0, 0.45);
+  color: #ffd700;
 }
 
 /* 48px, comfortably above the 44px minimum. The old icon buttons were 28px. */
@@ -1983,7 +2017,7 @@ ion-modal.settings-modal {
 
 .intro-brand {
   margin: 0;
-  font-size: 30px;
+  font-size: 26px;
   font-weight: 800;
   letter-spacing: -0.4px;
   color: #ffd700;
@@ -1991,7 +2025,7 @@ ion-modal.settings-modal {
 
 .intro-tagline {
   margin: 6px 0 20px;
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.4;
   color: #cbd6e8;
 }
@@ -2008,7 +2042,7 @@ ion-modal.settings-modal {
   align-items: center;
   gap: 12px;
   margin-bottom: 12px;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
 }
 
@@ -2053,21 +2087,6 @@ ion-modal.settings-modal {
 .intro-hear:focus-visible {
   outline: 3px solid #ffd700;
   outline-offset: 3px;
-}
-
-/* While the robot is explaining, thin the dimming so the child can watch it
-   talk rather than listening to a covered screen. */
-.intro-backdrop.speaking {
-  background: rgba(6, 10, 20, 0.3);
-}
-
-.intro-backdrop.speaking .intro-card {
-  opacity: 0.82;
-}
-
-.intro-backdrop,
-.intro-card {
-  transition: background 0.4s ease, opacity 0.4s ease;
 }
 
 .intro-go {

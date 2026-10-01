@@ -144,9 +144,9 @@ export default {
       // Clamped so the bubble never leaves the viewport when the robot walks
       // towards an edge or the camera pulls in close.
       const x = Math.min(82, Math.max(18, this.anchor.x));
-      // Biased upward a little: the tail should clear the crown rather than
-      // touch it, and a bubble that overlaps the head reads as covering it.
-      const y = Math.min(84, Math.max(12, this.anchor.y - 2));
+      // Clamped so the bubble never rides up under the HUD at the top of the
+      // screen, nor drops onto the dock at the bottom.
+      const y = Math.min(84, Math.max(17, this.anchor.y));
       return { left: `${x}%`, top: `${y}%` };
     },
 
@@ -237,8 +237,8 @@ export default {
    text over whatever happened to be behind it. */
 p.bubble {
   position: relative;
-  width: min(270px, 74vw);
-  padding: 11px 16px;
+  width: min(290px, 78vw);
+  padding: 10px 15px;
   margin-top: 4px;
   margin-bottom: 14px;
   display: flex;
@@ -250,8 +250,12 @@ p.bubble {
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 18px;
   box-shadow: 0 8px 26px rgba(0, 0, 0, 0.3);
-  font-size: 1rem;
-  line-height: 1.35;
+  /* 0.95rem (about 15px). Deliberately not smaller: this is the primary text
+     for a seven-year-old, and early-reader guidance puts the floor around
+     here. The long explanation is kept readable by widening the bubble rather
+     than by shrinking the type further. */
+  font-size: 0.95rem;
+  line-height: 1.38;
   color: #ffffff;
   text-align: center;
   font-weight: 500;
