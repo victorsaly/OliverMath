@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Oliver Math">
+  <defs>
+    <!-- Brand blue, lifted in the centre so the tile has some depth rather
+         than reading as a flat swatch at small sizes. -->
+    <radialGradient id="tile" cx="38%" cy="28%" r="88%">
+      <stop offset="0%" stop-color="#3b82f0"/>
+      <stop offset="55%" stop-color="#1f63d6"/>
+      <stop offset="100%" stop-color="#13459c"/>
+    </radialGradient>
+
+    <linearGradient id="body" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffd94a"/>
+      <stop offset="100%" stop-color="#f5b600"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="112" fill="url(#tile)"/>
+
+  <!-- Calculator -->
+  <g>
+    <rect x="128" y="96" width="256" height="320" rx="36" fill="#0f2142" opacity="0.35"
+          transform="translate(0,10)"/>
+    <rect x="128" y="96" width="256" height="320" rx="36" fill="url(#body)"/>
+
+    <!-- Display, with a star for the reward the game runs on -->
+    <rect x="160" y="128" width="192" height="80" rx="18" fill="#16213e"/>
+    <path fill="#ffd700"
+          d="M256 143l12.6 25.5 28.2 4.1-20.4 19.9 4.8 28.1L256 207.3l-25.2 13.3 4.8-28.1-20.4-19.9 28.2-4.1z"/>
+
+    <!-- Keys -->
+    <g fill="#16213e">
+      <rect x="160" y="236" width="48" height="44" rx="12"/>
+      <rect x="232" y="236" width="48" height="44" rx="12"/>
+      <rect x="304" y="236" width="48" height="44" rx="12"/>
+
+      <rect x="160" y="300" width="48" height="44" rx="12"/>
+      <rect x="232" y="300" width="48" height="44" rx="12"/>
+      <rect x="304" y="300" width="48" height="44" rx="12"/>
+
+      <rect x="160" y="364" width="120" height="44" rx="12"/>
+      <rect x="304" y="364" width="48" height="44" rx="12"/>
+    </g>
+  </g>
+</svg>

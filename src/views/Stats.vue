@@ -215,8 +215,10 @@ export default {
 .star-count {
   font-size: 32px;
   font-weight: 800;
-  color: #ffffff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  /* Was #ffffff on the gold gradient: 1.40:1 falling to 1.20:1, so the child's
+     star total - the whole point of the reward screen - was unreadable.
+     #1a1a2e on #ffd700 is 13.6:1. */
+  color: #1a1a2e;
 }
 
 .star-subtitle {
@@ -435,7 +437,25 @@ export default {
   }
 
   .quick-label {
-    font-size: 9px;
+    /* Was 9px. 11px is still compact but readable for an early reader, and
+       pinch-zoom is no longer disabled as a backstop. */
+    font-size: 11px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .star-circle {
+    animation: none;
+  }
+
+  .operator-bar {
+    transition: none;
+  }
+
+  /* Deep: .progress-fill is rendered by Achievements.vue, so a scoped
+     selector compiled with this component's id can never match it. */
+  :deep(.progress-fill) {
+    transition: none;
   }
 }
 </style>
