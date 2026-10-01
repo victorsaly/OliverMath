@@ -31,32 +31,32 @@
 // halo:  pulse the ring on the FLOOR with audioLevel, to show we can hear the
 //        child. On the floor rather than floating behind the head, so the scene
 //        keeps looking like a place.
-// mouth: which mouth shape to show. The model has no jaw or mouth of its own,
-//        so one is built procedurally - see createMouth(). This is the signal a
-//        child reads first, so talking and listening get different shapes as
-//        well as different colours.
+// Note: no procedural mouth or eyes. Bolting flat discs onto this low-poly
+// model fought its art direction - it is designed with solid black eyes and no
+// mouth. Expression comes from the rig's own morph targets, the body clips, the
+// state colour and the floor ring instead.
 const STATES = {
   // Waiting for Play: the robot strolls and the ground scrolls under it, so the
   // idle screen reads as "going somewhere" rather than a frozen model.
-  neutral:   { clip: 'Walking',  color: 0x4ce6ff, speed: 1, mouth: 'smile', walk: true },
-  sleepy:    { clip: 'Sitting',  color: 0x5980b2, speed: 0.5, mouth: 'line' },
-  listening: { clip: 'Idle',     color: 0x33e666, speed: 1, halo: true, lean: 0.12, mouth: 'smile' },
-  speaking:  { clip: 'Idle',     color: 0x4cd9ff, speed: 1, bob: true, mouth: 'talk' },
-  thinking:  { clip: 'Idle',     color: 0xffb432, speed: 0.6, lookUp: 0.18, orbit: true, mouth: 'pursed' },
-  computing: { clip: 'Idle',     color: 0xffb432, speed: 0.6, lookUp: 0.18, orbit: true, mouth: 'pursed' },
-  happy:     { clip: 'Yes',      color: 0x33e666, speed: 1, once: true, mouth: 'smile' },
-  proud:     { clip: 'ThumbsUp', color: 0xffd700, speed: 1, once: true, mouth: 'smile' },
-  excited:   { clip: 'Dance',    color: 0xffd700, speed: 1.2, mouth: 'smile' },
-  laughing:  { clip: 'Jump',     color: 0xffd700, speed: 1, once: true, mouth: 'open' },
+  neutral:   { clip: 'Walking',  color: 0x4ce6ff, speed: 1, walk: true },
+  sleepy:    { clip: 'Sitting',  color: 0x5980b2, speed: 0.5 },
+  listening: { clip: 'Idle',     color: 0x33e666, speed: 1, halo: true, lean: 0.12 },
+  speaking:  { clip: 'Idle',     color: 0x4cd9ff, speed: 1, bob: true },
+  thinking:  { clip: 'Idle',     color: 0xffb432, speed: 0.6, lookUp: 0.18, orbit: true },
+  computing: { clip: 'Idle',     color: 0xffb432, speed: 0.6, lookUp: 0.18, orbit: true },
+  happy:     { clip: 'Yes',      color: 0x33e666, speed: 1, once: true },
+  proud:     { clip: 'ThumbsUp', color: 0xffd700, speed: 1, once: true },
+  excited:   { clip: 'Dance',    color: 0xffd700, speed: 1.2 },
+  laughing:  { clip: 'Jump',     color: 0xffd700, speed: 1, once: true },
   // Deliberately NOT a celebration: 'surprised' fires before a question is
   // asked, so a reward animation here would teach the child the star is noise.
-  surprised: { clip: 'Idle',     color: 0xffffff, speed: 1, morph: 'Surprised', mouth: 'open' },
-  sad:       { clip: 'No',       color: 0x5980b2, speed: 1, once: true, morph: 'Sad', mouth: 'frown' },
+  surprised: { clip: 'Idle',     color: 0xffffff, speed: 1, morph: 'Surprised' },
+  sad:       { clip: 'No',       color: 0x5980b2, speed: 1, once: true, morph: 'Sad' },
   // 'confused' means "I did not hear you" - a head shake, not the thinking pose,
   // so it never reads as "you were wrong".
-  confused:  { clip: 'No',       color: 0xffb432, speed: 0.7, once: true, morph: 'Surprised', mouth: 'pursed' },
+  confused:  { clip: 'No',       color: 0xffb432, speed: 0.7, once: true, morph: 'Surprised' },
   // 'broken' is a system failure, visually distinct from a wrong answer.
-  broken:    { clip: 'Death',    color: 0xeb445a, speed: 1, once: true, morph: 'Sad', mouth: 'frown' }
+  broken:    { clip: 'Death',    color: 0xeb445a, speed: 1, once: true, morph: 'Sad' }
 };
 
 const MODEL_URL = `${import.meta.env.BASE_URL}models/RobotExpressive.glb`;
@@ -223,10 +223,7 @@ export default {
       this.orbit.position.set(0, box.max.y + sizeVec.y * 0.1, 0);
       this.baseRotation = this.model.rotation.y;
       this.createEnvironment(box, sizeVec);
-      // The anchor must exist before the features that use it.
       this.createFaceAnchor();
-      this.createMouth();
-      this.createEyes();
       this.bindPointer();
 
       this.mixer = new THREE.AnimationMixer(this.model);
@@ -288,18 +285,13 @@ export default {
       }
 
       if (this.floorRing) this.floorRing.material.color.setHex(cfg.color);
-      // The irises carry the state colour too, so the eyes are part of the
-      // signal rather than decoration.
-      if (this.eyes) {
-        this.eyes.forEach((eye) => eye.iris.material.color.setHex(cfg.color));
-      }
+
       if (this.bodyMaterial) {
         this.bodyMaterial.emissive = new THREE.Color(cfg.color);
         this.bodyMaterial.emissiveIntensity = 0.22;
       }
       if (this.orbit) this.orbit.visible = !!cfg.orbit;
       this.applyMorph(cfg.morph);
-      this.setMouth(cfg.mouth);
     },
 
     settleToIdle() {
@@ -315,11 +307,31 @@ export default {
     },
 
     applyMorph(name) {
+      this.baseMorphName = name || null;
+      this.updateMorphs();
+    },
+
+    setTalkMorph(amount) {
+      if (this.talkAmount === amount) return;
+      this.talkAmount = amount;
+      this.updateMorphs();
+    },
+
+    /**
+     * One place that writes morph influences, so the state expression and the
+     * speech movement cannot fight each other. 'Surprised' doubles as the
+     * talking shape because it opens the face.
+     */
+    updateMorphs() {
       const mesh = this.morphMesh;
       if (!mesh || !mesh.morphTargetDictionary) return;
       const dict = mesh.morphTargetDictionary;
+      const talk = this.talkAmount || 0;
+
       Object.keys(dict).forEach((key) => {
-        mesh.morphTargetInfluences[dict[key]] = key === name ? 1 : 0;
+        let value = key === this.baseMorphName ? 1 : 0;
+        if (key === 'Surprised') value = Math.max(value, talk);
+        mesh.morphTargetInfluences[dict[key]] = value;
       });
     },
 
@@ -548,134 +560,24 @@ export default {
       this.scene.add(this.floorRing);
     },
     /**
-     * The model ships no mouth or jaw, so build one and parent it to the head
-     * mesh - that way it follows every head rotation and bob for free.
-     * Positioned from the head's own bounding box rather than magic numbers.
-     */
-    createMouth() {
-      const THREE = this.THREE;
-      const anchor = this.faceAnchor;
-      if (!anchor) return;
-
-      const { w, place } = anchor;
-
-      // Positioned in WORLD space and converted into the head bone's local
-      // space. Using the mesh's own geometry coordinates put these features
-      // inside the head: the mesh sits under a bone with its own transform, so
-      // local offsets did not mean what they appeared to mean.
-      this.mouthGroup = place(0, 0.3, 0.06);
-
-      const mat = new THREE.MeshBasicMaterial({
-        color: 0x14223a,
-        side: THREE.DoubleSide
-      });
-      this.mouthMaterial = mat;
-
-      const line = new THREE.Mesh(new THREE.BoxGeometry(w * 0.4, w * 0.05, w * 0.01), mat);
-
-      const pursed = new THREE.Mesh(new THREE.BoxGeometry(w * 0.2, w * 0.05, w * 0.01), mat);
-      pursed.position.x = w * 0.07;
-
-      const open = new THREE.Mesh(new THREE.CircleGeometry(w * 0.15, 24), mat);
-
-      // A half-torus is a mouth curve. The upper semicircle reads as a frown;
-      // rotating it by PI flips it into a smile.
-      const arcGeo = new THREE.TorusGeometry(w * 0.19, w * 0.032, 8, 24, Math.PI);
-      const smile = new THREE.Mesh(arcGeo, mat);
-      smile.rotation.z = Math.PI;
-      const frown = new THREE.Mesh(arcGeo, mat);
-
-      this.mouthParts = { line, pursed, open, talk: open, smile, frown };
-      [line, pursed, open, smile, frown].forEach((m) => {
-        m.visible = false;
-        this.mouthGroup.add(m);
-      });
-    },
-
-    /**
-     * The model's eye sockets are flat black blocks with nothing in them. These
-     * add a glowing iris with a highlight dot, which is what makes the robot
-     * feel like it is looking at you rather than past you. Parented to the head
-     * mesh, so they follow every head movement.
-     */
-    /**
-     * Build a helper that places things on the robot's face.
-     *
-     * Everything is expressed in WORLD units relative to the head's world
-     * bounding box, then converted into the head bone's local space and scaled
-     * to cancel the bone's own scale. The previous version used the head mesh's
-     * raw geometry coordinates, which sit under a bone transform - so the mouth
-     * and eyes ended up inside the head and nothing was visible.
+     * Measures the head in world space to find the point the speech bubble
+     * should point at.
      */
     createFaceAnchor() {
       const THREE = this.THREE;
       const face = this.morphMesh;
-      // getObjectByName('Head') returns the BONE, which is what we want here.
-      const headBone = this.model.getObjectByName('Head') || this.neck;
-      if (!face || !headBone) return;
+      if (!face) return;
 
       this.model.updateWorldMatrix(true, true);
       const box = new THREE.Box3().setFromObject(face);
-      const w = box.max.x - box.min.x;
       const h = box.max.y - box.min.y;
       const cx = (box.min.x + box.max.x) / 2;
 
-      const boneScale = headBone.getWorldScale(new THREE.Vector3());
-      const inv = 1 / (boneScale.x || 1);
-
-      // sx: across the face, -1..1 of half-width. sy: 0 at the chin, 1 at the
-      // crown. sz: how far proud of the front surface, in head-heights.
-      const place = (sx, sy, sz) => {
-        const world = new THREE.Vector3(
-          cx + sx * (w / 2),
-          box.min.y + sy * h,
-          box.max.z + sz * h
-        );
-        const group = new THREE.Group();
-        headBone.add(group);
-        group.position.copy(headBone.worldToLocal(world));
-        group.scale.setScalar(inv);
-        return group;
-      };
-
-      this.faceAnchor = { w, h, place };
-
-      // Where the speech bubble should point: just above the crown, in the
-      // model's local space so it survives the model being rotated.
+      // Where the speech bubble should point: just above the crown, stored in
+      // the model's local space so it survives the model being rotated.
       this.headAnchorPoint = this.model.worldToLocal(
         new THREE.Vector3(cx, box.max.y + h * 0.18, box.max.z)
       );
-    },
-
-    createEyes() {
-      const THREE = this.THREE;
-      const anchor = this.faceAnchor;
-      if (!anchor) return;
-
-      const { w, place } = anchor;
-
-      // Proud of the face by more than the mouth, because the model's eyes are
-      // spheres that bulge out of the head - sitting flush would bury these.
-      this.eyes = [-1, 1].map((side) => {
-        const group = place(side * 0.42, 0.62, 0.16);
-
-        const iris = new THREE.Mesh(
-          new THREE.CircleGeometry(w * 0.07, 20),
-          new THREE.MeshBasicMaterial({ color: 0x7fe6ff, depthTest: false })
-        );
-        iris.renderOrder = 10;
-
-        const shine = new THREE.Mesh(
-          new THREE.CircleGeometry(w * 0.024, 12),
-          new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false })
-        );
-        shine.position.set(w * 0.024, w * 0.024, w * 0.004);
-        shine.renderOrder = 11;
-
-        group.add(iris);
-        group.add(shine);
-        return { group, iris, home: group.position.clone(), span: w * 0.03 };
-      });
     },
 
     /**
@@ -696,14 +598,6 @@ export default {
       window.addEventListener('pointermove', this.onPointerMove, { passive: true });
     },
 
-    setMouth(shape) {
-      if (!this.mouthParts) return;
-      const active = this.mouthParts[shape] || this.mouthParts.line;
-      Object.values(this.mouthParts).forEach((m) => { m.visible = false; });
-      active.visible = true;
-      // 'talk' reuses the open circle, so reset its scale when we leave talking.
-      if (shape !== 'talk') this.mouthParts.open.scale.set(1, 1, 1);
-    },
 
     start() {
       if (this.frame) return;
@@ -744,12 +638,6 @@ export default {
           this.neck.rotation.y = gazeX * 0.45;
         }
 
-        if (this.eyes) {
-          this.eyes.forEach((eye) => {
-            eye.group.position.x = eye.home.x + gazeX * eye.span;
-            eye.group.position.y = eye.home.y - gazeY * eye.span * 0.7;
-          });
-        }
         if (this.model) {
           const lean = cfg.lean ? cfg.lean : 0;
           this.model.rotation.x = lean;
@@ -759,23 +647,26 @@ export default {
         if (this.orbit && cfg.orbit) this.orbit.rotation.y = t * 1.6;
       }
 
-      // Lip sync. audioLevel comes from an analyser on the cached TTS audio
-      // element, but speakWithBrowser() - the SpeechSynthesis fallback - has no
-      // audio element at all, so the level sits flat at 0 and the mouth would
-      // never move. Fall back to a synthetic jabber envelope whenever real
-      // amplitude stops arriving, so talking always looks like talking.
-      if (this.mouthParts && cfg.mouth === 'talk') {
-        const amp = Math.min(Math.max(this.audioLevel, 0), 1);
-        if (amp > 0.02) this.lastAmplitudeAt = t;
-        const haveRealAmplitude =
-          this.lastAmplitudeAt !== undefined && t - this.lastAmplitudeAt < 0.4;
-
-        const envelope = haveRealAmplitude
-          ? amp
-          : 0.42 + Math.sin(t * 13) * 0.26 + Math.sin(t * 7.3) * 0.16;
-
-        const openY = this.reducedMotion ? 0.7 : 0.18 + envelope * 1.25;
-        this.mouthParts.open.scale.set(1, Math.max(0.12, openY), 1);
+      // Lip sync, through the rig rather than a bolted-on mouth. The head has
+      // a 'Surprised' morph target that opens the face, so it is driven by the
+      // speech amplitude while talking. audioLevel is analysed from the cached
+      // TTS audio element, but speakWithBrowser() - the SpeechSynthesis
+      // fallback - has no audio element and leaves it flat at 0, so fall back
+      // to a synthetic jabber envelope whenever real amplitude stops arriving.
+      if (this.morphMesh) {
+        const speaking = this.botState === 'speaking';
+        let talk = 0;
+        if (speaking) {
+          const amp = Math.min(Math.max(this.audioLevel, 0), 1);
+          if (amp > 0.02) this.lastAmplitudeAt = t;
+          const real =
+            this.lastAmplitudeAt !== undefined && t - this.lastAmplitudeAt < 0.4;
+          talk = real
+            ? amp
+            : 0.42 + Math.sin(t * 13) * 0.26 + Math.sin(t * 7.3) * 0.16;
+          if (this.reducedMotion) talk = 0.5;
+        }
+        this.setTalkMorph(Math.max(0, Math.min(1, talk)) * 0.75);
       }
 
       // Scroll the ground under the walking robot. The model stays at the
