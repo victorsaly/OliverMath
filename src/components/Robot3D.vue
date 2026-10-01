@@ -226,9 +226,13 @@ export default {
         }
         // Tint the body material so the state colour reads on the robot itself,
         // not just on the ring.
+        // Several meshes share the 'Main' material - torso, head, both arms,
+        // shoulders. Keeping only the last one meant a colour change repainted
+        // a single limb and left the rest yellow.
         if (o.isMesh && o.material && o.material.name === 'Main') {
           o.material = o.material.clone();
-          this.bodyMaterial = o.material;
+          if (!this.bodyMaterials) this.bodyMaterials = [];
+          this.bodyMaterials.push(o.material);
         }
       });
 
@@ -324,9 +328,11 @@ export default {
 
       if (this.floorRing) this.floorRing.material.color.setHex(cfg.color);
 
-      if (this.bodyMaterial) {
-        this.bodyMaterial.emissive = new THREE.Color(cfg.color);
-        this.bodyMaterial.emissiveIntensity = 0.22;
+      if (this.bodyMaterials) {
+        this.bodyMaterials.forEach((m) => {
+          m.emissive = new THREE.Color(cfg.color);
+          m.emissiveIntensity = 0.22;
+        });
       }
       if (this.orbit) this.orbit.visible = !!cfg.orbit;
       this.applyMorph(cfg.morph);
@@ -350,8 +356,9 @@ export default {
     },
 
     applyBodyColor() {
-      if (!this.bodyMaterial || !this.bodyColor || !this.THREE) return;
-      this.bodyMaterial.color = new this.THREE.Color(this.bodyColor);
+      if (!this.bodyMaterials || !this.bodyColor || !this.THREE) return;
+      const c = new this.THREE.Color(this.bodyColor);
+      this.bodyMaterials.forEach((m) => { m.color = c.clone(); });
     },
 
     setTalkMorph(amount) {

@@ -33,9 +33,14 @@
     <!-- Speech bubble. When the 3D scene reports where the head is on screen
          the bubble follows it, so it reads as coming from the robot rather
          than hovering at the top of the page. -->
-    <p v-if="text" class="bubble speech" :class="{ anchored: !!anchor, snap: snapBubble }" :style="bubbleStyle">
-      {{ text }}
-    </p>
+    <div v-if="text" class="bubble speech" :class="{ anchored: !!anchor, snap: snapBubble }" :style="bubbleStyle">
+      <span class="bubble-text">{{ text }}</span>
+      <button class="bubble-close" @click="$emit('dismiss')" :aria-label="closeLabel">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M6 6l12 12M18 6L6 18" />
+        </svg>
+      </button>
+    </div>
   </div>
 </template>
 
@@ -85,7 +90,12 @@ export default {
     // Async so three.js and the 464KB model stay out of the entry chunk.
     Robot3D: defineAsyncComponent(() => import('./Robot3D.vue'))
   },
+  emits: ['dismiss'],
   props: {
+    closeLabel: {
+      type: String,
+      default: 'Close message'
+    },
     botState: {
       type: String,
       default: 'neutral',
@@ -260,7 +270,8 @@ export default {
    light + transparency: white text on this composites to better than 7:1 even
    over a bright backdrop, whereas a translucent white panel would have put dark
    text over whatever happened to be behind it. */
-p.bubble {
+/* The bubble is a flex row now: text plus a close button. */
+.bubble {
   position: relative;
   width: min(290px, 78vw);
   padding: 10px 15px;
@@ -288,26 +299,61 @@ p.bubble {
   animation: bubbleAppear 0.3s ease-out;
 }
 
+.bubble-text {
+  flex: 1;
+}
+
+.bubble-close {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  margin: -4px -6px -4px 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+  cursor: pointer;
+}
+
+.bubble-close svg {
+  width: 14px;
+  height: 14px;
+  stroke: #ffffff;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  fill: none;
+}
+
+.bubble-close:focus-visible {
+  outline: 2px solid #ffd700;
+  outline-offset: 2px;
+}
+
 /* Positioned over the robot's head, reported each frame by the 3D scene. The
    translate puts the bubble's tail at that point rather than its centre. */
-p.bubble.anchored {
+.bubble.anchored {
   position: absolute;
   margin: 0;
   transform: translate(-50%, -100%);
   transition: left 0.35s ease-out, top 0.35s ease-out;
 }
 
-p.bubble.anchored.snap {
+.bubble.anchored.snap {
+  /* Only the FOLLOW is suppressed on first appearance, so it does not slide in
+     from wherever the head was last time. The fade below still runs - without
+     it the bubble flicked into existence. */
   transition: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  p.bubble.anchored {
+  .bubble.anchored {
     transition: none;
   }
 }
 
-p.bubble::after {
+.bubble::after {
   content: '';
   position: absolute;
   bottom: -9px;

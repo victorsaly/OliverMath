@@ -321,6 +321,8 @@
           :view="botView"
           :bodyColor="botColour"
           :dayMode="dayMode"
+          :closeLabel="t('closeMessage')"
+          @dismiss="dismissBubble"
           size="200px"
           @click="changeStatus('laughing')"
           aria-live="polite"
@@ -1178,6 +1180,25 @@ export default {
      * path so it gets the same voice, the same language and the same talking
      * animation as everything else it says.
      */
+    /**
+     * Closes the speech bubble by hand. Also stops the audio: dismissing the
+     * words while the robot carries on reading them aloud would be worse than
+     * leaving it up.
+     */
+    dismissBubble() {
+      clearTimeout(this.bubbleTimer);
+      this.clearAfterSpeak = false;
+      this.text = '';
+      this.speech_phrases = '';
+      if (this.audioPlayer && !this.audioPlayer.paused) {
+        this.audioPlayer.pause();
+        this.audioPlayer.currentTime = 0;
+      }
+      if (window.speechSynthesis) window.speechSynthesis.cancel();
+      this.isTalking = false;
+      this.stopAudioAnalysis();
+    },
+
     toggleDayNight() {
       this.setDayMode(this.dayMode === 'night' ? 'day' : 'night');
     },
