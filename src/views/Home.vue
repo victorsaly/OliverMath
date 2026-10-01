@@ -419,6 +419,13 @@ import { addToHistory, getHistory, clearHistory as clearHistoryService, formatTi
 import { preloadSounds, playCorrectSound, playIncorrectSound, toggleMute, startMusic, stopMusic, duckMusic } from "@/services/soundService";
 import { celebrateConfetti, celebrateStreak, showStar } from "@/utils/confetti";
 
+// Kept beside the component so the saved-value check and the swatch list
+// cannot drift apart.
+const BODY_COLOURS = [
+  '#ffc62e', '#2fb4ff', '#3fe07f', '#2fe8e0',
+  '#ff6fb5', '#b47cff', '#ff8a3d', '#ff5f57'
+];
+
 export default {
   name: "Math",
   components: {
@@ -497,8 +504,12 @@ export default {
       autoChat: localStorage.autoChat !== '0',
       // auto | day | night
       dayMode: localStorage.dayMode || 'auto',
-      // Body panel colour. Defaults to the model's own yellow.
-      botColour: localStorage.botColour || '#d9a441',
+      // Body panel colour. The brighter palette replaced a muted one, so a
+      // value saved against the old swatches is migrated rather than left
+      // selected-but-invisible in the settings list.
+      botColour: BODY_COLOURS.includes(localStorage.botColour)
+        ? localStorage.botColour
+        : BODY_COLOURS[0],
       idleTimer: null,
       bubbleTimer: null,
       
@@ -671,12 +682,14 @@ export default {
     },
     colourOptions() {
       return [
-        { value: '#d9a441', label: 'Yellow' },
-        { value: '#4a9de0', label: 'Blue' },
-        { value: '#5fbf7a', label: 'Green' },
-        { value: '#d2679b', label: 'Pink' },
-        { value: '#a079e0', label: 'Purple' },
-        { value: '#e07a52', label: 'Orange' },
+        { value: BODY_COLOURS[0], label: 'Yellow' },
+        { value: BODY_COLOURS[1], label: 'Blue' },
+        { value: BODY_COLOURS[2], label: 'Green' },
+        { value: BODY_COLOURS[3], label: 'Cyan' },
+        { value: BODY_COLOURS[4], label: 'Pink' },
+        { value: BODY_COLOURS[5], label: 'Purple' },
+        { value: BODY_COLOURS[6], label: 'Orange' },
+        { value: BODY_COLOURS[7], label: 'Red' },
       ];
     },
     chatOptions() {
@@ -2137,8 +2150,8 @@ ion-modal.settings-modal {
 
 
 .colour-swatch {
-  width: 42px;
-  height: 42px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   border: 3px solid transparent;
   cursor: pointer;

@@ -33,7 +33,7 @@
     <!-- Speech bubble. When the 3D scene reports where the head is on screen
          the bubble follows it, so it reads as coming from the robot rather
          than hovering at the top of the page. -->
-    <div v-if="text" class="bubble speech" :class="{ anchored: !!anchor, snap: snapBubble }" :style="bubbleStyle">
+    <div v-if="text && bubbleReady" class="bubble speech" :class="{ anchored: !!anchor, snap: snapBubble }" :style="bubbleStyle">
       <span class="bubble-text">{{ text }}</span>
       <button class="bubble-close" @click="$emit('dismiss')" :aria-label="closeLabel">
         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -164,6 +164,16 @@ export default {
       return this.text ? 0.16 : 0.04;
     },
 
+    /**
+     * With the 3D scene in use, the bubble waits for its first anchor. three.js
+     * and the model load asynchronously, so rendering before then put the
+     * bubble in the static flow position at the top of the column and it jumped
+     * across the screen the moment the scene reported where the head was.
+     */
+    bubbleReady() {
+      return !this.use3D || !!this.anchor;
+    },
+
     bubbleStyle() {
       if (!this.anchor) return {};
       // Clamped so the bubble never leaves the viewport when the robot walks
@@ -189,16 +199,25 @@ export default {
     }
   },
   watch: {
+    // Also fires when the bubble finally gets its first anchor, so the entrance
+    // is snapped into place rather than animated from nowhere.
+    bubbleReady(value) {
+      if (value) this.snapOnce();
+    },
     text(value, previous) {
       if (value && !previous) {
-        this.snapBubble = true;
-        this.$nextTick(() => {
-          requestAnimationFrame(() => { this.snapBubble = false; });
-        });
+        this.snapOnce();
       }
     }
   },
   methods: {
+    snapOnce() {
+      this.snapBubble = true;
+      this.$nextTick(() => {
+        requestAnimationFrame(() => { this.snapBubble = false; });
+      });
+    },
+
     onAnchor(point) {
       this.anchor = point;
     },
