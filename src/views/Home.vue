@@ -98,6 +98,27 @@
             </div>
           </div>
 
+          <!-- Robot view: lives in settings rather than the game screen, which
+               already carries six icon controls in one corner. -->
+          <div class="settings-group">
+            <div class="settings-group-header">
+              <ion-icon :icon="doneIcon" color="tertiary"></ion-icon>
+              <span>{{ t('robotView') }}</span>
+            </div>
+            <div class="settings-options">
+              <button
+                v-for="option in viewOptions"
+                :key="option.value"
+                class="setting-option"
+                :class="{ active: botView === option.value }"
+                :aria-pressed="botView === option.value"
+                @click="setBotView(option.value)"
+              >
+                {{ option.label }}
+              </button>
+            </div>
+          </div>
+
           <!-- Practice Mode -->
           <div class="settings-group">
             <div class="settings-group-header">
@@ -188,6 +209,7 @@
           :isPlayMode="isPlayMode"
           :text="speech_phrases"
           :audioLevel="audioLevel"
+          :view="botView"
           size="200px"
           @click="changeStatus('laughing')"
           aria-live="polite"
@@ -333,6 +355,8 @@ export default {
       // Set once a turn has an outcome, so a correct interim transcript cannot
       // be scored again by the final result that follows it.
       answerFinalised: false,
+      // 3D camera framing preference: auto | face | full
+      botView: localStorage.botView || 'auto',
       
       // Expression states
       isHappy: false,
@@ -475,6 +499,13 @@ export default {
         { value: 'random', label: this.t('randomMode') },
         { value: 'weak_operators', label: this.t('practiceWeakOperators') },
         { value: 'recent_failures', label: this.t('practiceRecentFailures') },
+      ];
+    },
+    viewOptions() {
+      return [
+        { value: 'auto', label: this.t('viewAuto') },
+        { value: 'face', label: this.t('viewFace') },
+        { value: 'full', label: this.t('viewFull') },
       ];
     },
     statusColor() {
@@ -929,6 +960,18 @@ export default {
         this.audioConfig
       );
       this.listenForSpeechRecordingEvents();
+    },
+    /**
+     * Persist the robot camera framing. localStorage is written directly here
+     * to match how every other preference in this view is stored.
+     */
+    setBotView(value) {
+      this.botView = value;
+      try {
+        localStorage.botView = value;
+      } catch (err) {
+        console.warn('Could not save the robot view preference:', err);
+      }
     },
     /**
      * Close the recogniser and release the microphone. Safe to call more than
@@ -1566,7 +1609,9 @@ ion-modal.settings-modal {
   justify-content: center;
   align-items: center;
   min-height: 350px;
-  padding: 16px;
+  /* ion-footer floats above ion-content, so the status chip was landing on top
+     of the robot. The extra bottom padding keeps the robot clear of it. */
+  padding: 16px 16px 72px;
 }
 
 .status-indicator {

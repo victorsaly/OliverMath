@@ -168,41 +168,11 @@ export default {
       this.model = gltf.scene;
       this.scene.add(this.model);
 
-      // Frame the model from its own bounds rather than hardcoded numbers, so a
-      // different GLB can be dropped in without retuning the camera.
-      const box = new THREE.Box3().setFromObject(this.model);
-      const sizeVec = box.getSize(new THREE.Vector3());
-      const center = box.getCenter(new THREE.Vector3());
-      const halfFov = (this.camera.fov * Math.PI) / 180 / 2;
-      const fitFor = (height) => (height / 2) / Math.tan(halfFov);
-
-      // Two framings, both derived from the model's own bounds so a different
-      // GLB can be dropped in without retuning anything.
-      //   full - the whole robot, with headroom for Jump and Dance
-      //   face - head and shoulders, where the mouth and morph targets live
-      const faceHeight = sizeVec.y * 0.3;
-      const faceY = box.max.y - sizeVec.y * 0.12;
-      this.framing = {
-        full: {
-          pos: new THREE.Vector3(0, center.y + sizeVec.y * 0.06, fitFor(sizeVec.y) * 1.18),
-          target: new THREE.Vector3(0, center.y, 0)
-        },
-        face: {
-          pos: new THREE.Vector3(0, faceY, fitFor(faceHeight) * 1.25),
-          target: new THREE.Vector3(0, faceY, 0)
-        }
-      };
-
-      const start = this.framing[this.activeView];
-      this.lookTarget = start.target.clone();
-      this.camera.position.copy(start.pos);
-      this.camera.lookAt(this.lookTarget);
-      this.halo.position.set(0, center.y + sizeVec.y * 0.1, -0.9);
-      this.orbit.position.set(0, box.max.y + 0.18, 0);
-
       // The GLB contains BOTH a bone and a mesh named 'Head'. The bone is what
       // we rotate; the morph targets live on the mesh. getObjectByName('Head')
       // returns the bone, so the morph mesh has to be found by capability.
+      // This runs before framing because the face view is measured from the
+      // head's real bounds.
       this.neck = this.model.getObjectByName('Neck');
       this.model.traverse((o) => {
         if (o.isMesh && o.morphTargetDictionary && !this.morphMesh) {
@@ -215,6 +185,48 @@ export default {
           this.bodyMaterial = o.material;
         }
       });
+
+      // Frame from the model's own bounds rather than hardcoded numbers, so a
+      // different GLB can be dropped in without retuning the camera.
+      const box = new THREE.Box3().setFromObject(this.model);
+      const sizeVec = box.getSize(new THREE.Vector3());
+      const center = box.getCenter(new THREE.Vector3());
+      const halfFov = (this.camera.fov * Math.PI) / 180 / 2;
+      const fitFor = (height) => (height / 2) / Math.tan(halfFov);
+
+      // Measure the head itself instead of guessing a fraction of the body.
+      // Guessing put the camera at the jaw, showing chest and no face.
+      const headBox = this.morphMesh
+        ? new THREE.Box3().setFromObject(this.morphMesh)
+        : null;
+      const headSize = headBox ? headBox.getSize(new THREE.Vector3()) : null;
+      const headCenter = headBox ? headBox.getCenter(new THREE.Vector3()) : null;
+
+      // Head plus a margin either side, so the face is the subject but the
+      // shoulders still anchor it.
+      const faceHeight = headSize ? headSize.y * 2.1 : sizeVec.y * 0.45;
+      const faceY = headCenter ? headCenter.y : box.max.y - sizeVec.y * 0.18;
+
+      this.framing = {
+        full: {
+          pos: new THREE.Vector3(0, center.y + sizeVec.y * 0.06, fitFor(sizeVec.y) * 1.18),
+          target: new THREE.Vector3(0, center.y, 0)
+        },
+        face: {
+          pos: new THREE.Vector3(0, faceY, fitFor(faceHeight) * 1.05),
+          target: new THREE.Vector3(0, faceY, 0)
+        }
+      };
+
+      const start = this.framing[this.activeView];
+      this.lookTarget = start.target.clone();
+      this.camera.position.copy(start.pos);
+      this.camera.lookAt(this.lookTarget);
+
+      // Ring sits behind the robot, scaled to whatever it is framing.
+      this.halo.scale.setScalar((sizeVec.y * 0.55) / 0.95);
+      this.halo.position.set(0, center.y + sizeVec.y * 0.1, -sizeVec.y * 0.5);
+      this.orbit.position.set(0, box.max.y + sizeVec.y * 0.1, 0);
       this.baseRotation = this.model.rotation.y;
       this.createMouth();
 
