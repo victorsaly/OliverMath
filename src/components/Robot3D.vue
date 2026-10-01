@@ -62,7 +62,11 @@ const MODEL_URL = `${import.meta.env.BASE_URL}models/RobotExpressive.glb`;
 // States whose animation is carried by the body rather than the face, so the
 // camera pulls back for them. Everything else is about expression, where a
 // close framing reads far better on a phone.
-const BODY_VIEW_STATES = new Set(['excited', 'laughing', 'proud', 'broken', 'sleepy']);
+// 'neutral' is in here because the idle state now walks - a walk is invisible
+// in a head-and-shoulders close-up.
+const BODY_VIEW_STATES = new Set([
+  'neutral', 'excited', 'laughing', 'proud', 'broken', 'sleepy'
+]);
 
 export default {
   name: 'Robot3D',

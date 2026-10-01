@@ -166,7 +166,13 @@ export default {
   align-items: center;
   justify-content: flex-start;
   width: 100%;
-  height: 100%;
+  /* No `height: 100%` here. The parent's height comes from a min-height, which
+     is not a definite height, so a percentage would resolve to auto and the
+     scene would collapse to the height of the bubble. Stretching as a flex item
+     fills the parent for real. */
+  align-self: stretch;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 /* The robot fills the whole stage rather than sitting in a small square, so it

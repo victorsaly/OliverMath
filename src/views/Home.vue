@@ -1617,11 +1617,13 @@ ion-modal.settings-modal {
   display: flex;
   justify-content: center;
   align-items: stretch;
-  /* dvh, not vh: on iOS Safari 100vh is the LARGE viewport, so the scene would
-     run under the browser chrome. The vh line is the fallback for engines
-     without dvh. 56px header + 90px footer. */
+  /* Fill the scroll container. The dvh lines are a fallback for the case where
+     the percentage cannot resolve; dvh rather than vh because 100vh on iOS
+     Safari is the LARGE viewport and would run the scene under the browser
+     chrome. 56px header + 90px footer. */
   min-height: calc(100vh - 146px);
   min-height: calc(100dvh - 146px);
+  height: 100%;
   margin: -16px;
   padding: 0;
 }
