@@ -86,7 +86,7 @@ export default {
     // 0 fills the frame; 0.5 leaves a third of the height empty at the top.
     headroom: { type: Number, default: 0.1 }
   },
-  emits: ['unsupported', 'ready'],
+  emits: ['unsupported', 'ready', 'anchor'],
   data() {
     return { reducedMotion: false };
   },
@@ -223,9 +223,11 @@ export default {
       this.orbit.position.set(0, box.max.y + sizeVec.y * 0.1, 0);
       this.baseRotation = this.model.rotation.y;
       this.createEnvironment(box, sizeVec);
+      // The anchor must exist before the features that use it.
+      this.createFaceAnchor();
+      this.createMouth();
       this.createEyes();
       this.bindPointer();
-      this.createMouth();
 
       this.mixer = new THREE.AnimationMixer(this.model);
       this.actions = {};
@@ -488,11 +490,16 @@ export default {
       this.skyTexture = new THREE.CanvasTexture(sc);
       this.skyTexture.colorSpace = THREE.SRGBColorSpace;
 
+      // The ridges are painted in the lower third of the texture, so the plane
+      // is placed with that third straddling the floor line - otherwise the
+      // mountains sit below the horizon and are never seen, which is exactly
+      // what happened with the first attempt.
+      const skyH = sizeVec.y * 11;
       this.sky = new THREE.Mesh(
-        new THREE.PlaneGeometry(sizeVec.y * 26, sizeVec.y * 13),
+        new THREE.PlaneGeometry(skyH * 2, skyH),
         new THREE.MeshBasicMaterial({ map: this.skyTexture, fog: false, depthWrite: false })
       );
-      this.sky.position.set(0, floorY + sizeVec.y * 3, -sizeVec.y * 8);
+      this.sky.position.set(0, floorY + skyH * 0.3, -sizeVec.y * 7);
       this.scene.add(this.sky);
 
       // Contact shadow. A soft dark blob under the feet does more for the sense
@@ -547,21 +554,16 @@ export default {
      */
     createMouth() {
       const THREE = this.THREE;
-      const face = this.morphMesh;
-      if (!face || !face.geometry) return;
+      const anchor = this.faceAnchor;
+      if (!anchor) return;
 
-      face.geometry.computeBoundingBox();
-      const box = face.geometry.boundingBox;
-      const w = box.max.x - box.min.x;
-      const h = box.max.y - box.min.y;
+      const { w, place } = anchor;
 
-      this.mouthGroup = new THREE.Group();
-      this.mouthGroup.position.set(
-        (box.min.x + box.max.x) / 2,
-        box.min.y + h * 0.3,
-        box.max.z + h * 0.015
-      );
-      face.add(this.mouthGroup);
+      // Positioned in WORLD space and converted into the head bone's local
+      // space. Using the mesh's own geometry coordinates put these features
+      // inside the head: the mesh sits under a bone with its own transform, so
+      // local offsets did not mean what they appeared to mean.
+      this.mouthGroup = place(0, 0.3, 0.06);
 
       const mat = new THREE.MeshBasicMaterial({
         color: 0x14223a,
@@ -596,37 +598,83 @@ export default {
      * feel like it is looking at you rather than past you. Parented to the head
      * mesh, so they follow every head movement.
      */
-    createEyes() {
+    /**
+     * Build a helper that places things on the robot's face.
+     *
+     * Everything is expressed in WORLD units relative to the head's world
+     * bounding box, then converted into the head bone's local space and scaled
+     * to cancel the bone's own scale. The previous version used the head mesh's
+     * raw geometry coordinates, which sit under a bone transform - so the mouth
+     * and eyes ended up inside the head and nothing was visible.
+     */
+    createFaceAnchor() {
       const THREE = this.THREE;
       const face = this.morphMesh;
-      if (!face || !face.geometry) return;
+      // getObjectByName('Head') returns the BONE, which is what we want here.
+      const headBone = this.model.getObjectByName('Head') || this.neck;
+      if (!face || !headBone) return;
 
-      const box = face.geometry.boundingBox;
+      this.model.updateWorldMatrix(true, true);
+      const box = new THREE.Box3().setFromObject(face);
       const w = box.max.x - box.min.x;
       const h = box.max.y - box.min.y;
+      const cx = (box.min.x + box.max.x) / 2;
 
-      this.eyes = [-1, 1].map((side) => {
-        const group = new THREE.Group();
-        group.position.set(
-          (box.min.x + box.max.x) / 2 + side * w * 0.21,
-          box.min.y + h * 0.62,
-          box.max.z + h * 0.02
+      const boneScale = headBone.getWorldScale(new THREE.Vector3());
+      const inv = 1 / (boneScale.x || 1);
+
+      // sx: across the face, -1..1 of half-width. sy: 0 at the chin, 1 at the
+      // crown. sz: how far proud of the front surface, in head-heights.
+      const place = (sx, sy, sz) => {
+        const world = new THREE.Vector3(
+          cx + sx * (w / 2),
+          box.min.y + sy * h,
+          box.max.z + sz * h
         );
+        const group = new THREE.Group();
+        headBone.add(group);
+        group.position.copy(headBone.worldToLocal(world));
+        group.scale.setScalar(inv);
+        return group;
+      };
+
+      this.faceAnchor = { w, h, place };
+
+      // Where the speech bubble should point: just above the crown, in the
+      // model's local space so it survives the model being rotated.
+      this.headAnchorPoint = this.model.worldToLocal(
+        new THREE.Vector3(cx, box.max.y + h * 0.18, box.max.z)
+      );
+    },
+
+    createEyes() {
+      const THREE = this.THREE;
+      const anchor = this.faceAnchor;
+      if (!anchor) return;
+
+      const { w, place } = anchor;
+
+      // Proud of the face by more than the mouth, because the model's eyes are
+      // spheres that bulge out of the head - sitting flush would bury these.
+      this.eyes = [-1, 1].map((side) => {
+        const group = place(side * 0.42, 0.62, 0.16);
 
         const iris = new THREE.Mesh(
-          new THREE.CircleGeometry(w * 0.075, 20),
-          new THREE.MeshBasicMaterial({ color: 0x7fe6ff })
+          new THREE.CircleGeometry(w * 0.07, 20),
+          new THREE.MeshBasicMaterial({ color: 0x7fe6ff, depthTest: false })
         );
+        iris.renderOrder = 10;
+
         const shine = new THREE.Mesh(
-          new THREE.CircleGeometry(w * 0.026, 12),
-          new THREE.MeshBasicMaterial({ color: 0xffffff })
+          new THREE.CircleGeometry(w * 0.024, 12),
+          new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false })
         );
-        shine.position.set(w * 0.026, w * 0.026, w * 0.004);
+        shine.position.set(w * 0.024, w * 0.024, w * 0.004);
+        shine.renderOrder = 11;
 
         group.add(iris);
         group.add(shine);
-        face.add(group);
-        return { group, iris, home: group.position.clone(), span: w * 0.045 };
+        return { group, iris, home: group.position.clone(), span: w * 0.03 };
       });
     },
 
@@ -769,6 +817,23 @@ export default {
           this.lookTarget.lerp(want.target, ease);
         }
         this.camera.lookAt(this.lookTarget);
+      }
+
+      // Tell the parent where the robot's head is on screen, so the speech
+      // bubble can sit just above it instead of being pinned to the top of the
+      // page. Only emitted when it actually moves, to avoid a parent re-render
+      // on every single frame.
+      if (this.headAnchorPoint && this.$refs.host) {
+        const p = this.headAnchorPoint.clone();
+        this.model.localToWorld(p);
+        p.project(this.camera);
+        const x = (p.x * 0.5 + 0.5) * 100;
+        const y = (-p.y * 0.5 + 0.5) * 100;
+        const last = this.lastAnchor;
+        if (!last || Math.abs(last.x - x) > 0.3 || Math.abs(last.y - y) > 0.3) {
+          this.lastAnchor = { x, y };
+          this.$emit('anchor', { x, y });
+        }
       }
 
       this.renderer.render(this.scene, this.camera);

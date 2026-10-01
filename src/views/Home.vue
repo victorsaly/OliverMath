@@ -241,8 +241,6 @@
         <ion-icon :icon="doneIcon" aria-hidden="true"></ion-icon>
       </button>
 
-      <span class="dock-label" v-if="isPlayMode && botState !== 'broken'">{{ t('play') }}</span>
-      <span class="dock-label" v-else-if="isListening">{{ t('stop') }}</span>
     </div>
   </ion-page>
 </template>
@@ -276,7 +274,7 @@ import { getRandomInt } from "@/utils/helpers";
 import { getSpeechToken, getCachedAudio, validateAnswer } from "@/services/apiService";
 import { LANGUAGES, SPEECH_VOICES, getPreferredLanguage, setLanguage, t, getRandomPhrase } from "@/config/i18n";
 import { addToHistory, getHistory, clearHistory as clearHistoryService, formatTimestamp, getOperatorSymbol, getRecommendedDifficulty, getSpacedRepetitionProblem } from "@/services/historyService";
-import { preloadSounds, playCorrectSound, playIncorrectSound, toggleMute } from "@/services/soundService";
+import { preloadSounds, playCorrectSound, playIncorrectSound, toggleMute, startMusic, stopMusic, duckMusic } from "@/services/soundService";
 import { celebrateConfetti, celebrateStreak, showStar } from "@/utils/confetti";
 
 export default {
@@ -400,6 +398,14 @@ export default {
       timeout: null,
       expressionTimeout: null,
     };
+  },
+  watch: {
+    // Music through the speaker is picked straight back up by an open
+    // microphone, so pull it down whenever the robot is talking or listening
+    // and bring it back once the turn is over.
+    botState(state) {
+      duckMusic(['speaking', 'listening', 'computing'].includes(state));
+    }
   },
   computed: {
     botState() {
@@ -761,6 +767,9 @@ export default {
       this.isError = false;
       this.silenceRetried = false;
       this.answerFinalised = false;
+      // Started here rather than on mount: browsers only allow an AudioContext
+      // to start from a user gesture, and Play is the first real one.
+      startMusic();
       
       // Brief surprised expression when starting new question
       this.showExpression('surprised', 800);
@@ -1488,6 +1497,7 @@ export default {
     window.addEventListener('keydown', this.keyDownHandler);
   },
   unmounted() {
+    stopMusic();
     window.removeEventListener('keydown', this.keyDownHandler);
     // Cleanup audio player
     if (this.audioPlayer) {
@@ -1688,11 +1698,12 @@ ion-modal.settings-modal {
   bottom: 0;
   z-index: 20;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  /* Tight cluster: the status and the control belong together, so they read as
-     one group rather than two things at opposite ends of a bar. */
-  gap: 6px;
+  justify-content: center;
+  /* One row: status and control side by side, so they occupy a single band at
+     the bottom and leave the robot as much of the screen as possible. */
+  gap: 12px;
   padding: 8px 16px calc(env(safe-area-inset-bottom, 0px) + 12px);
   pointer-events: none;
   background: linear-gradient(to top, rgba(10, 14, 26, 0.62), transparent);
@@ -1705,15 +1716,15 @@ ion-modal.settings-modal {
 /* One big round control instead of a full-width rectangle, which read as a
    form submit rather than a game. 84px is a generous target for a child. */
 .round-btn {
-  width: 72px;
-  height: 72px;
+  width: 64px;
+  height: 64px;
   display: flex;
   align-items: center;
   justify-content: center;
   border: none;
   border-radius: 50%;
   color: #ffffff;
-  font-size: 33px;
+  font-size: 29px;
   cursor: pointer;
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.38);
   transition: transform 0.18s ease, box-shadow 0.18s ease;
@@ -1738,13 +1749,6 @@ ion-modal.settings-modal {
   background: linear-gradient(145deg, #5a4dc4, #3a3192);
 }
 
-.dock-label {
-  color: #ffffff;
-  font-size: 14px;
-  font-weight: 600;
-  letter-spacing: 0.2px;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
-}
 
 /* Status pill: carries state in colour AND an icon AND a word, so it does not
    depend on colour alone. Replaces the ion-chip, whose shadow DOM overrode the

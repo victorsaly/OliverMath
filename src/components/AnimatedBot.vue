@@ -14,6 +14,7 @@
         :headroom="headroom"
         size="100%"
         @unsupported="use3D = false"
+        @anchor="onAnchor"
       />
       <Vue3Lottie
         v-else
@@ -27,8 +28,10 @@
       />
     </div>
 
-    <!-- Speech Bubble Overlay -->
-    <p v-if="text" class="bubble speech">
+    <!-- Speech bubble. When the 3D scene reports where the head is on screen
+         the bubble follows it, so it reads as coming from the robot rather
+         than hovering at the top of the page. -->
+    <p v-if="text" class="bubble speech" :class="{ anchored: !!anchor }" :style="bubbleStyle">
       {{ text }}
     </p>
   </div>
@@ -121,6 +124,7 @@ export default {
   data() {
     return {
       use3D: this.supports3D(),
+      anchor: null,
       animations: ANIMATIONS
     };
   },
@@ -132,7 +136,16 @@ export default {
     // Reserve space at the top of the 3D frame when a speech bubble is showing,
     // so the bubble never lands on the robot's face.
     headroom() {
-      return this.text ? 0.55 : 0.12;
+      return this.text ? 0.32 : 0.1;
+    },
+
+    bubbleStyle() {
+      if (!this.anchor) return {};
+      // Clamped so the bubble never leaves the viewport when the robot walks
+      // towards an edge or the camera pulls in close.
+      const x = Math.min(82, Math.max(18, this.anchor.x));
+      const y = Math.min(88, Math.max(14, this.anchor.y));
+      return { left: `${x}%`, top: `${y}%` };
     },
 
     animationSpeed() {
@@ -149,6 +162,10 @@ export default {
     }
   },
   methods: {
+    onAnchor(point) {
+      this.anchor = point;
+    },
+
     // Cheap capability probe before we try to load three.js at all.
     supports3D() {
       try {
@@ -238,6 +255,21 @@ p.bubble {
   font-weight: 500;
   z-index: 10;
   animation: bubbleAppear 0.3s ease-out;
+}
+
+/* Positioned over the robot's head, reported each frame by the 3D scene. The
+   translate puts the bubble's tail at that point rather than its centre. */
+p.bubble.anchored {
+  position: absolute;
+  margin: 0;
+  transform: translate(-50%, -100%);
+  transition: left 0.25s ease-out, top 0.25s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  p.bubble.anchored {
+    transition: none;
+  }
 }
 
 p.bubble::after {
