@@ -313,6 +313,8 @@ export default {
       isQuery: false,
       isPlayMode: true,
       isResolved: false,
+      // Bounds the "I didn't hear you" retry to one attempt per question.
+      silenceRetried: false,
       
       // Expression states
       isHappy: false,
@@ -716,6 +718,10 @@ export default {
       this.isResolved = false;
       var self = this;
       this.isComputing = true;
+      // Every Play is a fresh attempt. isError used to be a one-way latch, so a
+      // single denied permission or cold backend hid the Play button forever.
+      this.isError = false;
+      this.silenceRetried = false;
       
       // Brief surprised expression when starting new question
       this.showExpression('surprised', 800);
@@ -883,9 +889,14 @@ export default {
       }
     },
     listen() {
-      this.showToast(this.t('listening'), "warning");
-      this.isComputing = true;
-      this.isListening = false;
+      // The microphone is open, so it is the child's turn to speak RIGHT NOW.
+      // This used to set isComputing, which rendered as "Thinking..." with a
+      // frozen grey-gear robot - telling the child to wait at the exact moment
+      // it needed them to talk. isListening gives them the green listening
+      // robot and "Your turn!" instead.
+      this.showToast(this.t('yourTurn'), "success");
+      this.isComputing = false;
+      this.isListening = true;
       var sc = SpeechConfig.fromAuthorizationToken(
          
         this.token,
@@ -1145,9 +1156,33 @@ export default {
           const interpreted = validationResult.interpretedNumber;
           this.showToast(`Interpreted as: ${interpreted}`, validationResult.correct ? "success" : "warning");
         }
-      } else if (isFinalResult) {
-        // Show confused when no speech detected
+      }
+
+      // Silence, or an answer the backend could not interpret, is NOT a wrong
+      // answer. For a child on a phone in a room with other people it is the
+      // most likely outcome of a turn, and scoring it punished them for the
+      // room: it reset the streak, said "Not quite, the answer is 56", and
+      // wrote a permanent failure to history. The backend already distinguishes
+      // the two cases for us via understood:false.
+      const notUnderstood = isSilent || validationResult?.understood === false;
+
+      if (isFinalResult && notUnderstood) {
         this.showExpression('confused', 2000);
+        this.text = this.t('didntHear');
+
+        // One bounded retry on the SAME question. Setting isQuery makes the
+        // existing audio.onended handler re-open the microphone once the
+        // "I didn't hear you" line finishes playing.
+        if (!this.silenceRetried && this.isMicrophoneEnabled) {
+          this.silenceRetried = true;
+          this.isQuery = true;
+          this.speak();
+          return;
+        }
+
+        this.speak();
+        this.isPlayMode = true;
+        return;
       }
 
       if (isFinalResult) {
@@ -1479,7 +1514,11 @@ ion-modal.settings-modal {
   font-size: 14px;
   padding: 8px 16px;
   --border-radius: 16px;
-  --background: #0066ff;
+  /* `background`, not `--background`: ion-chip is shadow-encapsulated and its
+     own :host(.ion-color) rule sets background directly, which beat the custom
+     property. The chip was rendering white-on-8%-tint at ~1.06:1 - invisible on
+     any phone not set to dark mode. */
+  background: #0b4fd0;
   color: white;
 }
 
@@ -1683,8 +1722,18 @@ ion-footer ion-toolbar {
   }
 }
 
-/* Dark mode adjustments - settings already dark themed */
-@media (prefers-color-scheme: dark) {
-  /* Settings modal is already dark */
+/* Respect a reduced-motion preference. This stops the decorative loops only -
+   the correct/incorrect feedback, expression changes and state colours all
+   still happen, because that is information, not decoration. */
+@media (prefers-reduced-motion: reduce) {
+  .status-indicator ion-chip {
+    animation: none;
+  }
+
+  .toast-compact,
+  .setting-option,
+  .star-chip {
+    transition: none;
+  }
 }
 </style>

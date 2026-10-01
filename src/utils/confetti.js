@@ -6,6 +6,24 @@
 const COLORS = ['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8'];
 
 /**
+ * A 10-streak spawns up to 100 individually animated fixed-position particles.
+ * For a vestibular-sensitive or autistic child - well within a 7+ audience -
+ * that is unavoidable full-screen motion, so skip the particles entirely when
+ * reduced motion is requested.
+ *
+ * Nothing is lost from the reward itself: a correct answer still gives the
+ * ascending chime, the haptic, the robot's smile and green state colour, and
+ * the spoken praise. Only the decorative layer goes.
+ */
+function prefersReducedMotion() {
+  return (
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  );
+}
+
+/**
  * Create a confetti particle
  */
 function createParticle(container) {
@@ -119,6 +137,7 @@ function ensureStyles() {
  * @param {number} intensity - Number of particles (default 30)
  */
 export function celebrateConfetti(intensity = 30) {
+  if (prefersReducedMotion()) return;
   ensureStyles();
   
   // Create container
@@ -141,6 +160,7 @@ export function celebrateConfetti(intensity = 30) {
  * Show a burst effect at center of screen
  */
 export function showBurst() {
+  if (prefersReducedMotion()) return;
   ensureStyles();
   
   const burst = document.createElement('div');
@@ -156,6 +176,7 @@ export function showBurst() {
  * @param {number} y - Y position
  */
 export function showStar(x, y) {
+  if (prefersReducedMotion()) return;
   ensureStyles();
   
   const star = document.createElement('div');
@@ -173,6 +194,7 @@ export function showStar(x, y) {
  * @param {number} streak - Current streak count
  */
 export function celebrateStreak(streak) {
+  if (prefersReducedMotion()) return;
   showBurst();
   
   // More confetti for bigger streaks
