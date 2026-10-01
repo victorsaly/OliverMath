@@ -47,7 +47,14 @@ PHONES.forEach(({ name, w, h }) => {
     });
 
     it('hides the wordmark, which cannot fit beside five controls', () => {
-      cy.get('.wordmark').should('not.be.visible');
+      // Computed style, not should('not.be.visible'). The HUD sets
+      // pointer-events: none so taps reach the scene behind it, and Cypress
+      // tests visibility with elementFromPoint, which skips such elements and
+      // returns the canvas underneath - so the visibility assertion passes
+      // whether the mark is shown or not, and proves nothing.
+      cy.get('.wordmark').should(($el) => {
+        expect(getComputedStyle($el[0]).display, 'wordmark display').to.equal('none');
+      });
     });
 
     it('does not overlap the HUD groups with the wordmark', () => {
@@ -114,7 +121,10 @@ describe('Desktop layout', () => {
     cy.visit('/');
     cy.get('ion-app').should('exist');
     dismissIntro();
-    cy.get('.wordmark').should('be.visible');
+    cy.get('.wordmark').should(($el) => {
+      expect(getComputedStyle($el[0]).display, 'wordmark display').to.not.equal('none');
+      expect($el[0].getBoundingClientRect().width, 'wordmark width').to.be.greaterThan(0);
+    });
     cy.get('.wordmark').should('contain.text', 'Oliver');
   });
 });

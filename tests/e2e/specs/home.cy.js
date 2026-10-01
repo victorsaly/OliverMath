@@ -25,10 +25,9 @@ describe('Oliver Math - Home Page', () => {
     cy.get('.bot-container').should('exist');
   });
 
-  it('shows the wordmark', () => {
-    cy.get('.wordmark').should('contain.text', 'Oliver');
-    cy.get('.wordmark').should('contain.text', 'Math');
-  });
+  // Wordmark visibility is covered properly in mobile.cy.js, which asserts
+  // computed style at each width. A contain.text check here would have passed
+  // at the default 375px viewport where the mark is deliberately hidden.
 
   it('shows the floating HUD controls', () => {
     cy.get('.hud .hud-btn').should('have.length.at.least', 3);
