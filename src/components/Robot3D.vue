@@ -286,7 +286,6 @@ export default {
       this.observeVisibility();
       this.applyState();
       this.start();
-      this.$emit('ready');
     },
 
     /**
@@ -1074,8 +1073,17 @@ export default {
       // bubble can sit just above it instead of being pinned to the top of the
       // page. Only emitted when it actually moves, to avoid a parent re-render
       // on every single frame.
-      if (this.headBone && this.$refs.host) {
+      // Count frames: the first couple run before the mixer has posed the
+      // skeleton, and an unposed head bone reports a world position down at the
+      // origin - which is why the bubble first appeared at the robot's feet and
+      // then climbed to its head.
+      this.frameCount = (this.frameCount || 0) + 1;
+      const posed = this.frameCount > 2;
+
+      if (posed && this.headBone && this.$refs.host) {
         if (!this.anchorVec) this.anchorVec = new this.THREE.Vector3();
+        // Make sure the bone chain's matrices are current before reading it.
+        this.headBone.updateWorldMatrix(true, false);
         this.headBone.getWorldPosition(this.anchorVec);
         this.anchorVec.y += this.headAnchorLift;
         this.anchorVec.project(this.camera);
@@ -1100,6 +1108,14 @@ export default {
         if (!last || Math.abs(last.x - x) > 0.4 || Math.abs(last.y - y) > 0.4) {
           this.lastAnchor = { x, y };
           this.$emit('anchor', { x, y });
+        }
+
+        // Announced from here rather than from setup, so "ready" means the
+        // model is posed and the anchor is real, not merely that the files
+        // finished loading.
+        if (!this.announcedReady) {
+          this.announcedReady = true;
+          this.$emit('ready');
         }
       }
 
