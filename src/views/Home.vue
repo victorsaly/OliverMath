@@ -1,46 +1,40 @@
 <template>
   <ion-page>
-    <ion-header>
-      <ion-toolbar color="primary">
-        <ion-buttons slot="start">
-          <ion-button fill="clear" size="small" @click="showSettingsModal = true" aria-label="Open settings">
-            <ion-icon :icon="settingsIcon" slot="icon-only" style="color: white;"></ion-icon>
-          </ion-button>
-        </ion-buttons>
-        <ion-title>{{ t('title') }}</ion-title>
-        <ion-buttons slot="end">
-          <ion-button fill="clear" size="small" id="language-trigger-header" aria-label="Change language" aria-expanded="false" aria-haspopup="menu">
-            <span class="language-flag-toolbar" aria-hidden="true">{{ availableLanguages[selectedLanguage]?.flag }}</span>
-          </ion-button>
-          <ion-popover trigger="language-trigger-header" trigger-action="click">
-            <ion-content class="ion-padding">
-              <ion-list>
-                <ion-item 
-                  v-for="(lang, code) in availableLanguages" 
-                  :key="code" 
-                  button 
-                  @click="changeLanguage(code)"
-                  :class="{ 'selected-language': code === selectedLanguage }"
-                >
-                  <span class="language-flag">{{ lang.flag }}</span>
-                  <ion-label>{{ lang.name }}</ion-label>
-                </ion-item>
-              </ion-list>
-            </ion-content>
-          </ion-popover>
-          <ion-chip 
-            color="warning" 
-            class="star-chip clickable-chip" 
-            router-link="/stats"
-            aria-label="View stats and achievements"
-            role="button"
-          >
-            <ion-icon :icon="star" aria-hidden="true"></ion-icon>
-            <ion-label>{{ starsDisplay }}</ion-label>
-          </ion-chip>
-        </ion-buttons>
-      </ion-toolbar>
-    </ion-header>
+    <!-- Floating HUD. No toolbar: the robot's world is the interface, so the
+         controls sit over the scene as glass buttons instead of inside a bar. -->
+    <div class="hud">
+      <button class="hud-btn" @click="showSettingsModal = true" :aria-label="t('settings')">
+        <ion-icon :icon="settingsIcon" aria-hidden="true"></ion-icon>
+      </button>
+
+      <div class="hud-right">
+        <button class="hud-btn" id="language-trigger-header" aria-label="Change language" aria-haspopup="menu">
+          <span class="hud-flag" aria-hidden="true">{{ availableLanguages[selectedLanguage]?.flag }}</span>
+        </button>
+        <ion-popover trigger="language-trigger-header" trigger-action="click">
+          <ion-content class="ion-padding">
+            <ion-list>
+              <ion-item
+                v-for="(lang, code) in availableLanguages"
+                :key="code"
+                button
+                @click="changeLanguage(code)"
+                :class="{ 'selected-language': code === selectedLanguage }"
+              >
+                <span class="language-flag">{{ lang.flag }}</span>
+                <ion-label>{{ lang.name }}</ion-label>
+              </ion-item>
+            </ion-list>
+          </ion-content>
+        </ion-popover>
+
+        <router-link to="/stats" class="hud-stars" aria-label="View stats and achievements">
+          <ion-icon :icon="star" aria-hidden="true"></ion-icon>
+          <span>{{ stars }}</span>
+        </router-link>
+      </div>
+    </div>
+
 
     <!-- Settings Modal -->
     <ion-modal 
@@ -217,45 +211,39 @@
       </div>
     </ion-content>
     
-    <ion-footer class="ion-no-border footer-spacer">
-      <ion-toolbar>
-        <!-- Status Indicator -->
-        <div class="status-indicator" v-if="botState !== 'thinking'">
-          <ion-chip :color="statusColor">
-            <ion-icon :icon="statusIcon" aria-hidden="true"></ion-icon>
-            <ion-label>{{ statusText }}</ion-label>
-          </ion-chip>
-        </div>
-      </ion-toolbar>
-      <ion-toolbar v-if="isPlayMode && botState !== 'broken'">
-        <ion-button
-          expand="block"
-          size="large"
-          @click="askQuestion"
-          :disabled="isComputing"
-          class="play-button"
-          aria-label="Start a new math question"
-        >
-          <ion-icon :icon="playIcon" slot="start" v-if="!isComputing"></ion-icon>
-          <ion-spinner name="crescent" v-if="isComputing"></ion-spinner>
-          {{ isComputing ? t('thinking') : t('play') }}
-        </ion-button>
-      </ion-toolbar>
+    <!-- Transparent dock over the scene: a status pill and one round control.
+         No toolbar chrome - the 3D world runs edge to edge behind it. -->
+    <div class="dock">
+      <div class="status-pill" :class="botState" v-if="statusText" role="status" aria-live="polite">
+        <ion-icon :icon="statusIcon" aria-hidden="true"></ion-icon>
+        <span>{{ statusText }}</span>
+      </div>
+
+      <button
+        v-if="isPlayMode && botState !== 'broken'"
+        class="round-btn play"
+        @click="askQuestion"
+        :disabled="isComputing"
+        :aria-label="t('play')"
+      >
+        <ion-spinner name="crescent" v-if="isComputing"></ion-spinner>
+        <ion-icon :icon="playIcon" v-else aria-hidden="true"></ion-icon>
+      </button>
+
       <!-- Lets the child end their turn themselves instead of waiting for the
            recogniser to time out. Only shown while the mic is actually open. -->
-      <ion-toolbar v-else-if="isListening">
-        <ion-button
-          expand="block"
-          size="large"
-          @click="finishAnswering"
-          class="done-button"
-          :aria-label="t('stop')"
-        >
-          <ion-icon :icon="doneIcon" slot="start"></ion-icon>
-          {{ t('stop') }}
-        </ion-button>
-      </ion-toolbar>
-    </ion-footer>
+      <button
+        v-else-if="isListening"
+        class="round-btn done"
+        @click="finishAnswering"
+        :aria-label="t('stop')"
+      >
+        <ion-icon :icon="doneIcon" aria-hidden="true"></ion-icon>
+      </button>
+
+      <span class="dock-label" v-if="isPlayMode && botState !== 'broken'">{{ t('play') }}</span>
+      <span class="dock-label" v-else-if="isListening">{{ t('stop') }}</span>
+    </div>
   </ion-page>
 </template>
 <script>
@@ -265,14 +253,12 @@ import {
   IonToolbar,
   IonTitle,
   IonContent,
-  IonChip,
   IonLabel,
   IonIcon,
   toastController,
   IonItem,
   IonButton,
   IonButtons,
-  IonFooter,
   IonSpinner,
   IonModal,
   IonPopover,
@@ -302,13 +288,11 @@ export default {
     IonTitle,
     IonContent,
     IonPage,
-    IonChip,
     IonLabel,
     IonIcon,
     IonItem,
     IonButton,
     IonButtons,
-    IonFooter,
     IonSpinner,
     IonModal,
     IonPopover,
@@ -1609,6 +1593,212 @@ ion-modal.settings-modal {
   color: white;
 }
 
+/* ---------------------------------------------------------------------------
+   Immersive chrome. There is no toolbar: the robot's world runs edge to edge
+   and the controls float over it as glass. Everything here respects the safe
+   area, because a full-bleed layout puts controls under the notch otherwise.
+   --------------------------------------------------------------------------- */
+
+.hud {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: calc(env(safe-area-inset-top, 0px) + 12px) 16px 12px;
+  pointer-events: none;
+}
+
+.hud > *,
+.hud-right > * {
+  pointer-events: auto;
+}
+
+.hud-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* 48px, comfortably above the 44px minimum. The old icon buttons were 28px. */
+.hud-btn {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 50%;
+  background: rgba(16, 24, 40, 0.42);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: #ffffff;
+  font-size: 22px;
+  cursor: pointer;
+  transition: transform 0.18s ease, background 0.18s ease;
+}
+
+.hud-btn:hover {
+  background: rgba(16, 24, 40, 0.6);
+}
+
+.hud-btn:active {
+  transform: scale(0.94);
+}
+
+.hud-btn:focus-visible,
+.hud-stars:focus-visible,
+.round-btn:focus-visible {
+  outline: 3px solid #ffd700;
+  outline-offset: 3px;
+}
+
+.hud-flag {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.hud-stars {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 48px;
+  padding: 0 16px;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 215, 0, 0.45);
+  background: rgba(16, 24, 40, 0.42);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: #ffd700;
+  font-size: 18px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+/* Dock -------------------------------------------------------------------- */
+
+.dock {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px calc(env(safe-area-inset-bottom, 0px) + 20px);
+  pointer-events: none;
+  background: linear-gradient(to top, rgba(10, 14, 26, 0.72), transparent);
+}
+
+.dock > * {
+  pointer-events: auto;
+}
+
+/* One big round control instead of a full-width rectangle, which read as a
+   form submit rather than a game. 84px is a generous target for a child. */
+.round-btn {
+  width: 84px;
+  height: 84px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  color: #ffffff;
+  font-size: 38px;
+  cursor: pointer;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.38);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.round-btn:active {
+  transform: scale(0.93);
+}
+
+.round-btn[disabled] {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.round-btn.play {
+  background: linear-gradient(145deg, #2a74ea, #1b57bc);
+}
+
+/* Not success green: green with a tick is the correct-answer signal, and a
+   control must not borrow the vocabulary of feedback. */
+.round-btn.done {
+  background: linear-gradient(145deg, #5a4dc4, #3a3192);
+}
+
+.dock-label {
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+
+/* Status pill: carries state in colour AND an icon AND a word, so it does not
+   depend on colour alone. Replaces the ion-chip, whose shadow DOM overrode the
+   background and left white text at ~1.06:1 in light mode. */
+.status-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  border-radius: 22px;
+  background: rgba(10, 14, 26, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.status-pill ion-icon {
+  font-size: 18px;
+  color: #8fd8ff;
+}
+
+.status-pill.listening {
+  border-color: rgba(51, 230, 102, 0.6);
+}
+
+.status-pill.listening ion-icon {
+  color: #6ef09a;
+}
+
+.status-pill.speaking ion-icon {
+  color: #7fdcff;
+}
+
+.status-pill.computing ion-icon,
+.status-pill.thinking ion-icon {
+  color: #ffc766;
+}
+
+.status-pill.broken {
+  border-color: rgba(255, 122, 147, 0.6);
+}
+
+.status-pill.broken ion-icon {
+  color: #ff9aae;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hud-btn,
+  .round-btn {
+    transition: none;
+  }
+}
+
 /* Full-bleed: the robot is the scene, not a picture placed on the page. It
    spans the whole content area and the bubble floats over it. The negative
    margins cancel ion-content's own padding so the canvas reaches the edges. */
@@ -1621,8 +1811,11 @@ ion-modal.settings-modal {
      the percentage cannot resolve; dvh rather than vh because 100vh on iOS
      Safari is the LARGE viewport and would run the scene under the browser
      chrome. 56px header + 90px footer. */
-  min-height: calc(100vh - 146px);
-  min-height: calc(100dvh - 146px);
+  /* The whole viewport now: there is no header, and the dock floats over the
+     scene rather than taking layout space. dvh rather than vh because 100vh on
+     iOS Safari is the LARGE viewport and would run the scene under the chrome. */
+  min-height: 100vh;
+  min-height: 100dvh;
   height: 100%;
   margin: -16px;
   padding: 0;
@@ -1750,18 +1943,27 @@ ion-footer ion-toolbar {
 }
 
 /* Action buttons */
+/* Sits below the floating HUD rather than stacking a second row of controls
+   into the same corner, which previously put six icon buttons in ~120px. */
 .action-buttons {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: calc(env(safe-area-inset-top, 0px) + 74px);
+  right: 16px;
   display: flex;
   justify-content: center;
-  gap: 8px;
-  z-index: 20;
+  gap: 10px;
+  z-index: 19;
 }
 
 .action-buttons ion-button {
-  --color: var(--ion-color-medium);
+  --color: #ffffff;
+  --background: rgba(16, 24, 40, 0.42);
+  --background-hover: rgba(16, 24, 40, 0.6);
+  --border-radius: 50%;
+  --padding-start: 0;
+  --padding-end: 0;
+  width: 44px;
+  height: 44px;
 }
 
 .action-buttons ion-button:hover {

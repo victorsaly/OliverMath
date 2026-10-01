@@ -3,6 +3,14 @@ http://ionicframework.com/docs/theming/ */
 
 /** Ionic CSS Variables **/
 :root {
+  /* Rounded display face. Deliberately a system stack rather than a webfont:
+     this is an offline-capable PWA for a child's phone, and a Google Fonts
+     request is both a render-blocking round trip and a thing that fails on a
+     flaky connection. ui-rounded picks up SF Pro Rounded on Apple devices. */
+  --ion-font-family: ui-rounded, 'SF Pro Rounded', 'Hiragino Maru Gothic ProN',
+    'Quicksand', 'Varela Round', 'Segoe UI Variable Display', system-ui,
+    -apple-system, 'Segoe UI', Roboto, sans-serif;
+
   /* Product palette for OliverMath. Replaces the Ionic CLI starter
      defaults, every one of which failed WCAG AA against white text
      (secondary 2.03:1, success 1.97:1, warning 1.60:1, primary 3.68:1).
