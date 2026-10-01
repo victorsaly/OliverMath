@@ -422,7 +422,12 @@ export default {
       if (this.isError) {
         return "broken";
       }
-      if (this.isLaughing){
+      // Deliberately below speaking and listening. The robot is now a
+      // full-bleed backdrop, so a tap anywhere lands on it - and laughing used
+      // to outrank an active turn, wiping out the signal telling the child
+      // whose turn it is. The easter egg only plays when nothing else is
+      // happening.
+      if (this.isLaughing && !this.isTalking && !this.isListening) {
         return "laughing";
       }
       if (this.isHappy) {
@@ -1604,14 +1609,21 @@ ion-modal.settings-modal {
   color: white;
 }
 
+/* Full-bleed: the robot is the scene, not a picture placed on the page. It
+   spans the whole content area and the bubble floats over it. The negative
+   margins cancel ion-content's own padding so the canvas reaches the edges. */
 .bot-container {
+  position: relative;
   display: flex;
   justify-content: center;
-  align-items: center;
-  min-height: 350px;
-  /* ion-footer floats above ion-content, so the status chip was landing on top
-     of the robot. The extra bottom padding keeps the robot clear of it. */
-  padding: 16px 16px 72px;
+  align-items: stretch;
+  /* dvh, not vh: on iOS Safari 100vh is the LARGE viewport, so the scene would
+     run under the browser chrome. The vh line is the fallback for engines
+     without dvh. 56px header + 90px footer. */
+  min-height: calc(100vh - 146px);
+  min-height: calc(100dvh - 146px);
+  margin: -16px;
+  padding: 0;
 }
 
 .status-indicator {

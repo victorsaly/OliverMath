@@ -193,33 +193,21 @@ export default {
       const box = new THREE.Box3().setFromObject(this.model);
       const sizeVec = box.getSize(new THREE.Vector3());
       const center = box.getCenter(new THREE.Vector3());
-      const halfFov = (this.camera.fov * Math.PI) / 180 / 2;
-      const fitFor = (height) => (height / 2) / Math.tan(halfFov);
-
       // Measure the head itself instead of guessing a fraction of the body.
       // Guessing put the camera at the jaw, showing chest and no face.
       const headBox = this.morphMesh
         ? new THREE.Box3().setFromObject(this.morphMesh)
         : null;
-      const headSize = headBox ? headBox.getSize(new THREE.Vector3()) : null;
-      const headCenter = headBox ? headBox.getCenter(new THREE.Vector3()) : null;
 
-      // Head plus a margin either side, so the face is the subject but the
-      // shoulders still anchor it.
-      const faceHeight = headSize ? headSize.y * 2.1 : sizeVec.y * 0.45;
-      const faceY = headCenter ? headCenter.y : box.max.y - sizeVec.y * 0.18;
-
-      this.framing = {
-        full: {
-          pos: new THREE.Vector3(0, center.y + sizeVec.y * 0.06, fitFor(sizeVec.y) * 1.18),
-          target: new THREE.Vector3(0, center.y, 0)
-        },
-        face: {
-          pos: new THREE.Vector3(0, faceY, fitFor(faceHeight) * 1.05),
-          target: new THREE.Vector3(0, faceY, 0)
-        }
+      this.bounds = {
+        center,
+        sizeVec,
+        maxY: box.max.y,
+        headSize: headBox ? headBox.getSize(new THREE.Vector3()) : null,
+        headCenter: headBox ? headBox.getCenter(new THREE.Vector3()) : null
       };
 
+      this.computeFraming();
       const start = this.framing[this.activeView];
       this.lookTarget = start.target.clone();
       this.camera.position.copy(start.pos);
@@ -323,6 +311,55 @@ export default {
       });
     },
 
+    /**
+     * Work out the two camera framings for the CURRENT aspect ratio.
+     *
+     * The canvas is full-bleed, so it is usually tall and narrow on a phone and
+     * wide on a desktop. Fitting by vertical FOV alone would crop the robot
+     * sideways on a narrow screen, so each framing takes whichever distance is
+     * larger - the one that fits the height, or the one that fits the width.
+     * The margin is deliberately tight (1.02) so the robot fills as much of the
+     * available space as it can without clipping.
+     *
+     * Recomputed on resize, which is why it reads from this.bounds rather than
+     * capturing values at load.
+     */
+    computeFraming() {
+      const THREE = this.THREE;
+      if (!THREE || !this.bounds || !this.camera) return;
+
+      const { center, sizeVec, maxY, headSize, headCenter } = this.bounds;
+      const halfFov = (this.camera.fov * Math.PI) / 180 / 2;
+      const aspect = this.camera.aspect || 1;
+
+      // Distance at which a subject of the given height and width is fully
+      // visible in both axes.
+      const fit = (height, width, margin) => {
+        const forHeight = (height / 2) / Math.tan(halfFov);
+        const forWidth = (width / 2) / (Math.tan(halfFov) * aspect);
+        return Math.max(forHeight, forWidth) * margin;
+      };
+
+      const bodyWidth = Math.max(sizeVec.x, sizeVec.z);
+      const faceHeight = headSize ? headSize.y * 1.9 : sizeVec.y * 0.45;
+      const faceWidth = headSize ? headSize.x * 2.2 : sizeVec.x * 0.9;
+      const faceY = headCenter ? headCenter.y : maxY - sizeVec.y * 0.18;
+
+      this.framing = {
+        full: {
+          pos: new THREE.Vector3(
+            0,
+            center.y + sizeVec.y * 0.04,
+            fit(sizeVec.y * 1.08, bodyWidth, 1.02)
+          ),
+          target: new THREE.Vector3(0, center.y, 0)
+        },
+        face: {
+          pos: new THREE.Vector3(0, faceY, fit(faceHeight, faceWidth, 1.02)),
+          target: new THREE.Vector3(0, faceY, 0)
+        }
+      };
+    },
     /**
      * A ground the robot stands on and a soft backdrop behind it, so it reads
      * as being somewhere rather than floating. The ground texture scrolls while
@@ -548,6 +585,9 @@ export default {
       this.renderer.setSize(w, h, false);
       this.camera.aspect = w / h;
       this.camera.updateProjectionMatrix();
+      // The framing depends on the aspect ratio, so it has to follow a resize -
+      // otherwise rotating a phone crops the robot.
+      this.computeFraming();
     },
 
     observeSize() {

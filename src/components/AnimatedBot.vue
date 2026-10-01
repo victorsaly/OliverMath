@@ -1,10 +1,6 @@
 <template>
   <div class="animated-bot-container" :class="botState">
-    <!-- Speech Bubble Overlay -->
-    <p v-if="text" class="bubble speech">
-      {{ text }}
-    </p>
-
+    <!-- The robot is a full-bleed backdrop; the bubble floats over it. -->
     <div class="bot-stage">
       <!-- 3D robot. Falls back to the Lottie robot if WebGL is unavailable
            or the model fails to load. -->
@@ -29,6 +25,11 @@
         :height="size"
       />
     </div>
+
+    <!-- Speech Bubble Overlay -->
+    <p v-if="text" class="bubble speech">
+      {{ text }}
+    </p>
   </div>
 </template>
 
@@ -163,19 +164,20 @@ export default {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   width: 100%;
+  height: 100%;
 }
 
+/* The robot fills the whole stage rather than sitting in a small square, so it
+   reads as the scene the child is in rather than an illustration on a page. */
 .bot-stage {
-  position: relative;
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  /* Bounded by viewport height as well as width, so a short phone in landscape
-     cannot push the Play button off screen. */
-  width: min(300px, 70vw, 40vh);
-  aspect-ratio: 1;
+  z-index: 0;
 }
 
 /* The state glow sits on a pseudo-element so we animate opacity rather than
@@ -183,7 +185,11 @@ export default {
 .bot-stage::before {
   content: '';
   position: absolute;
-  inset: 10%;
+  left: 50%;
+  top: 50%;
+  width: min(420px, 85%);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
   border-radius: 50%;
   background: radial-gradient(circle, rgba(76, 230, 255, 0.35), transparent 70%);
   opacity: 0;
@@ -226,6 +232,7 @@ p.bubble {
   position: relative;
   width: min(300px, 80vw);
   padding: 15px 20px;
+  margin-top: 8px;
   margin-bottom: 35px;
   min-height: 60px;
   display: flex;
