@@ -116,10 +116,13 @@ export default defineConfig({
     chunkSizeWarningLimit: 600,
     rollupOptions: {
       output: {
+        // The Speech SDK is deliberately NOT listed here. Naming it as a
+        // manual chunk put it in the initial chunk graph, so Vite preloaded it
+        // from index.html even though nothing imports it statically any more.
+        // Left to Rollup, it becomes an async chunk fetched on the first tap.
         manualChunks: {
           'vue-vendor': ['vue', 'vue-router'],
-          'ionic-core': ['@ionic/vue', '@ionic/vue-router'],
-          'speech-sdk': ['microsoft-cognitiveservices-speech-sdk']
+          'ionic-core': ['@ionic/vue', '@ionic/vue-router']
         }
       }
     }

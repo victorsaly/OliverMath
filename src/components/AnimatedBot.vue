@@ -15,12 +15,12 @@
         :bodyColor="bodyColor"
         :dayMode="dayMode"
         size="100%"
-        @unsupported="use3D = false"
+        @unsupported="onUnsupported"
         @anchor="onAnchor"
         @ready="sceneReady = true"
       />
       <Vue3Lottie
-        v-else
+        v-else-if="animations"
         :key="currentAnimationType"
         :animationData="animations[currentAnimationType]"
         :loop="true"
@@ -49,23 +49,28 @@
 import { defineAsyncComponent, markRaw } from 'vue';
 import { Vue3Lottie } from 'vue3-lottie';
 
-import robotIdle from '@/assets/lottie/robot-idle.json';
-import robotHappy from '@/assets/lottie/robot-happy.json';
-import robotSad from '@/assets/lottie/robot-sad.json';
-import robotTalking from '@/assets/lottie/robot-talking.json';
-import robotThinking from '@/assets/lottie/robot-thinking.json';
-import robotListening from '@/assets/lottie/robot-listening.json';
-
-// Module-level and markRaw'd: these never change, so there is no reason to pay
-// for deep reactive proxies over six large nested objects.
-const ANIMATIONS = markRaw({
-  idle: robotIdle,
-  happy: robotHappy,
-  sad: robotSad,
-  talking: robotTalking,
-  thinking: robotThinking,
-  listening: robotListening
-});
+// 89KB of Lottie JSON that only the WebGL-unavailable path ever renders, so it
+// is fetched on demand rather than bundled into the entry chunk. markRaw'd
+// because the data never changes and deep reactive proxies over six large
+// nested objects cost real time on a low-end phone.
+async function loadLottie() {
+  const [idle, happy, sad, talking, thinking, listening] = await Promise.all([
+    import('@/assets/lottie/robot-idle.json'),
+    import('@/assets/lottie/robot-happy.json'),
+    import('@/assets/lottie/robot-sad.json'),
+    import('@/assets/lottie/robot-talking.json'),
+    import('@/assets/lottie/robot-thinking.json'),
+    import('@/assets/lottie/robot-listening.json')
+  ]);
+  return markRaw({
+    idle: idle.default,
+    happy: happy.default,
+    sad: sad.default,
+    talking: talking.default,
+    thinking: thinking.default,
+    listening: listening.default
+  });
+}
 
 const STATE_TO_ANIMATION = {
   neutral: 'idle',
@@ -140,13 +145,14 @@ export default {
   data() {
     return {
       use3D: this.supports3D(),
+      animationsReady: false,
       anchor: null,
       // Set once the 3D scene has finished loading its model and environment.
       sceneReady: false,
       // Suppresses the follow transition for one tick when the bubble appears,
       // so it does not slide in from wherever the head was last time.
       snapBubble: false,
-      animations: ANIMATIONS
+      animations: null
     };
   },
   computed: {
@@ -210,7 +216,17 @@ export default {
       }
     }
   },
+  mounted() {
+    // When WebGL is missing from the start, Robot3D never mounts and so never
+    // emits 'unsupported' - the fallback has to fetch its own data.
+    if (!this.use3D) this.ensureLottie();
+  },
   methods: {
+    async ensureLottie() {
+      if (this.animations) return;
+      this.animations = await loadLottie();
+    },
+
     snapOnce() {
       this.snapBubble = true;
       this.$nextTick(() => {
@@ -220,6 +236,11 @@ export default {
 
     onAnchor(point) {
       this.anchor = point;
+    },
+
+    onUnsupported() {
+      this.use3D = false;
+      this.ensureLottie();
     },
 
     // Cheap capability probe before we try to load three.js at all.
