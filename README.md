@@ -130,6 +130,27 @@ src/
 azure/functions/      the backend
 ```
 
+## Contributors
+
+<table>
+  <tr>
+    <td align="center">
+      <a href="https://github.com/victorsaly">
+        <img src="https://avatars.githubusercontent.com/u/2436675?v=4&s=100" width="100" alt="victorsaly"><br>
+        <sub><b>victorsaly</b></sub>
+      </a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/storm-technologies">
+        <img src="https://avatars.githubusercontent.com/u/55791248?v=4&s=100" width="100" alt="storm-technologies"><br>
+        <sub><b>storm-technologies</b></sub>
+      </a>
+    </td>
+  </tr>
+</table>
+
+The original idea, and the robot, are Oliver's.
+
 ## Credits
 
 **RobotExpressive.glb** by [Tomás Laulhé](https://www.patreon.com/quaternius), CC0 1.0,
