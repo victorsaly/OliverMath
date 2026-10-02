@@ -417,6 +417,7 @@ async function loadSpeechSdk() {
 import { star, play, speedometer, calculator, mic, volumeHigh, sync, alertCircle, refresh, volumeMute, timeOutline, trashOutline, globe, fitness, settingsOutline, close, stopCircle, helpCircle, sunny, moon } from "ionicons/icons";
 import { OPERATORS, LEVELS, NUMBER_RANGES, SCORING } from "@/config/gameConfig";
 import { getRandomInt } from "@/utils/helpers";
+import { checkSpokenAnswer } from "@/utils/numberWords";
 import { getSpeechToken, getCachedAudio, validateAnswer } from "@/services/apiService";
 import { LANGUAGES, SPEECH_VOICES, getPreferredLanguage, setLanguage, t, getRandomPhrase } from "@/config/i18n";
 import { addToHistory, getHistory, clearHistory as clearHistoryService, formatTimestamp, getOperatorSymbol, getRecommendedDifficulty, getSpacedRepetitionProblem } from "@/services/historyService";
@@ -1629,9 +1630,36 @@ export default {
     /**
      * Validate if the spoken/typed word matches the expected answer using LLM
      */
+    /**
+     * Work out what the child said and whether it is right.
+     *
+     * Interpreted LOCALLY first. This used to call the backend for every
+     * answer, which made a maths game depend on a network round trip, an API
+     * key and a running Function App just to tell 56 from 42 - and when any of
+     * those failed the fallback was a digit regex, which finds nothing in
+     * spoken words, so a child saying the correct answer was told they were
+     * wrong. Reading a spoken number needs no model.
+     *
+     * The backend is still consulted, but only when local parsing finds no
+     * number at all - the phrasings a lookup cannot cover. If it is unavailable
+     * the game carries on working.
+     */
     async validateWordWithLLM(word) {
       if (!word || this.isResolved) return;
-      
+
+      const local = checkSpokenAnswer(word, this.expectedResultAsNumber, this.selectedLanguage);
+
+      if (local.understood) {
+        if (local.correct) this.isResolved = true;
+        return {
+          correct: local.correct,
+          understood: true,
+          interpretedNumber: local.number,
+          confidence: 'high'
+        };
+      }
+
+      // Nothing recognisable locally - ask the backend, if it is there.
       try {
         const result = await validateAnswer(
           word,
@@ -1643,26 +1671,16 @@ export default {
           this.currentQuestion || this.text,
           this.selectedLanguage
         );
-        
+
         if (result.correct) {
           this.isResolved = true;
         }
-        
-        // Show what the LLM interpreted
-        if (result.understood && result.interpretedNumber !== null) {
-          console.log(`LLM interpreted "${word}" as ${result.interpretedNumber} (confidence: ${result.confidence})`);
-        }
-        
         return result;
       } catch (error) {
-        console.error('LLM validation failed:', error);
-        // Fall back to simple extraction
-        const match = String(word).match(/\d+/);
-        const number = match ? parseInt(match[0], 10) : null;
-        if (number !== null && number === this.expectedResultAsNumber) {
-          this.isResolved = true;
-        }
-        return { correct: this.isResolved, understood: number !== null };
+        console.warn('Answer validation service unavailable:', error);
+        // Local parsing already found no number, so this is "I did not catch
+        // that" - never a wrong answer.
+        return { correct: false, understood: false, interpretedNumber: null };
       }
     },
     /**
