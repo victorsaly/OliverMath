@@ -11,9 +11,13 @@
     />
     <meta name="format-detection" content="telephone=no" />
     <meta name="msapplication-tap-highlight" content="no" />
-    <meta name="description" content="A free voice-controlled maths game for children aged 7+. A 3D robot asks the questions, your child answers out loud, and correct answers earn stars. Works offline, no sign-up." />
+    <meta name="description" content="A free talking-robot maths game for children aged 7+. The robot asks, your child answers out loud, and right answers earn stars. Works offline, no sign-up." />
     <meta name="keywords" content="maths game for kids, math practice, voice recognition, times tables, mental arithmetic, children, educational game, speech, free" />
-    <meta name="author" content="Oliver" />
+    <meta name="application-name" content="Oliver Math" />
+    <meta name="author" content="Oliver Saly" />
+    <meta name="author" content="Victor Saly" />
+    <meta name="creator" content="Oliver Saly" />
+    <meta name="publisher" content="Victor Saly" />
     <meta name="robots" content="index, follow" />
     <link rel="canonical" href="https://victorsaly.github.io/OliverMath/" />
 
@@ -21,18 +25,21 @@
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Oliver Math" />
     <meta property="og:title" content="Oliver Math - talk to the robot, practise maths" />
-    <meta property="og:description" content="A free voice-controlled maths game for children aged 7+. A 3D robot asks the questions, your child answers out loud, and correct answers earn stars." />
+    <meta property="og:description" content="A free talking-robot maths game for children aged 7+. The robot asks, your child answers out loud, and right answers earn stars. Works offline, no sign-up." />
     <meta property="og:url" content="https://victorsaly.github.io/OliverMath/" />
-    <meta property="og:image" content="https://victorsaly.github.io/OliverMath/assets/icon/icon-512.png" />
-    <meta property="og:image:width" content="512" />
-    <meta property="og:image:height" content="512" />
+    <meta property="og:image" content="https://victorsaly.github.io/OliverMath/social/social-card.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Oliver Math: a 3D robot standing in a sunlit landscape, waiting for a child to press Play" />
     <meta property="og:locale" content="en_GB" />
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Oliver Math - talk to the robot, practise maths" />
     <meta name="twitter:description" content="A free voice-controlled maths game for children aged 7+. Answer out loud, earn stars." />
-    <meta name="twitter:image" content="https://victorsaly.github.io/OliverMath/assets/icon/icon-512.png" />
+    <meta name="twitter:image" content="https://victorsaly.github.io/OliverMath/social/social-card.png" />
+    <meta name="twitter:image:alt" content="Oliver Math: a 3D robot standing in a sunlit landscape, waiting for a child to press Play" />
 
     <!-- SVG first: browsers that support it get a mark that stays sharp at any
          size and in any theme. The PNGs are the fallback. -->
@@ -53,6 +60,46 @@
     <link rel="apple-touch-startup-image" href="/assets/splash/LaunchImage-1125@3x~iphoneX-portrait_1125x2436.png" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
     <meta name="msapplication-TileColor" content="#1f63d6">
     <meta name="theme-color" content="#1f63d6">
+
+    <!-- Structured data. WebApplication rather than Article or Product: this is
+         a thing you use in a browser, free, with no checkout. Every field below
+         is true of the app as it actually ships - schema for content that is
+         not there is worse than no schema. -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Oliver Math",
+        "url": "https://victorsaly.github.io/OliverMath/",
+        "description": "A free talking-robot maths game for children aged 7+. The robot asks, your child answers out loud, and right answers earn stars. Works offline, no sign-up.",
+        "applicationCategory": "EducationalApplication",
+        "applicationSubCategory": "Mental arithmetic practice for children",
+        "operatingSystem": "Any",
+        "browserRequirements": "Requires a modern browser with microphone access; WebGL for the 3D robot",
+        "isAccessibleForFree": true,
+        "inLanguage": ["en-GB", "es", "fr", "de", "pt"],
+        "audience": {
+          "@type": "EducationalAudience",
+          "educationalRole": "student",
+          "suggestedMinAge": 7
+        },
+        "learningResourceType": "Game",
+        "educationalUse": "Practice",
+        "teaches": "Mental arithmetic: addition, subtraction, multiplication and division",
+        "image": "https://victorsaly.github.io/OliverMath/social/social-card.png",
+        "screenshot": "https://victorsaly.github.io/OliverMath/social/social-card.png",
+        "sameAs": ["https://github.com/victorsaly/OliverMath"],
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "creator": [
+          { "@type": "Person", "name": "Oliver Saly" },
+          { "@type": "Person", "name": "Victor Saly" }
+        ]
+      }
+    </script>
   </head>
 
   <body>

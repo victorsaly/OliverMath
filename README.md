@@ -8,7 +8,7 @@ out loud, the child answers by speaking, and correct answers earn stars.
 Made for Oliver, who wanted a robot that talks and listens like Alexa, but for
 his times tables.
 
-![The robot waiting for the child to press Play](.github/images/hero.png)
+[![Oliver Math: a 3D robot standing in a sunlit landscape, waiting for a child to press Play](.github/images/hero.png)](https://victorsaly.github.io/OliverMath/)
 
 ## What it offers
 
@@ -28,11 +28,20 @@ his times tables.
 - **Installable and offline-capable.** It is a PWA; the code, 3D model and
   assets are precached. Speech still needs a connection.
 
-<p>
-  <img src=".github/images/onboarding-mobile.png" alt="First-run screen on a phone: tap Play, listen, say your answer" width="260">
-  &nbsp;
-  <img src=".github/images/stats.png" alt="Stats page with total stars, accuracy and achievements" width="520">
-</p>
+## Screens
+
+<table>
+  <tr>
+    <td align="center" valign="top">
+      <img src=".github/images/onboarding-mobile.png" alt="First-run screen on a phone: tap Play, listen, say your answer out loud" width="240"><br>
+      <sub><b>First run</b><br>Three steps, and the robot<br>can read them aloud</sub>
+    </td>
+    <td align="center" valign="top">
+      <img src=".github/images/stats.png" alt="Stats page showing total stars, accuracy, performance per operator and achievement badges" width="420"><br>
+      <sub><b>Progress</b><br>Stars, accuracy and<br>per-operator breakdown</sub>
+    </td>
+  </tr>
+</table>
 
 ## Accessibility
 

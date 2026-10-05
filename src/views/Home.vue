@@ -1,5 +1,11 @@
 <template>
   <ion-page>
+    <!-- The page had no h1 at all, which left search engines and screen
+         readers with no statement of what this page is. It is visually hidden
+         because the wordmark carries the branding on screen - and on a phone
+         even that is hidden - but it must still be in the document. -->
+    <h1 class="visually-hidden">Oliver Math - practise maths by talking to a robot</h1>
+
     <!-- Floating HUD. No toolbar: the robot's world is the interface, so the
          controls sit over the scene as glass buttons instead of inside a bar. -->
     <div class="hud">
@@ -2278,6 +2284,21 @@ ion-modal.settings-modal {
 .colour-swatch:focus-visible {
   outline: 3px solid #ffd700;
   outline-offset: 3px;
+}
+
+/* Available to assistive tech and crawlers, absent from the layout. Not
+   display:none, which would remove it from the accessibility tree too. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 
 /* Wordmark ----------------------------------------------------------------- */
