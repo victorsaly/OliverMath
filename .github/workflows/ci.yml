@@ -54,10 +54,21 @@ jobs:
           exit 1
 
       - name: E2E tests
-        uses: cypress-io/github-action@v6
-        with:
-          install: false
-          command: npm run test:e2e
+        run: |
+          set -o pipefail
+          npm run test:e2e 2>&1 | tee e2e.log
+
+      # Puts the failing tests and their reasons on the run's summary page, so
+      # a failure can be read without opening the full log.
+      - name: Report failing E2E tests
+        if: failure()
+        run: |
+          if [ -f e2e.log ]; then
+            sed 's/\x1b\[[0-9;]*m//g' e2e.log \
+              | grep -E '^ +[0-9]+\) |AssertionError|CypressError|Timed out' \
+              | head -20 \
+              | while IFS= read -r line; do echo "::error::${line}"; done
+          fi
 
 # Deployment lives in deploy.yml, which publishes through GitHub Pages' own
 # workflow source. A second deploy job here pushed the same build to a gh-pages
