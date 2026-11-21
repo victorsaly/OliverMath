@@ -136,6 +136,8 @@ describe('Mobile layout - help card', () => {
       cy.visit('/');
       cy.get('ion-app').should('exist');
 
+      // The card is no longer shown on a first visit; it opens from Help.
+      cy.get('.hud-btn.help').click();
       cy.get('.intro-card').should('be.visible').then(($card) => {
         const r = $card[0].getBoundingClientRect();
         expect(r.left, 'card left edge').to.be.at.least(0);

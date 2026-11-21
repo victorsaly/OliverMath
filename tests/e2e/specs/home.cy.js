@@ -53,14 +53,31 @@ describe('Oliver Math - Settings', () => {
     });
   });
 
-  it('opens the settings modal from the HUD', () => {
+  // Grown-ups sits behind a gate: three numbers written as words.
+  const passGate = () => {
+    const words = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'];
     cy.get('.hud-btn').first().click();
+    cy.get('.gate-words').invoke('text').then((text) => {
+      text.split(',').forEach((word) => {
+        cy.contains('.gate-sheet .pad-key', new RegExp(`^${words.indexOf(word.trim())}$`)).click();
+      });
+    });
+  };
+
+  it('keeps settings behind the grown-ups gate', () => {
+    cy.get('.hud-btn').first().click();
+    cy.get('.gate-sheet').should('be.visible');
+    cy.get('.settings-group').should('not.exist');
+  });
+
+  it('opens the settings modal from the HUD', () => {
+    passGate();
     cy.get('ion-modal').should('be.visible');
     cy.get('.settings-group').should('have.length.at.least', 1);
   });
 
   it('offers robot colour swatches', () => {
-    cy.get('.hud-btn').first().click();
+    passGate();
     cy.get('ion-modal').should('be.visible');
     cy.get('.colour-swatch').should('have.length.at.least', 4);
   });
