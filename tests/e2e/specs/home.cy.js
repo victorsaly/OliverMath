@@ -37,8 +37,13 @@ describe('Oliver Math - Home Page', () => {
     cy.get('.hud-stars').should('be.visible');
   });
 
-  it('shows the status pill', () => {
-    cy.get('.status-pill').should('exist');
+  // "Ready to play!" used to sit beside a bare icon. Play now carries its own
+  // word, and the status pill is kept for states that need one.
+  it('shows a labelled Play button and the first-run steps', () => {
+    cy.get('.round-btn.play').should('be.visible');
+    cy.get('.play-label').should('not.be.empty');
+    cy.get('.how-chips span').should('have.length', 3);
+    cy.get('.status-pill').should('not.exist');
   });
 });
 
