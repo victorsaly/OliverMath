@@ -70,6 +70,15 @@ const BODY_VIEW_STATES = new Set([
   'neutral', 'excited', 'laughing', 'proud', 'broken', 'sleepy'
 ]);
 
+// How each of the model's three materials is finished. Painted panels stay a
+// little rough so the body colour still reads; steel and the black eyes are
+// smoother so they catch highlights.
+const METAL = {
+  Main: { metalness: 0.95, roughness: 0.38, env: 0.7 },
+  Grey: { metalness: 1.0, roughness: 0.34, env: 0.7, color: 0x6e7074 },
+  Black: { metalness: 0.9, roughness: 0.2, env: 0.9 }
+};
+
 export default {
   name: 'Robot3D',
   props: {
@@ -161,9 +170,26 @@ export default {
       });
       this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+      // Polished metal throws highlights far brighter than white. Left alone
+      // they clip, and a gold robot turns pale cream. Tone mapping rolls them
+      // off so the metal keeps its colour. The painted sky, ground and sprites
+      // opt out further down - they are already the colours they should be.
+      this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      this.renderer.toneMappingExposure = 0.68;
 
       this.scene = new THREE.Scene();
       this.camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100);
+
+      // Metal has no colour of its own: it shows what is around it. Without
+      // something to reflect, a metallic material renders close to black, so
+      // the scene carries a small generated studio to mirror. It is built in
+      // code (no image to download) and only lit materials see it - the
+      // painted sky and ground are unaffected.
+      const { RoomEnvironment } = await import('three/examples/jsm/environments/RoomEnvironment.js');
+      const pmrem = new THREE.PMREMGenerator(this.renderer);
+      this.envTexture = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+      pmrem.dispose();
+      this.scene.environment = this.envTexture;
 
       // Lit to match the painted sky: a cool sky/ground hemisphere, a warm key
       // coming from where the sun is drawn (back and to the right, low), and a
@@ -187,7 +213,8 @@ export default {
       this.scene.add(rim);
       this.rimLight = rim;
 
-      const fill = new THREE.DirectionalLight(0xbfd4ff, 0.75);
+      // Neutral, not blue: on metal a tinted fill shows up as a blue cast.
+      const fill = new THREE.DirectionalLight(0xffffff, 0.5);
       fill.position.set(-3, 1.5, 3);
       this.scene.add(fill);
 
@@ -238,6 +265,19 @@ export default {
       this.model.traverse((o) => {
         if (o.isMesh && o.morphTargetDictionary && !this.morphMesh) {
           this.morphMesh = o;
+        }
+        // The model ships as matte plastic (metalness 0.1, roughness 0.9). The
+        // robot is meant to be metal all over: painted panels, steel joints and
+        // polished black eyes. Each of the three shared materials is retuned
+        // once; the faceted low-poly surfaces do the rest by catching the
+        // reflection at a different angle each.
+        if (o.isMesh && o.material && METAL[o.material.name] && !o.material.userData.metal) {
+          const look = METAL[o.material.name];
+          o.material.metalness = look.metalness;
+          o.material.roughness = look.roughness;
+          o.material.envMapIntensity = look.env;
+          if (look.color) o.material.color.setHex(look.color);
+          o.material.userData.metal = true;
         }
         // Tint the body material so the state colour reads on the robot itself,
         // not just on the ring.
@@ -291,6 +331,15 @@ export default {
       });
 
       this.clock = new THREE.Clock();
+      // Everything that is not the robot is painted, not lit: keep it out of
+      // tone mapping so the sky and ground stay exactly as drawn.
+      this.scene.traverse((o) => {
+        const mats = Array.isArray(o.material) ? o.material : [o.material];
+        mats.forEach((m) => {
+          if (m && !m.isMeshStandardMaterial) m.toneMapped = false;
+        });
+      });
+
       this.resize();
       // resize() recomputes the framing against the real aspect ratio, which
       // moves the target away from where the camera was placed a moment ago.
@@ -362,7 +411,9 @@ export default {
       if (this.bodyMaterials) {
         this.bodyMaterials.forEach((m) => {
           m.emissive = new THREE.Color(cfg.color);
-          m.emissiveIntensity = 0.22;
+          // A whisper of the state colour. At the old 0.22 it washed the metal
+          // towards the tint and the body colour stopped reading.
+          m.emissiveIntensity = 0.03;
         });
       }
       if (this.orbit) this.orbit.visible = !!cfg.orbit;
@@ -466,7 +517,11 @@ export default {
           pos: new THREE.Vector3(
             0,
             center.y + lift,
-            fit(sizeVec.y * (1 + HEADROOM + FOOTROOM), bodyWidth, 1.04)
+            // The bounds are measured in the rest pose. The idle clip swings
+            // the arms wider than that and brings the hands towards the
+            // camera, which cropped both arms on a phone; the extra width is
+            // what keeps them in frame on a narrow screen.
+            fit(sizeVec.y * (1 + HEADROOM + FOOTROOM), bodyWidth * 1.32, 1.04)
           ),
           target: new THREE.Vector3(0, center.y + lift, 0)
         },
@@ -1229,6 +1284,7 @@ export default {
       if (this.ro) this.ro.disconnect();
       if (this.io) this.io.disconnect();
       if (this.mixer) this.mixer.stopAllAction();
+      if (this.envTexture) this.envTexture.dispose();
       if (this.scene) {
         this.scene.traverse((o) => {
           // Sprites carry a material and a canvas texture of their own, and
