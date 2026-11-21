@@ -250,6 +250,12 @@
               <div><dt>{{ t('privacyProgress') }}</dt><dd class="good">{{ t('privacyProgressValue') }}</dd></div>
               <div><dt>{{ t('privacyAds') }}</dt><dd class="good">{{ t('privacyNone') }}</dd></div>
             </dl>
+            <!-- Plain pages, not part of the game: they open in its place and
+                 carry their own way back. Reachable only from behind the gate. -->
+            <div class="settings-options vertical parent-links">
+              <a class="setting-option wide" :href="publicPath + 'privacy.html'">{{ t('privacyForParents') }}</a>
+              <a class="setting-option wide" :href="publicPath + 'support.html'">{{ t('helpAndSupport') }}</a>
+            </div>
           </div>
 
           <div class="settings-group">
@@ -547,7 +553,7 @@ import { star, play, speedometer, calculator, mic, volumeHigh, sync, alertCircle
 import { OPERATORS, LEVELS, NUMBER_RANGES, SCORING } from "@/config/gameConfig";
 import { getRandomInt } from "@/utils/helpers";
 import { checkSpokenAnswer } from "@/utils/numberWords";
-import { getSpeechToken, getCachedAudio, validateAnswer } from "@/services/apiService";
+import { getSpeechToken, getCachedAudio } from "@/services/apiService";
 import { isNativeApp, prepareDeviceSpeech, listenOnDevice, stopDeviceListening, speakOnDevice, stopDeviceSpeaking } from "@/services/deviceSpeech";
 import { LANGUAGES, SPEECH_VOICES, getPreferredLanguage, setLanguage, t, getRandomPhrase } from "@/config/i18n";
 import { addToHistory, getHistory, clearHistory as clearHistoryService, formatTimestamp, getOperatorSymbol, getRecommendedDifficulty, getSpacedRepetitionProblem } from "@/services/historyService";
@@ -2056,34 +2062,12 @@ export default {
         };
       }
 
-      // The native apps never send what the child said anywhere.
-      if (isNativeApp) {
-        return { correct: false, understood: false, interpretedNumber: null };
-      }
-
-      // Nothing recognisable locally - ask the backend, if it is there.
-      try {
-        const result = await validateAnswer(
-          word,
-          this.expectedResultAsNumber,
-          // The question, NOT this.text. this.text is whatever the robot is
-          // currently saying, and the retry path overwrites it with the
-          // "I didn't hear you" line - so the retry was being validated
-          // without the sum ever being shown to the model.
-          this.currentQuestion || this.text,
-          this.selectedLanguage
-        );
-
-        if (result.correct) {
-          this.isResolved = true;
-        }
-        return result;
-      } catch (error) {
-        console.warn('Answer validation service unavailable:', error);
-        // Local parsing already found no number, so this is "I did not catch
-        // that" - never a wrong answer.
-        return { correct: false, understood: false, interpretedNumber: null };
-      }
+      // Nothing recognisable locally, so this is "I did not catch that" -
+      // never a wrong answer. The web version used to send the transcript on
+      // to a backend that passed it to a language model and logged it. A
+      // children's game should not send what a child said anywhere it does
+      // not have to, and the child now has the number pad instead.
+      return { correct: false, understood: false, interpretedNumber: null };
     },
     /**
      * Process speech recognition result
@@ -2496,6 +2480,13 @@ ion-toolbar.navy-bar {
   --background: #101b3d;
   --color: #ffffff;
   --border-color: rgba(255, 255, 255, 0.12);
+}
+.parent-links {
+  margin-top: 14px;
+}
+.parent-links a {
+  display: block;
+  text-decoration: none;
 }
 .privacy-list {
   margin: 0;

@@ -146,3 +146,18 @@ describe('Oliver Math - Accessibility', () => {
     cy.get('.round-btn.play').should('be.visible');
   });
 });
+
+describe('Oliver Math - Pages for parents', () => {
+  ['privacy.html', 'support.html'].forEach((page) => {
+    it(`serves ${page} as a real page with a way back`, () => {
+      cy.visit('/');
+      cy.location('pathname').then((base) => {
+        cy.request(base + page).then((response) => {
+          expect(response.status).to.equal(200);
+          expect(response.body).to.contain('Back to the game');
+          expect(response.body).to.contain('Oliver');
+        });
+      });
+    });
+  });
+});

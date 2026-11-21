@@ -20,6 +20,8 @@ export default defineConfig({
         globIgnores: ['**/assets/icon/**'],
         navigateFallback: '/OliverMath/index.html',
         navigateFallbackAllowlist: [/^(?!\/__)/],
+        // Real pages, not routes of the game: never answer them with the app.
+        navigateFallbackDenylist: [/\/(privacy|support)\.html$/],
         skipWaiting: true,
         clientsClaim: true,
         runtimeCaching: [
