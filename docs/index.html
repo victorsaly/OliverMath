@@ -1,112 +1,144 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <title>Oliver Math - talk to the robot, practise maths</title>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Oliver Math - maths out loud, with a robot</title>
+  <meta name="description" content="A robot asks a sum, your child says the answer, and right answers earn stars. For children of seven and up, in five languages, with no ads and no accounts.">
+  <meta name="theme-color" content="#101b3d">
+  <link rel="canonical" href="https://victorsaly.github.io/OliverMath/">
 
-    <meta name="color-scheme" content="dark light" />
-    <meta
-      name="viewport"
-      content="viewport-fit=cover, width=device-width, initial-scale=1.0, minimum-scale=1.0"
-    />
-    <meta name="format-detection" content="telephone=no" />
-    <meta name="msapplication-tap-highlight" content="no" />
-    <meta name="description" content="A free talking-robot maths game for children aged 7+. The robot asks, your child answers out loud, and right answers earn stars. Works offline, no sign-up." />
-    <meta name="keywords" content="maths game for kids, math practice, voice recognition, times tables, mental arithmetic, children, educational game, speech, free" />
-    <meta name="application-name" content="Oliver Math" />
-    <meta name="author" content="Oliver Saly" />
-    <meta name="author" content="Victor Saly" />
-    <meta name="creator" content="Oliver Saly" />
-    <meta name="publisher" content="Victor Saly" />
-    <meta name="robots" content="index, follow" />
-    <link rel="canonical" href="https://victorsaly.github.io/OliverMath/" />
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Oliver Math">
+  <meta property="og:title" content="Oliver Math - maths out loud, with a robot">
+  <meta property="og:description" content="A robot asks a sum, your child says the answer, and right answers earn stars. For children of seven and up.">
+  <meta property="og:url" content="https://victorsaly.github.io/OliverMath/">
+  <meta property="og:image" content="https://victorsaly.github.io/OliverMath/play/social/social-card.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Oliver Math: a 3D robot standing in a sunlit landscape, waiting for a child to press Play">
+  <meta property="og:locale" content="en_GB">
+  <meta name="twitter:card" content="summary_large_image">
 
-    <!-- Open Graph -->
-    <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="Oliver Math" />
-    <meta property="og:title" content="Oliver Math - talk to the robot, practise maths" />
-    <meta property="og:description" content="A free talking-robot maths game for children aged 7+. The robot asks, your child answers out loud, and right answers earn stars. Works offline, no sign-up." />
-    <meta property="og:url" content="https://victorsaly.github.io/OliverMath/" />
-    <meta property="og:image" content="https://victorsaly.github.io/OliverMath/social/social-card.png" />
-    <meta property="og:image:type" content="image/png" />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Oliver Math: a 3D robot standing in a sunlit landscape, waiting for a child to press Play" />
-    <meta property="og:locale" content="en_GB" />
+  <link rel="icon" href="play/assets/icon/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="play/assets/icon/apple-touch-icon.png">
+  <link rel="stylesheet" href="site.css">
 
-    <!-- Twitter -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Oliver Math - talk to the robot, practise maths" />
-    <meta name="twitter:description" content="A free voice-controlled maths game for children aged 7+. Answer out loud, earn stars." />
-    <meta name="twitter:image" content="https://victorsaly.github.io/OliverMath/social/social-card.png" />
-    <meta name="twitter:image:alt" content="Oliver Math: a 3D robot standing in a sunlit landscape, waiting for a child to press Play" />
+  <!-- This address used to be the game itself. An installed copy still opens
+       here, so it is sent straight on to the game rather than to a web page. -->
+  <script>
+    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+      window.location.replace('play/');
+    }
+  </script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to the page</a>
 
-    <!-- SVG first: browsers that support it get a mark that stays sharp at any
-         size and in any theme. The PNGs are the fallback. -->
-    <link rel="icon" type="image/svg+xml" href="/OliverMath/assets/icon/favicon.svg" />
-    <link rel="icon" type="image/png" sizes="16x16" href="/OliverMath/assets/icon/favicon-16.png" />
-    <link rel="icon" type="image/png" sizes="32x32" href="/OliverMath/assets/icon/favicon-32.png" />
-    <link rel="icon" type="image/png" sizes="64x64" href="/OliverMath/assets/icon/favicon.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/OliverMath/assets/icon/apple-touch-icon.png" />
+  <header class="nav">
+    <a class="brand" href="./" aria-label="Oliver Math, home">Oliver<span>Math</span></a>
+    <nav aria-label="Site">
+      <a href="#how">How it works</a>
+      <a href="#parents">For parents</a>
+      <a href="play/support.html">Support</a>
+      <a class="nav-play" href="play/">Play in the browser</a>
+    </nav>
+  </header>
 
-    <!-- add to homescreen for ios -->
-    <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-title" content="Oliver Math" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <link rel="apple-touch-startup-image" href="/OliverMath/assets/splash/LaunchImage-568h@2x~iphone_640x1136.png" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
-    <link rel="apple-touch-startup-image" href="/OliverMath/assets/splash/LaunchImage-750@2x~iphone6-portrait_750x1334.png" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
-    <link rel="apple-touch-startup-image" href="/OliverMath/assets/splash/LaunchImage-1242@3x~iphone6s-portrait_1242x2208.png" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
-    <link rel="apple-touch-startup-image" href="/OliverMath/assets/splash/LaunchImage-1125@3x~iphoneX-portrait_1125x2436.png" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
-    <meta name="msapplication-TileColor" content="#1f63d6">
-    <meta name="theme-color" content="#1f63d6">
+  <main id="main">
+    <section class="hero">
+      <div class="hero-words">
+        <h1>Maths, <span>out loud.</span></h1>
+        <p class="lede">A robot asks a sum. Your child says the answer. No typing and no reading needed, and right answers earn stars.</p>
+        <div class="cta">
+          <a class="button" href="play/">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+            Play in the browser
+          </a>
+          <!-- When the apps are live, the official App Store and Google Play
+               badges replace this line. Their artwork comes from Apple and
+               Google and must not be redrawn. -->
+          <p class="soon">Coming to iPhone, iPad and Android.</p>
+        </div>
+        <p class="small">For children of seven and up. English, Spanish, French, German and Portuguese.</p>
+      </div>
+      <div class="phone hero-phone">
+        <img src="img/listen.jpg" width="780" height="1688" alt="The game on a phone: the sum 11 times 11 in large figures above a gold robot, with a panel saying Your turn.">
+      </div>
+    </section>
 
-    <!-- Structured data. WebApplication rather than Article or Product: this is
-         a thing you use in a browser, free, with no checkout. Every field below
-         is true of the app as it actually ships - schema for content that is
-         not there is worse than no schema. -->
-    <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "WebApplication",
-        "name": "Oliver Math",
-        "url": "https://victorsaly.github.io/OliverMath/",
-        "description": "A free talking-robot maths game for children aged 7+. The robot asks, your child answers out loud, and right answers earn stars. Works offline, no sign-up.",
-        "applicationCategory": "EducationalApplication",
-        "applicationSubCategory": "Mental arithmetic practice for children",
-        "operatingSystem": "Any",
-        "browserRequirements": "Requires a modern browser with microphone access; WebGL for the 3D robot",
-        "isAccessibleForFree": true,
-        "inLanguage": ["en-GB", "es", "fr", "de", "pt"],
-        "audience": {
-          "@type": "EducationalAudience",
-          "educationalRole": "student",
-          "suggestedMinAge": 7
-        },
-        "learningResourceType": "Game",
-        "educationalUse": "Practice",
-        "teaches": "Mental arithmetic: addition, subtraction, multiplication and division",
-        "image": "https://victorsaly.github.io/OliverMath/social/social-card.png",
-        "screenshot": "https://victorsaly.github.io/OliverMath/social/social-card.png",
-        "sameAs": ["https://github.com/victorsaly/OliverMath"],
-        "offers": {
-          "@type": "Offer",
-          "price": "0",
-          "priceCurrency": "USD"
-        },
-        "creator": [
-          { "@type": "Person", "name": "Oliver Saly" },
-          { "@type": "Person", "name": "Victor Saly" }
-        ]
-      }
-    </script>
-    <script type="module" crossorigin src="/OliverMath/assets/index-DJbs9zxX.js"></script>
-    <link rel="modulepreload" crossorigin href="/OliverMath/assets/vue-vendor-CnOIbZSA.js">
-    <link rel="modulepreload" crossorigin href="/OliverMath/assets/ionic-core-CU_54PR_.js">
-    <link rel="stylesheet" crossorigin href="/OliverMath/assets/index-DVaEa-GE.css">
-  <link rel="manifest" href="/OliverMath/manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="/OliverMath/registerSW.js"></script></head>
+    <section id="how" class="band">
+      <h2>How it works</h2>
+      <ol class="steps">
+        <li>
+          <div class="phone"><img src="img/listen.jpg" width="780" height="1688" loading="lazy" alt="The robot has asked 11 times 11 and is listening for the answer."></div>
+          <h3><span>1</span> Tap Play</h3>
+          <p>The robot asks a sum out loud and shows it in big figures, so a child who missed the words can still see it.</p>
+        </li>
+        <li>
+          <div class="phone"><img src="img/pad.jpg" width="780" height="1688" loading="lazy" alt="A number pad with large keys under the sum 11 times 5."></div>
+          <h3><span>2</span> Say the answer, or tap it</h3>
+          <p>Speaking is the point, but a noisy room or a shy day should not stop the game. The number pad is always one tap away and earns the same stars.</p>
+        </li>
+        <li>
+          <div class="phone"><img src="img/right.jpg" width="780" height="1688" loading="lazy" alt="Confetti and a panel reading plus 2 stars, 8 times 7 equals 56, streak 3."></div>
+          <h3><span>3</span> Earn stars</h3>
+          <p>Right answers build a streak. An answer the robot did not hear is never marked wrong, and a wrong one is met with the right answer, not a telling-off.</p>
+        </li>
+      </ol>
+    </section>
 
-  <body>
-    <div id="app"></div>
-  </body>
+    <section class="facts" aria-label="At a glance">
+      <div>
+        <h3>Their voice stays on the phone</h3>
+        <p>In the app, the phone itself turns the spoken answer into a number. Nothing is recorded and nothing is sent.</p>
+      </div>
+      <div>
+        <h3>Works with no internet</h3>
+        <p>Once a language has been set up, the app plays anywhere: in the car, on a plane, at Grandma's.</p>
+      </div>
+      <div>
+        <h3>No ads, no accounts, no tracking</h3>
+        <p>Nothing to sign up for and nothing that follows your child around.</p>
+      </div>
+    </section>
+
+    <section id="parents" class="band parents">
+      <div class="parents-words">
+        <h2>For parents</h2>
+        <p>Oliver Math practises times tables, adding, taking away and dividing, at three levels or one that adjusts by itself. Your child chooses the kind of sum; you choose the level and the language.</p>
+        <ul>
+          <li><strong>Settings are behind a gate.</strong> Opening them means tapping three numbers written as words, which keeps small hands out.</li>
+          <li><strong>Progress stays on the device.</strong> Stars, badges and the record of past sums are kept on the phone or in the browser and nowhere else.</li>
+          <li><strong>The browser version is different in one way.</strong> In a browser, the sound of the answer is sent to Microsoft to be turned into a number. If you would rather it was not, your child can play with the number pad, or wait for the app.</li>
+        </ul>
+        <p class="links">
+          <a href="play/privacy.html">Privacy for parents</a>
+          <a href="play/support.html">Help and support</a>
+        </p>
+      </div>
+      <div class="phone">
+        <img src="img/stars.jpg" width="780" height="1688" loading="lazy" alt="The stars page: 6 stars, 3 sums, 3 right, best run 3, and the next badge with a progress bar.">
+      </div>
+    </section>
+
+    <section class="closing">
+      <h2>Try it now</h2>
+      <p>It takes a microphone and about a minute.</p>
+      <a class="button" href="play/">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+        Play in the browser
+      </a>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <p>Oliver Math, by Victor Saly</p>
+    <nav aria-label="Footer">
+      <a href="play/privacy.html">Privacy for parents</a>
+      <a href="play/support.html">Help and support</a>
+      <a href="play/">Play in the browser</a>
+    </nav>
+  </footer>
+</body>
 </html>

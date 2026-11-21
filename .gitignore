@@ -54,5 +54,7 @@ azure/functions/node_modules
 /cypress/videos
 /cypress/screenshots
 
-# Keep docs/ for GitHub Pages deployment (do NOT ignore)
-# /docs
+# Built by `npm run build` and published by the deploy workflow. It was
+# committed when Pages served it from the branch; that is no longer how the
+# site is deployed.
+/docs
