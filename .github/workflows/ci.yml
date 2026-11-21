@@ -36,15 +36,27 @@ jobs:
       - name: Build
         run: npm run build
 
+      # Started here rather than by the Cypress action, so that when the
+      # server does not come up the log says why instead of only
+      # "Socket closed before the connection was established".
+      - name: Start the preview server
+        run: |
+          npm run preview -- --port 8100 --host 0.0.0.0 > preview.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -sf -o /dev/null http://127.0.0.1:8100/OliverMath/; then
+              echo "Preview server up after ${i}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Preview server did not start:"
+          cat preview.log
+          exit 1
+
       - name: E2E tests
         uses: cypress-io/github-action@v6
         with:
-          # Listen on every address and wait on IPv4. Left to "localhost", the
-          # server bound to IPv6 only while the check tried IPv4 and gave up
-          # with "Socket closed before the connection was established".
-          start: npm run preview -- --port 8100 --host 0.0.0.0
-          wait-on: 'http://127.0.0.1:8100'
-          wait-on-timeout: 60
+          install: false
           command: npm run test:e2e
 
 # Deployment lives in deploy.yml, which publishes through GitHub Pages' own
