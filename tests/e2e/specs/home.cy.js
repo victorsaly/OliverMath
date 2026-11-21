@@ -148,16 +148,19 @@ describe('Oliver Math - Accessibility', () => {
 });
 
 describe('Oliver Math - Pages for parents', () => {
-  ['privacy.html', 'support.html'].forEach((page) => {
-    it(`serves ${page} as a real page with a way back`, () => {
+  [
+    { page: 'privacy.html', heading: 'Privacy for parents' },
+    { page: 'support.html', heading: 'Help and support' }
+  ].forEach(({ page, heading }) => {
+    // Opened in the browser, the way a parent would, and followed back.
+    it(`opens ${page} as a real page and returns to the game`, () => {
       cy.visit('/');
       cy.location('pathname').then((base) => {
-        cy.request(base + page).then((response) => {
-          expect(response.status).to.equal(200);
-          expect(response.body).to.contain('Back to the game');
-          expect(response.body).to.contain('Oliver');
-        });
+        cy.visit(base + page);
       });
+      cy.get('h1').should('contain.text', heading);
+      cy.contains('a', 'Back to the game').click();
+      cy.get('.round-btn.play').should('exist');
     });
   });
 });
