@@ -2,6 +2,7 @@ import AVFoundation
 import Capacitor
 import Foundation
 import Speech
+import UIKit
 
 /// Speech recognition and speech synthesis that never leave the device.
 ///
@@ -20,6 +21,8 @@ public class DeviceSpeechPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesize
     public let identifier = "DeviceSpeechPlugin"
     public let jsName = "DeviceSpeech"
     public let pluginMethods: [CAPPluginMethod] = [
+        CAPPluginMethod(name: "microphoneStatus", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "openSettings", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "prepare", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "listen", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "stop", returnType: CAPPluginReturnPromise),
@@ -41,6 +44,40 @@ public class DeviceSpeechPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesize
     }()
     private var speakCall: CAPPluginCall?
 
+    // MARK: - permission
+
+    /// Whether the microphone has been allowed, refused, or not asked about yet:
+    /// `{ state: "granted" | "denied" | "prompt" }`. Lets the game explain the
+    /// system's question to a child before it appears.
+    @objc func microphoneStatus(_ call: CAPPluginCall) {
+        let state: String
+        if #available(iOS 17.0, *) {
+            switch AVAudioApplication.shared.recordPermission {
+            case .granted: state = "granted"
+            case .denied: state = "denied"
+            default: state = "prompt"
+            }
+        } else {
+            switch AVAudioSession.sharedInstance().recordPermission {
+            case .granted: state = "granted"
+            case .denied: state = "denied"
+            default: state = "prompt"
+            }
+        }
+        call.resolve(["state": state])
+    }
+
+    /// Open this app's page in Settings, where a refused microphone is turned
+    /// back on. The game puts this behind its parental gate.
+    @objc func openSettings(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            if let url = URL(string: UIApplication.openSettingsURLString) {
+                UIApplication.shared.open(url)
+            }
+            call.resolve()
+        }
+    }
+
     // MARK: - prepare
 
     /// Ask for the microphone, and make sure a model for the language is on the
@@ -59,7 +96,11 @@ public class DeviceSpeechPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesize
             } else if #available(iOS 26.0, *) {
                 engine = "speech-analyzer"
                 do {
-                    available = try await AnalyzerSession.ensureModel(for: locale)
+                    available = try await AnalyzerSession.ensureModel(for: locale) { [weak self] in
+                        // The model for this language is not on the phone yet.
+                        // The game shows "Oliver is learning..." while it arrives.
+                        self?.notifyListeners("modelDownload", data: ["state": "started"])
+                    }
                     if !available { reason = "language-unsupported" }
                 } catch {
                     // The usual cause is a first run with no connection: the
@@ -338,12 +379,13 @@ final class AnalyzerSession: ListenSession {
     /// True when a model for the language is installed, downloading it first if
     /// the system has not already. False when the language is not supported.
     /// Throws when the download cannot happen (no connection on a first run).
-    static func ensureModel(for locale: Locale) async throws -> Bool {
+    static func ensureModel(for locale: Locale, onDownload: (() -> Void)? = nil) async throws -> Bool {
         guard let supported = await SpeechTranscriber.supportedLocale(equivalentTo: locale) else {
             return false
         }
         let module = transcriber(for: supported)
         if let request = try await AssetInventory.assetInstallationRequest(supporting: [module]) {
+            onDownload?()
             try await request.downloadAndInstall()
         }
         return true

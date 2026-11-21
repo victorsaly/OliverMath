@@ -2,10 +2,12 @@ package com.victorsaly.devicespeech;
 
 import android.Manifest;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.Settings;
 import android.speech.RecognitionListener;
 import android.speech.RecognitionSupport;
 import android.speech.RecognitionSupportCallback;
@@ -54,6 +56,37 @@ public class DeviceSpeechPlugin extends Plugin {
     private boolean ttsReady = false;
     private PluginCall speakCall;
     private int utteranceCounter = 0;
+
+    // ------------------------------------------------------------- permission
+
+    /**
+     * Whether the microphone has been allowed, refused, or not asked about yet:
+     * { state: "granted" | "denied" | "prompt" }.
+     */
+    @PluginMethod
+    public void microphoneStatus(PluginCall call) {
+        PermissionState permission = getPermissionState(MICROPHONE);
+        String state = "prompt";
+        if (permission == PermissionState.GRANTED) state = "granted";
+        else if (permission == PermissionState.DENIED) state = "denied";
+        JSObject result = new JSObject();
+        result.put("state", state);
+        call.resolve(result);
+    }
+
+    /** Open this app's page in Settings. The game puts this behind its parental gate. */
+    @PluginMethod
+    public void openSettings(PluginCall call) {
+        try {
+            Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+            intent.setData(Uri.fromParts("package", getContext().getPackageName(), null));
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getContext().startActivity(intent);
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("Could not open Settings: " + e.getMessage());
+        }
+    }
 
     // ---------------------------------------------------------------- prepare
 

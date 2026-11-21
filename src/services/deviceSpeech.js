@@ -14,16 +14,43 @@ const DeviceSpeech = registerPlugin('DeviceSpeech');
 export const isNativeApp = Capacitor.isNativePlatform();
 
 /**
+ * Has the microphone been allowed, refused, or not asked about yet?
+ * @returns {Promise<'granted'|'denied'|'prompt'>}
+ */
+export async function deviceMicrophoneStatus() {
+  try {
+    const { state } = await DeviceSpeech.microphoneStatus();
+    return state || 'prompt';
+  } catch (error) {
+    console.warn('Could not read the microphone permission:', error);
+    return 'prompt';
+  }
+}
+
+/** Open this app's page in the phone's Settings. */
+export function openDeviceSettings() {
+  return DeviceSpeech.openSettings().catch(() => {});
+}
+
+/**
  * Ask for the microphone and make sure a model for the language is installed.
  * @param {string} locale - e.g. 'en-GB'
+ * @param {() => void} [onDownloading] - called if the phone has to fetch the
+ *   speech model for this language first, which can take a little while
  * @returns {Promise<{microphone: boolean, available: boolean, engine: string, reason: string}>}
  */
-export async function prepareDeviceSpeech(locale) {
+export async function prepareDeviceSpeech(locale, onDownloading) {
+  let handle = null;
   try {
+    handle = await DeviceSpeech.addListener('modelDownload', () => {
+      if (onDownloading) onDownloading();
+    });
     return await DeviceSpeech.prepare({ locale });
   } catch (error) {
     console.warn('Device speech is not available:', error);
     return { microphone: false, available: false, engine: 'none', reason: 'plugin-error' };
+  } finally {
+    if (handle) handle.remove();
   }
 }
 

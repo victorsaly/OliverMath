@@ -13,7 +13,7 @@
         <!-- The grown-ups door. Level, language, sound and anything that
              leaves the app sit behind a gate a young child cannot pass by
              accident, as the Kids Category requires. -->
-        <button class="hud-btn" @click="openGate" :aria-label="t('grownUps')">
+        <button class="hud-btn" @click="openGate('grown-ups')" :aria-label="t('grownUps')">
           <ion-icon :icon="lockIcon" aria-hidden="true"></ion-icon>
         </button>
         <!-- Permanent entry point. This used to live only inside the first-run
@@ -378,7 +378,7 @@
     <!-- First run. No card to read and dismiss: the game is the first screen,
          and the three steps are pictures. Tapping them makes the robot say it
          out loud, for a child who cannot read the words yet. -->
-    <button class="how-chips" v-if="firstRun && isPlayMode && !showNoMic && !showIntro" @click="explainGame" :aria-label="t('hearIt')">
+    <button class="how-chips" v-if="firstRun && isPlayMode && !showNoMic && !showIntro && !micAsk && !isTalking" @click="explainGame" :aria-label="t('hearIt')">
       <span><ion-icon :icon="playIcon" aria-hidden="true"></ion-icon>{{ t('howTap') }}</span>
       <span><ion-icon :icon="volumeIcon" aria-hidden="true"></ion-icon>{{ t('howListen') }}</span>
       <span><ion-icon :icon="micIcon" aria-hidden="true"></ion-icon>{{ t('howSay') }}</span>
@@ -490,8 +490,34 @@
           <span class="sheet-123" aria-hidden="true">123</span>{{ t('useNumberPad') }}
         </button>
         <button class="sheet-btn" @click="retryMicrophone">
-          <ion-icon :icon="micIcon" aria-hidden="true"></ion-icon>{{ t('tryMicrophone') }}
+          <ion-icon :icon="micIcon" aria-hidden="true"></ion-icon>{{ micRefused ? t('openSettings') : t('tryMicrophone') }}
         </button>
+      </div>
+    </transition>
+
+    <!-- Before the phone asks for the microphone. The system's question is
+         written for adults and appears on a child's first Play; the robot asks
+         for a grown-up first, so the answer is not a child's guess. -->
+    <transition name="sheet">
+      <div class="nomic-sheet" v-if="micAsk" role="dialog" aria-labelledby="micask-title">
+        <h2 id="micask-title">{{ t('micAskTitle') }}</h2>
+        <p>{{ t('micAskBody') }}</p>
+        <button class="sheet-btn primary" @click="answerMicAsk(true)">
+          <ion-icon :icon="micIcon" aria-hidden="true"></ion-icon>{{ t('micAskOk') }}
+        </button>
+        <button class="sheet-btn" @click="answerMicAsk(false)">
+          <span class="sheet-123" aria-hidden="true">123</span>{{ t('useNumberPad') }}
+        </button>
+      </div>
+    </transition>
+
+    <!-- The phone is fetching the speech model for this language. It happens
+         once per language and can take a little while. -->
+    <transition name="sheet">
+      <div class="nomic-sheet" v-if="learningLanguage" role="status" aria-live="polite">
+        <h2>{{ t('learningTitle', { language: availableLanguages[selectedLanguage]?.name }) }}</h2>
+        <p>{{ t('learningBody') }}</p>
+        <div class="learn-bar" aria-hidden="true"><i></i></div>
       </div>
     </transition>
 
@@ -554,7 +580,7 @@ import { OPERATORS, LEVELS, NUMBER_RANGES, SCORING } from "@/config/gameConfig";
 import { getRandomInt } from "@/utils/helpers";
 import { checkSpokenAnswer } from "@/utils/numberWords";
 import { getSpeechToken, getCachedAudio } from "@/services/apiService";
-import { isNativeApp, prepareDeviceSpeech, listenOnDevice, stopDeviceListening, speakOnDevice, stopDeviceSpeaking } from "@/services/deviceSpeech";
+import { isNativeApp, prepareDeviceSpeech, deviceMicrophoneStatus, openDeviceSettings, listenOnDevice, stopDeviceListening, speakOnDevice, stopDeviceSpeaking } from "@/services/deviceSpeech";
 import { LANGUAGES, SPEECH_VOICES, getPreferredLanguage, setLanguage, t, getRandomPhrase } from "@/config/i18n";
 import { addToHistory, getHistory, clearHistory as clearHistoryService, formatTimestamp, getOperatorSymbol, getRecommendedDifficulty, getSpacedRepetitionProblem } from "@/services/historyService";
 import { preloadSounds, playCorrectSound, playIncorrectSound, toggleMute, startMusic, stopMusic, duckMusic } from "@/services/soundService";
@@ -695,7 +721,12 @@ export default {
       currentQuestion: "",  // Store current question for repeat
       showHistoryModal: false,
       showSettingsModal: false,
+      // Native apps: the card shown before the system asks for the
+      // microphone, and the one shown while a language's speech model arrives.
+      micAsk: false,
+      learningLanguage: false,
       // Parental gate in front of Grown-ups.
+      gateThen: 'grown-ups',
       gateOpen: false,
       gateCode: '',
       gateEntry: '',
@@ -811,6 +842,10 @@ export default {
       if (!this.statusText || this.isListening || this.padOpen) return false;
       if (this.isPlayMode && this.statusText === this.t('ready')) return false;
       return true;
+    },
+    /** In the apps, a refused microphone can only be turned back on in Settings. */
+    micRefused() {
+      return isNativeApp && this.deviceSpeechReason === 'microphone-denied';
     },
     /** In the apps the microphone may be fine and the speech model missing. */
     noMicBody() {
@@ -1200,7 +1235,21 @@ export default {
       if (isNativeApp) {
         const locale = SPEECH_VOICES[this.selectedLanguage] || 'en-GB';
         if (!this.isMicrophoneEnabled || this.preparedLocale !== locale) {
-          const status = await prepareDeviceSpeech(locale);
+          // Never asked before: let the robot ask for a grown-up first.
+          if ((await deviceMicrophoneStatus()) === 'prompt') {
+            const goAhead = await this.askForGrownUp();
+            if (!goAhead) {
+              this.padMode = true;
+              this.isMicrophoneEnabled = false;
+              return;
+            }
+          }
+          let status;
+          try {
+            status = await prepareDeviceSpeech(locale, () => { this.learningLanguage = true; });
+          } finally {
+            this.learningLanguage = false;
+          }
           this.isMicrophoneEnabled = status.microphone && status.available;
           this.deviceSpeechReason = status.reason;
           this.preparedLocale = this.isMicrophoneEnabled ? locale : null;
@@ -1512,7 +1561,25 @@ export default {
       this.gateCode = code;
       this.gateEntry = '';
     },
-    openGate() {
+    /** Shows the "ask a grown-up" card and waits for one of its two buttons. */
+    askForGrownUp() {
+      this.isComputing = false;
+      this.micAsk = true;
+      return new Promise((resolve) => {
+        this.micAskResolve = resolve;
+      });
+    },
+    answerMicAsk(goAhead) {
+      this.micAsk = false;
+      const resolve = this.micAskResolve;
+      this.micAskResolve = null;
+      if (resolve) resolve(goAhead);
+    },
+    /**
+     * @param {'grown-ups'|'device-settings'} then - what passing the gate opens
+     */
+    openGate(then) {
+      this.gateThen = then === 'device-settings' ? 'device-settings' : 'grown-ups';
       this.gateMissed = false;
       this.newGateCode();
       this.gateOpen = true;
@@ -1527,7 +1594,9 @@ export default {
       if (this.gateEntry.length < 3) return;
       if (this.gateEntry === this.gateCode) {
         this.closeGate();
-        this.showSettingsModal = true;
+        // Leaving the app for the phone's Settings is a grown-up's step too.
+        if (this.gateThen === 'device-settings') openDeviceSettings();
+        else this.showSettingsModal = true;
         return;
       }
       // Wrong: new numbers, so the way in cannot be found by trying.
@@ -1584,6 +1653,13 @@ export default {
     },
     /** "Try the microphone again" on the no-microphone card. */
     retryMicrophone() {
+      // Refused in the app: asking again does nothing, the phone will not show
+      // its question twice. The way back is Settings, behind the gate.
+      if (this.micRefused) {
+        this.showNoMic = false;
+        this.openGate('device-settings');
+        return;
+      }
       this.padMode = false;
       this.showNoMic = false;
       this.preparedLocale = null;
@@ -2369,6 +2445,8 @@ export default {
       if (this.firstRun) {
         this.text = this.t('explainSpoken');
         this.isQuery = false;
+        // Leaves a clean screen when the robot has finished explaining.
+        this.clearAfterSpeak = true;
         this.speak();
       }
       return;
@@ -2999,6 +3077,32 @@ ion-toolbar.navy-bar {
   line-height: 1.4;
   color: rgba(255, 255, 255, 0.78);
 }
+.learn-bar {
+  height: 12px;
+  margin: 4px 0 8px;
+  border-radius: 6px;
+  background: #26355f;
+  overflow: hidden;
+}
+.learn-bar i {
+  display: block;
+  width: 40%;
+  height: 100%;
+  border-radius: 6px;
+  background: #ffc62e;
+  animation: learn-slide 1.4s ease-in-out infinite alternate;
+}
+@keyframes learn-slide {
+  from { transform: translateX(-20%); }
+  to { transform: translateX(170%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .learn-bar i {
+    width: 100%;
+    animation: none;
+    opacity: 0.6;
+  }
+}
 .sheet-btn {
   width: 100%;
   min-height: 54px;
@@ -3515,6 +3619,9 @@ ion-toolbar.navy-bar {
   height: calc(100% + 32px);
   margin: -16px;
   padding: 0;
+  /* The sky's own colours, shown for the moment before the 3D scene has
+     loaded. Without it the app opened on a white screen. */
+  background: linear-gradient(#4a8be0, #8fb6ea 55%, #8a94a8 55%);
 }
 
 .status-indicator {
