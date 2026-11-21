@@ -30,6 +30,19 @@ const app = createApp(App)
   .use(IonicVue)
   .use(router);
   
+// A link straight to a page inside the game (or an old link from before the
+// game moved to play/) has no file behind it, so the host answers with
+// 404.html. That page remembers the address and sends the visitor here.
+try {
+  const wanted = window.sessionStorage.getItem('oliver-redirect');
+  if (wanted) {
+    window.sessionStorage.removeItem('oliver-redirect');
+    if (wanted !== '/') router.replace(wanted);
+  }
+} catch {
+  // No session storage: the game opens on its home screen.
+}
+
 router.isReady().then(() => {
   app.mount('#app');
 });

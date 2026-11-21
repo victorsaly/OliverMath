@@ -111,7 +111,7 @@ Set `Host.CORS` to allow the dev server's origin.
 Other scripts:
 
 ```bash
-npm run build      # production build into docs/
+npm run build      # the product site into docs/, the game into docs/play/
 npm run lint       # eslint
 npm run typecheck  # vue-tsc
 npm run test:unit  # vitest

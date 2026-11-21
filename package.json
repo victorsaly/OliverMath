@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build --outDir docs",
-    "preview": "vite preview",
+    "build": "node scripts/build-web.mjs",
+    "preview": "node scripts/serve-docs.mjs",
     "test": "vitest run && cypress run",
     "test:unit": "vitest run",
     "test:e2e": "cypress run",

@@ -7,8 +7,14 @@ import path from 'path';
 // and have no use for a service worker. `npm run build:native` sets this.
 const isNativeBuild = process.env.NATIVE_BUILD === '1';
 
+// On the web the product site has the front address and the game lives one
+// level down, in play/. SITE_BASE is "/OliverMath/" on GitHub Pages and would
+// be "/" on a domain of its own.
+const siteBase = process.env.SITE_BASE || '/OliverMath/';
+const gameBase = siteBase + 'play/';
+
 export default defineConfig({
-  base: !isNativeBuild && process.env.NODE_ENV === 'production' ? '/OliverMath/' : '/',
+  base: !isNativeBuild && process.env.NODE_ENV === 'production' ? gameBase : '/',
   plugins: [
     vue(),
     !isNativeBuild && VitePWA({
@@ -18,7 +24,7 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,svg,jpg,jpeg,gif,webp,mp3,wav,ogg,glb}'],
         // Exclude icon files that are already in manifest to avoid conflicts
         globIgnores: ['**/assets/icon/**'],
-        navigateFallback: '/OliverMath/index.html',
+        navigateFallback: gameBase + 'index.html',
         navigateFallbackAllowlist: [/^(?!\/__)/],
         // Real pages, not routes of the game: never answer them with the app.
         navigateFallbackDenylist: [/\/(privacy|support)\.html$/],
@@ -79,9 +85,11 @@ export default defineConfig({
         background_color: '#1f63d6',
         display: 'standalone',
         orientation: 'portrait-primary',
-        start_url: '/OliverMath/',
-        scope: '/OliverMath/',
-        id: '/OliverMath/',
+        start_url: gameBase,
+        scope: gameBase,
+        // Unchanged from when the game lived at the front address, so a copy
+        // someone installed then is still recognised as the same app.
+        id: siteBase,
         categories: ['education', 'kids', 'games'],
         icons: [
           {
@@ -117,7 +125,7 @@ export default defineConfig({
     port: 8100
   },
   build: {
-    outDir: 'docs',
+    outDir: 'docs/play',
     sourcemap: false,
     chunkSizeWarningLimit: 600,
     rollupOptions: {

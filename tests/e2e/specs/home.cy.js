@@ -172,10 +172,7 @@ describe('Oliver Math - Pages for parents', () => {
   ].forEach(({ page, heading }) => {
     // Opened in the browser, the way a parent would, and followed back.
     it(`opens ${page} as a real page and returns to the game`, () => {
-      cy.visit('/');
-      cy.location('pathname').then((base) => {
-        cy.visit(base + page);
-      });
+      cy.visit('/' + page);
       cy.get('h1').should('contain.text', heading);
       cy.contains('a', 'Back to the game').click();
       cy.get('.round-btn.play').should('exist');
