@@ -157,6 +157,8 @@ export const translations = {
     
     initialPrompt: "Hi! I'm Oliver. Tap Play. Listen. Say your answer.",
     howTap: 'Tap',
+    chooseSums: 'What shall we practise?',
+    changeSums: 'Change the sums',
     micAskTitle: 'Oliver needs to listen',
     micAskBody: 'Ask a grown-up. On the next screen, tap Allow so Oliver can hear your answers. The sound stays on this device.',
     micAskOk: 'OK',
@@ -414,6 +416,8 @@ export const translations = {
     
     initialPrompt: '¡Hola! Soy Oliver. Toca Jugar. Escucha. Di tu respuesta.',
     howTap: 'Toca',
+    chooseSums: '¿Qué practicamos?',
+    changeSums: 'Cambiar las cuentas',
     micAskTitle: 'Oliver necesita escuchar',
     micAskBody: 'Pide ayuda a un adulto. En la siguiente pantalla, toca Permitir para que Oliver oiga tus respuestas. El sonido se queda en este dispositivo.',
     micAskOk: 'Vale',
@@ -649,6 +653,8 @@ export const translations = {
     
     initialPrompt: 'Salut ! Je suis Oliver. Touche Jouer. Écoute. Dis ta réponse.',
     howTap: 'Touche',
+    chooseSums: 'On s\'entraîne à quoi ?',
+    changeSums: 'Changer les calculs',
     micAskTitle: 'Oliver a besoin d\'écouter',
     micAskBody: 'Demande à un adulte. Sur l\'écran suivant, touche Autoriser pour qu\'Oliver entende tes réponses. Le son reste sur cet appareil.',
     micAskOk: 'OK',
@@ -884,6 +890,8 @@ export const translations = {
     
     initialPrompt: 'Hallo! Ich bin Oliver. Tippe auf Spielen. Hör zu. Sag deine Antwort.',
     howTap: 'Tippen',
+    chooseSums: 'Was wollen wir üben?',
+    changeSums: 'Aufgaben ändern',
     micAskTitle: 'Oliver muss zuhören',
     micAskBody: 'Frag einen Erwachsenen. Tippe im nächsten Fenster auf Erlauben, damit Oliver deine Antworten hört. Der Ton bleibt auf diesem Gerät.',
     micAskOk: 'OK',
@@ -1119,6 +1127,8 @@ export const translations = {
     
     initialPrompt: 'Oi! Eu sou o Oliver. Toque em Jogar. Ouça. Diga a resposta.',
     howTap: 'Toque',
+    chooseSums: 'O que vamos praticar?',
+    changeSums: 'Mudar as contas',
     micAskTitle: 'O Oliver precisa ouvir',
     micAskBody: 'Peça a um adulto. Na próxima tela, toque em Permitir para o Oliver ouvir as respostas. O som fica neste aparelho.',
     micAskOk: 'OK',

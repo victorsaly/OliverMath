@@ -417,6 +417,20 @@
         <span>{{ statusText }}</span>
       </div>
 
+      <!-- What the child is practising, and theirs to change. It used to be
+           four bare symbols inside Settings. Hidden on a first visit, where
+           the three step pictures have this place. -->
+      <button
+        class="sum-chip"
+        v-if="isPlayMode && !firstRun && !isTalking"
+        @click="showSumPicker = true"
+        :aria-label="t('changeSums')"
+      >
+        <b aria-hidden="true">{{ operatorChoices.find((c) => c.value === selectedOperator)?.symbol }}</b>
+        <span>{{ operatorChoices.find((c) => c.value === selectedOperator)?.word }}</span>
+        <ion-icon :icon="chevronIcon" aria-hidden="true"></ion-icon>
+      </button>
+
       <!-- Centred, large and named. It was a bare icon at the bottom right. -->
       <div class="play-wrap" v-if="isPlayMode">
         <button
@@ -521,6 +535,29 @@
       </div>
     </transition>
 
+    <!-- The child's choice of sum: four big tiles, a symbol and a word each. -->
+    <transition name="sheet">
+      <div class="pick-sheet" v-if="showSumPicker" role="dialog" aria-labelledby="pick-title">
+        <button class="sheet-close" @click="showSumPicker = false" :aria-label="t('closeMessage')">
+          <ion-icon :icon="closeIcon" aria-hidden="true"></ion-icon>
+        </button>
+        <h2 id="pick-title">{{ t('chooseSums') }}</h2>
+        <div class="pick-grid">
+          <button
+            v-for="choice in operatorChoices"
+            :key="choice.value"
+            class="pick-tile"
+            :class="{ active: selectedOperator === choice.value }"
+            :aria-pressed="selectedOperator === choice.value"
+            @click="chooseOperator(choice.value)"
+          >
+            <b aria-hidden="true">{{ choice.symbol }}</b>
+            <span>{{ choice.word }}</span>
+          </button>
+        </div>
+      </div>
+    </transition>
+
     <!-- Parental gate. Three numbers written as words: easy for an adult,
          not something a child who is still learning to read taps through. -->
     <transition name="sheet">
@@ -575,7 +612,7 @@ async function loadSpeechSdk() {
   }
   return speechSdk;
 }
-import { star, play, speedometer, calculator, mic, volumeHigh, sync, alertCircle, refresh, volumeMute, timeOutline, trashOutline, globe, fitness, settingsOutline, close, stopCircle, helpCircle, sunny, moon, backspaceOutline, checkmark, lockClosed } from "ionicons/icons";
+import { star, play, speedometer, calculator, mic, volumeHigh, sync, alertCircle, refresh, volumeMute, timeOutline, trashOutline, globe, fitness, settingsOutline, close, stopCircle, helpCircle, sunny, moon, backspaceOutline, checkmark, lockClosed, chevronUp } from "ionicons/icons";
 import { OPERATORS, LEVELS, NUMBER_RANGES, SCORING } from "@/config/gameConfig";
 import { getRandomInt } from "@/utils/helpers";
 import { checkSpokenAnswer } from "@/utils/numberWords";
@@ -620,6 +657,7 @@ export default {
       doneIcon: stopCircle,
       backspaceIcon: backspaceOutline,
       lockIcon: lockClosed,
+      chevronIcon: chevronUp,
       isNative: isNativeApp,
       checkIcon: checkmark,
 
@@ -700,8 +738,15 @@ export default {
       
       // Game state
       text: "",
-      selectedLevel: LEVELS.MEDIUM,
-      selectedOperator: OPERATORS.TIMES,
+      // Remembered between visits. They used to reset to Medium and times
+      // every time the game was opened.
+      selectedLevel: [...Object.values(LEVELS), 'auto'].includes(localStorage.selectedLevel)
+        ? localStorage.selectedLevel
+        : LEVELS.MEDIUM,
+      selectedOperator: Object.values(OPERATORS).includes(localStorage.selectedOperator)
+        ? localStorage.selectedOperator
+        : OPERATORS.TIMES,
+      showSumPicker: false,
       sessionMode: 'random', // random, weak_operators, recent_failures
       currentAutoLevel: 'medium', // Used when selectedLevel is 'auto'
       currentEffectiveLevel: 'medium', // Tracks actual difficulty used for current question
@@ -797,6 +842,20 @@ export default {
     botState(state) {
       duckMusic(['speaking', 'listening', 'computing'].includes(state));
     },
+    selectedOperator(value) {
+      try {
+        localStorage.selectedOperator = value;
+      } catch (err) {
+        console.warn('Could not save the type of sum:', err);
+      }
+    },
+    selectedLevel(value) {
+      try {
+        localStorage.selectedLevel = value;
+      } catch (err) {
+        console.warn('Could not save the level:', err);
+      }
+    },
     // Play is back on screen, so the turn is over and the sum comes down.
     isPlayMode(playing) {
       if (playing) this.questionActive = false;
@@ -807,6 +866,15 @@ export default {
     gateWords() {
       const words = this.t('digitWords').split(',');
       return this.gateCode.split('').map((d) => words[Number(d)]).join(', ');
+    },
+    /** The four kinds of sum, each as a symbol and a word in the chosen language. */
+    operatorChoices() {
+      return [
+        { value: 'times', symbol: '×', word: this.t('times') },
+        { value: 'plus', symbol: '+', word: this.t('plus') },
+        { value: 'minus', symbol: '−', word: this.t('minus') },
+        { value: 'divide', symbol: '÷', word: this.t('dividedBy') }
+      ];
     },
     sumSymbol() {
       const symbols = { plus: '+', minus: '−', times: '×', divide: '÷' };
@@ -1181,6 +1249,10 @@ export default {
       }
     },
     keyDownHandler(e) {
+      if (this.showSumPicker && e.key === 'Escape') {
+        this.showSumPicker = false;
+        return;
+      }
       if (this.gateOpen) {
         if (/^[0-9]$/.test(e.key)) this.gatePress(Number(e.key));
         else if (e.key === 'Escape') this.closeGate();
@@ -1550,6 +1622,10 @@ export default {
         this.isQuery = false;
         this.openPad();
       }
+    },
+    chooseOperator(value) {
+      this.selectedOperator = value;
+      this.showSumPicker = false;
     },
     /** Three different digits, so the words never repeat. */
     newGateCode() {
@@ -2869,6 +2945,92 @@ ion-toolbar.navy-bar {
 .dock.play-mode {
   flex-direction: column;
   gap: 10px;
+}
+
+/* The child's choice of sum ------------------------------------------------- */
+.sum-chip {
+  min-height: 44px;
+  padding: 6px 14px 6px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(16, 27, 61, 0.86);
+  color: #ffffff;
+  font-size: 17px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.sum-chip b {
+  color: #ffc62e;
+  font-size: 24px;
+  line-height: 1;
+}
+.sum-chip span::first-letter,
+.pick-tile span::first-letter {
+  text-transform: uppercase;
+}
+.sum-chip ion-icon {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.7);
+}
+.pick-sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  margin: 0 auto;
+  max-width: 460px;
+  padding: 18px 18px calc(env(safe-area-inset-bottom, 0px) + 18px);
+  border-radius: 26px 26px 0 0;
+  background: linear-gradient(160deg, #1d2a4d, #141d36);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-bottom: none;
+  box-shadow: 0 -18px 50px rgba(0, 0, 0, 0.45);
+  color: #ffffff;
+  text-align: center;
+}
+.pick-sheet h2 {
+  margin: 6px 44px 14px;
+  font-size: 22px;
+  font-weight: 800;
+}
+.pick-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.pick-tile {
+  min-height: 104px;
+  padding: 10px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: 3px solid transparent;
+  border-radius: 20px;
+  background: #26355f;
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.pick-tile b {
+  color: #ffc62e;
+  font-size: 46px;
+  line-height: 1;
+}
+.pick-tile.active {
+  background: #1f57c9;
+  border-color: #ffffff;
+}
+.sum-chip:focus-visible,
+.pick-tile:focus-visible {
+  outline: 3px solid #ffc62e;
+  outline-offset: 2px;
 }
 
 /* The sum in figures ------------------------------------------------------- */

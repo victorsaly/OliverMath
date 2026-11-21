@@ -147,6 +147,24 @@ describe('Oliver Math - Accessibility', () => {
   });
 });
 
+describe('Oliver Math - Choosing the sums', () => {
+  it('lets a returning child pick the kind of sum, and remembers it', () => {
+    // The chip is hidden on a first visit, where the three steps are shown.
+    cy.visit('/');
+    cy.get('.round-btn.play').should('exist');
+    cy.window().then((win) => win.localStorage.setItem('seenIntro', '1'));
+    cy.reload();
+    cy.get('.sum-chip').should('contain.text', '×').click();
+    cy.get('.pick-tile').should('have.length', 4);
+    cy.contains('.pick-tile', '÷').click();
+    cy.get('.pick-sheet').should('not.exist');
+    cy.get('.sum-chip').should('contain.text', '÷');
+
+    cy.reload();
+    cy.get('.sum-chip').should('contain.text', '÷');
+  });
+});
+
 describe('Oliver Math - Pages for parents', () => {
   [
     { page: 'privacy.html', heading: 'Privacy for parents' },
