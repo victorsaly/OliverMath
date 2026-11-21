@@ -1,13 +1,13 @@
 {
-  "appId": "io.ionic.starter",
-  "appName": "OliverMath",
-  "bundledWebRuntime": false,
-  "npmClient": "npm",
+  "appId": "com.victorsaly.olivermath",
+  "appName": "Oliver Math",
   "webDir": "dist",
   "plugins": {
     "SplashScreen": {
       "launchShowDuration": 0
     }
   },
-  "cordova": {}
+  "ios": {
+    "contentInset": "never"
+  }
 }

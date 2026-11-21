@@ -3,11 +3,15 @@ import vue from '@vitejs/plugin-vue';
 import { VitePWA } from 'vite-plugin-pwa';
 import path from 'path';
 
+// The iOS and Android apps load the bundle from the app itself, at the root,
+// and have no use for a service worker. `npm run build:native` sets this.
+const isNativeBuild = process.env.NATIVE_BUILD === '1';
+
 export default defineConfig({
-  base: process.env.NODE_ENV === 'production' ? '/OliverMath/' : '/',
+  base: !isNativeBuild && process.env.NODE_ENV === 'production' ? '/OliverMath/' : '/',
   plugins: [
     vue(),
-    VitePWA({
+    !isNativeBuild && VitePWA({
       registerType: 'autoUpdate',
       filename: 'service-worker.js',
       workbox: {

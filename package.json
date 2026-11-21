@@ -12,14 +12,21 @@
     "test:e2e": "cypress run",
     "test:e2e:open": "cypress open",
     "lint": "eslint src --ext .vue,.js,.ts",
-    "typecheck": "vue-tsc --noEmit"
+    "typecheck": "vue-tsc --noEmit",
+    "build:native": "NATIVE_BUILD=1 VITE_NATIVE_BUILD=1 vite build --outDir dist",
+    "sync:native": "npm run build:native && cap sync",
+    "ios": "npm run sync:native && cap open ios",
+    "android": "npm run sync:native && cap open android"
   },
   "dependencies": {
+    "@capacitor/android": "^8.6.2",
     "@capacitor/core": "^8.0.1",
+    "@capacitor/ios": "^8.6.2",
     "@ionic/vue": "^8.5.0",
     "@ionic/vue-router": "^8.5.0",
     "axios": "^1.13.2",
     "microsoft-cognitiveservices-speech-sdk": "^1.44.0",
+    "oliver-device-speech": "file:native/device-speech",
     "three": "^0.186.1",
     "vue": "^3.5.13",
     "vue-router": "^4.5.0",

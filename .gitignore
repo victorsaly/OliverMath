@@ -46,9 +46,8 @@ azure/functions/local.settings.json*
 /www
 azure/functions/node_modules
 
-# Capacitor
-/android
-/ios
+# Capacitor: the native projects are committed (they hold the permission
+# texts and app settings). Their own .gitignore files exclude build output.
 
 # Test outputs
 /test-results
