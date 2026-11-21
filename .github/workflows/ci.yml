@@ -39,8 +39,11 @@ jobs:
       - name: E2E tests
         uses: cypress-io/github-action@v6
         with:
-          start: npm run preview -- --port 8100
-          wait-on: 'http://localhost:8100'
+          # Listen on every address and wait on IPv4. Left to "localhost", the
+          # server bound to IPv6 only while the check tried IPv4 and gave up
+          # with "Socket closed before the connection was established".
+          start: npm run preview -- --port 8100 --host 0.0.0.0
+          wait-on: 'http://127.0.0.1:8100'
           wait-on-timeout: 60
           command: npm run test:e2e
 
