@@ -599,27 +599,14 @@ import {
   IonList
 } from "@ionic/vue";
 import AnimatedBot from "@/components/AnimatedBot.vue";
-// The Azure Speech SDK is 455KB - a third of the entry payload - and is not
-// needed until the child taps Play. Loaded on demand, and the module cached on
-// first use so later turns pay nothing.
-let speechSdk = null;
-async function loadSpeechSdk() {
-  // The store apps listen on the device and never use this. The flag is fixed
-  // at build time, so their bundle does not carry the SDK at all.
-  if (import.meta.env.VITE_NATIVE_BUILD) return null;
-  if (!speechSdk) {
-    speechSdk = await import("microsoft-cognitiveservices-speech-sdk");
-  }
-  return speechSdk;
-}
 import { star, play, speedometer, calculator, mic, volumeHigh, sync, alertCircle, refresh, volumeMute, timeOutline, trashOutline, globe, fitness, settingsOutline, close, stopCircle, helpCircle, sunny, moon, backspaceOutline, checkmark, lockClosed, chevronUp } from "ionicons/icons";
-import { OPERATORS, LEVELS, NUMBER_RANGES, SCORING } from "@/config/gameConfig";
+import { OPERATORS, LEVELS, SCORING } from "@/config/gameConfig";
 import { getRandomInt } from "@/utils/helpers";
 import { checkSpokenAnswer } from "@/utils/numberWords";
-import { getSpeechToken, getCachedAudio } from "@/services/apiService";
-import { isNativeApp, prepareDeviceSpeech, deviceMicrophoneStatus, openDeviceSettings, listenOnDevice, stopDeviceListening, speakOnDevice, stopDeviceSpeaking } from "@/services/deviceSpeech";
+import { createSpeech, isNativeApp, openDeviceSettings } from "@/game/speech";
+import { nextQuestion, answerTo } from "@/game/questions";
 import { LANGUAGES, SPEECH_VOICES, getPreferredLanguage, setLanguage, t, getRandomPhrase } from "@/config/i18n";
-import { addToHistory, getHistory, clearHistory as clearHistoryService, formatTimestamp, getOperatorSymbol, getRecommendedDifficulty, getSpacedRepetitionProblem } from "@/services/historyService";
+import { addToHistory, getHistory, clearHistory as clearHistoryService, formatTimestamp, getOperatorSymbol } from "@/services/historyService";
 import { preloadSounds, playCorrectSound, playIncorrectSound, toggleMute, startMusic, stopMusic, duckMusic } from "@/services/soundService";
 import { celebrateConfetti, celebrateStreak, showStar } from "@/utils/confetti";
 
@@ -685,7 +672,6 @@ export default {
       // UI state
       typeText: [],
       isLoading: true,
-      isOnBoundary: false,
       isTalking: false,
       isListening: false,
       isComputing: false,
@@ -788,23 +774,8 @@ export default {
       problemHistory: [],
       availableLanguages: LANGUAGES,
       
-      // Speech
-      synth: window.speechSynthesis,
-      greetingSpeech: new window.SpeechSynthesisUtterance(),
-      audioConfig: null,
-      speechConfig: null,
-      speechRecognizer: null,
-      speechRecording: null,
-      token: null,
-      speechRegion: null,
-      audioPlayer: null,
-      
-      // Audio analysis for lip sync
-      audioContext: null,
-      audioAnalyser: null,
-      audioSource: null,
+      // The loudness of the robot's voice, 0 to 1, for its mouth and the glow.
       audioLevel: 0,
-      animationFrameId: null,
       
       // Config
       isMicrophoneEnabled: false,
@@ -964,18 +935,12 @@ export default {
       return "neutral";
     },
     expectedResultAsNumber() {
-      // Use currentOperator (may differ from selectedOperator in spaced repetition mode)
-      const op = this.currentOperator || this.selectedOperator;
-      if (op == "plus") {
-        return this.number1 + this.number2;
-      }
-      if (op == "minus") {
-        return this.number1 - this.number2;
-      }
-      if (op == "divide") {
-        return this.number1 / this.number2;
-      }
-      return this.number1 * this.number2;
+      // currentOperator may differ from the one chosen, in the practice modes.
+      return answerTo(this.number1, this.number2, this.currentOperator || this.selectedOperator);
+    },
+    /** The language the robot speaks and listens in, e.g. 'en-GB'. */
+    speechLocale() {
+      return SPEECH_VOICES[this.selectedLanguage] || 'en-GB';
     },
     accuracy() {
       if (this.totalQuestionsAnswered === 0) return 0;
@@ -1142,97 +1107,6 @@ export default {
         this.isConfused = false;
       }, duration);
     },
-    /**
-     * Initialize audio context for lip sync analysis
-     */
-    initAudioAnalysis() {
-      if (!this.audioContext) {
-        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        this.audioAnalyser = this.audioContext.createAnalyser();
-        this.audioAnalyser.fftSize = 256;
-        this.audioAnalyser.smoothingTimeConstant = 0.3;
-      }
-    },
-    /**
-     * Start analyzing audio for lip sync
-     */
-    startAudioAnalysis(audioElement) {
-      this.initAudioAnalysis();
-      
-      // Connect audio element to analyser
-      if (this.audioSource) {
-        try {
-          this.audioSource.disconnect();
-        } catch {
-          // Ignore disconnect errors
-        }
-      }
-      
-      try {
-        this.audioSource = this.audioContext.createMediaElementSource(audioElement);
-        this.audioSource.connect(this.audioAnalyser);
-        this.audioAnalyser.connect(this.audioContext.destination);
-      } catch (e) {
-        // Audio element might already be connected, just update the analyser
-        console.warn('Audio source already connected:', e.message);
-      }
-      
-      // Resume audio context if suspended
-      if (this.audioContext.state === 'suspended') {
-        this.audioContext.resume();
-      }
-      
-      // Start the animation loop
-      this.analyzeAudio();
-    },
-    /**
-     * Analyze audio amplitude for lip sync
-     */
-    analyzeAudio() {
-      if (!this.isTalking || !this.audioAnalyser) {
-        this.audioLevel = 0;
-        return;
-      }
-      
-      // Reuse buffer to reduce GC pressure
-      if (!this._audioDataArray || this._audioDataArray.length !== this.audioAnalyser.frequencyBinCount) {
-        this._audioDataArray = new Uint8Array(this.audioAnalyser.frequencyBinCount);
-        // Pre-calculate voice frequency range bounds (cache these)
-        this._voiceStart = Math.floor(80 / (this.audioContext.sampleRate / this.audioAnalyser.fftSize));
-        this._voiceEnd = Math.floor(3000 / (this.audioContext.sampleRate / this.audioAnalyser.fftSize));
-      }
-      
-      this.audioAnalyser.getByteFrequencyData(this._audioDataArray);
-      
-      // Calculate average amplitude from voice frequency range
-      let sum = 0;
-      const end = Math.min(this._voiceEnd, this._audioDataArray.length);
-      for (let i = this._voiceStart; i < end; i++) {
-        sum += this._audioDataArray[i];
-      }
-      
-      const count = end - this._voiceStart;
-      const average = count > 0 ? sum / count : 0;
-      // Normalize to 0-1 range with some amplification
-      this.audioLevel = Math.min(1, (average / 128) * 1.5);
-      
-      // Continue analyzing
-      this.animationFrameId = requestAnimationFrame(() => this.analyzeAudio());
-    },
-    /**
-     * Stop audio analysis
-     */
-    stopAudioAnalysis() {
-      if (this.animationFrameId) {
-        cancelAnimationFrame(this.animationFrameId);
-        this.animationFrameId = null;
-      }
-      this.audioLevel = 0;
-      // Clear cached analysis buffers
-      this._audioDataArray = null;
-      this._voiceStart = null;
-      this._voiceEnd = null;
-    },
     changeStatus(status) {
       if (this.timeout) {
         clearTimeout(this.timeout);
@@ -1296,76 +1170,35 @@ export default {
       });
       return toast.present();
     },
+    /**
+     * Make sure the robot can listen: the microphone, and whatever the engine
+     * needs behind it (a token on the web, a speech model in the apps).
+     * Sets isMicrophoneEnabled; never throws.
+     */
     async enableMicrophone() {
-      var self = this;
       // Playing with the number pad: do not ask for the microphone again on
       // every question.
       if (this.padMode && !this.isMicrophoneEnabled) return;
-      // In the iOS and Android apps the phone's own speech model listens, so
-      // there is no SDK to load and no token to fetch. Asked again whenever
-      // the language changes, because each language has its own model.
-      if (isNativeApp) {
-        const locale = SPEECH_VOICES[this.selectedLanguage] || 'en-GB';
-        if (!this.isMicrophoneEnabled || this.preparedLocale !== locale) {
-          // Never asked before: let the robot ask for a grown-up first.
-          if ((await deviceMicrophoneStatus()) === 'prompt') {
-            const goAhead = await this.askForGrownUp();
-            if (!goAhead) {
-              this.padMode = true;
-              this.isMicrophoneEnabled = false;
-              return;
-            }
-          }
-          let status;
-          try {
-            status = await prepareDeviceSpeech(locale, () => { this.learningLanguage = true; });
-          } finally {
-            this.learningLanguage = false;
-          }
-          this.isMicrophoneEnabled = status.microphone && status.available;
-          this.deviceSpeechReason = status.reason;
-          this.preparedLocale = this.isMicrophoneEnabled ? locale : null;
-        }
-        return;
+      let readiness;
+      try {
+        readiness = await this.speech.prepare(this.speechLocale, {
+          // Never asked before: the robot asks for a grown-up first.
+          beforePrompt: () => this.askForGrownUp(),
+          onDownloading: () => { this.learningLanguage = true; }
+        });
+      } finally {
+        this.learningLanguage = false;
       }
-      // No token means the speech service could not be reached when the page
-      // loaded. Ask once more; if it is still down, the number pad is offered.
-      if (!this.token) {
-        try {
-          const { token, region } = await getSpeechToken();
-          this.token = token;
-          this.speechRegion = region;
-        } catch {
-          this.isMicrophoneEnabled = false;
-          return;
-        }
-      }
-      this.sdk = await loadSpeechSdk();
-      if (!this.isMicrophoneEnabled) {
-        self.speech_phrases = "enabling microphone..";
-        self.isMicrophoneEnabled = true;
-        await navigator.mediaDevices
-          .getUserMedia({ audio: true, video: false })
-          .then(function (e) {
-            self.audioConfig = self.sdk.AudioConfig.fromMicrophoneInput(e.id);
-            self.speech_phrases = "microphone enabled";
-          })
-          .catch(function () {
-            // Not an error state. askQuestion() offers the number pad.
-            self.speech_phrases = "";
-            self.isMicrophoneEnabled = false;
-          });
-      }
+      this.isMicrophoneEnabled = readiness.ready;
+      this.deviceSpeechReason = readiness.reason;
+      // "Use the number pad" on the ask-a-grown-up card.
+      if (readiness.reason === 'declined') this.padMode = true;
     },
+    /**
+     * Play: ask the next sum.
+     */
     async askQuestion() {
-      // Pull the Speech SDK in before anything touches it. First tap pays the
-      // download; every later one hits the cached module.
-      if (!isNativeApp) {
-        this.sdk = await loadSpeechSdk();
-        this.audioConfig = this.sdk.AudioConfig.fromDefaultMicrophoneInput();
-      }
       this.isResolved = false;
-      var self = this;
       this.isComputing = true;
       // Every Play is a fresh attempt. isError used to be a one-way latch, so a
       // single denied permission or cold backend hid the Play button forever.
@@ -1377,213 +1210,95 @@ export default {
       startMusic();
       this.heardText = '';
       this.reward = null;
-      
+
       // Brief surprised expression when starting new question
       this.showExpression('surprised', 800);
 
-      await this.enableMicrophone()
-        .then(function () {
-          if (self.isMicrophoneEnabled || self.padMode) {
-            self.isComputing = false;
-            self.isQuery = true;
-            self.isPlayMode = false;
-            self.speech_phrases = "";
-            
-            // Handle adaptive difficulty (auto mode)
-            let effectiveLevel = self.selectedLevel;
-            if (self.selectedLevel === 'auto') {
-              const recommendation = getRecommendedDifficulty(self.selectedOperator, self.currentAutoLevel);
-              if (recommendation.recommended !== self.currentAutoLevel) {
-                self.currentAutoLevel = recommendation.recommended;
-                // Show toast notification about difficulty change
-                const message = recommendation.reason === 'high_accuracy' 
-                  ? self.t('difficultyIncreased') 
-                  : self.t('difficultyDecreased');
-                self.showToast(message, 'primary');
-              }
-              effectiveLevel = self.currentAutoLevel;
-            }
-            
-            // Store effective level for history tracking
-            self.currentEffectiveLevel = effectiveLevel;
-            
-            // Check for spaced repetition problem based on sessionMode
-            let srProblem = null;
-            if (self.sessionMode !== 'random') {
-              // Only use spaced repetition when not in random mode
-              srProblem = getSpacedRepetitionProblem(self.selectedOperator, effectiveLevel, self.sessionMode);
-            }
-            let operatorToUse = self.selectedOperator;
-            
-            if (srProblem && srProblem.type === 'retry_failure') {
-              // Reuse exact problem from history
-              self.number1 = srProblem.num1;
-              self.number2 = srProblem.num2;
-              // Map operator symbol back to operator key
-              const opSymbolToKey = { '+': 'plus', '−': 'minus', '×': 'times', '÷': 'divide' };
-              operatorToUse = opSymbolToKey[srProblem.operator] || self.selectedOperator;
-            } else if (srProblem && srProblem.type === 'weak_operator') {
-              // Generate new problem for weak operator
-              const opSymbolToKey = { '+': 'plus', '−': 'minus', '×': 'times', '÷': 'divide' };
-              operatorToUse = opSymbolToKey[srProblem.operator] || self.selectedOperator;
-              const ranges = NUMBER_RANGES[operatorToUse]?.[effectiveLevel] 
-                || NUMBER_RANGES[OPERATORS.TIMES][LEVELS.BEGINNER];
-              if (operatorToUse === 'divide') {
-                const divisor = getRandomInt(ranges.min2, ranges.max2);
-                const quotient = getRandomInt(ranges.min1, ranges.max1);
-                self.number1 = divisor * quotient;
-                self.number2 = divisor;
-              } else {
-                self.number1 = getRandomInt(ranges.min1, ranges.max1);
-                self.number2 = getRandomInt(ranges.min2, ranges.max2);
-              }
-            } else {
-              // Standard random generation
-              const ranges = NUMBER_RANGES[self.selectedOperator]?.[effectiveLevel] 
-                || NUMBER_RANGES[OPERATORS.TIMES][LEVELS.BEGINNER];
-              
-              // For division, generate numbers that result in whole number answers
-              if (self.selectedOperator === 'divide') {
-                // Generate divisor and quotient, then calculate dividend
-                const divisor = getRandomInt(ranges.min2, ranges.max2);
-                const quotient = getRandomInt(ranges.min1, ranges.max1);
-                self.number1 = divisor * quotient; // dividend
-                self.number2 = divisor;
-              } else {
-                self.number1 = getRandomInt(ranges.min1, ranges.max1);
-                self.number2 = getRandomInt(ranges.min2, ranges.max2);
-              }
-            }
-            
-            // Store the actual operator being used
-            self.currentOperator = operatorToUse;
-            
-            // Get translated operator word
-            const operatorWords = {
-              'plus': self.t('plus'),
-              'minus': self.t('minus'),
-              'times': self.t('times'),
-              'divide': self.t('dividedBy')
-            };
-            const operatorWord = operatorWords[operatorToUse] || operatorToUse;
-            self.text = `${self.t('whatIs')} ${self.number1} ${operatorWord} ${self.number2}?`;
-            self.currentQuestion = self.text; // Store for repeat
-            self.questionActive = true;
-            if (self.firstRun) {
-              self.firstRun = false;
-              try {
-                localStorage.seenIntro = '1';
-              } catch (err) {
-                console.warn('Could not save the intro flag:', err);
-              }
-            }
-            self.speak();
-            // Tapping does not have to wait for the robot to stop talking, and
-            // must not depend on the voice finishing at all: a device with no
-            // working voice would otherwise never reach the pad.
-            if (self.padMode && !self.isMicrophoneEnabled) {
-              self.isQuery = false;
-              self.openPad();
-            }
-          } else {
-            // No microphone, or no speech model yet. This used to be the end
-            // of the game: a lower-case English message and an "Error" chip.
-            // Now it is a card with a way to play.
-            self.isComputing = false;
-            self.speech_phrases = "";
-            self.showNoMic = true;
-          }
-        })
-        .catch(function (e) {
-          console.error("Failed to ask question:", e);
-          self.isError = true;
-          self.text = self.t('somethingWrong');
-          self.showToast(self.text, "warning");
-        });
+      try {
+        await this.enableMicrophone();
+      } catch (error) {
+        console.error('Failed to ask question:', error);
+        this.isComputing = false;
+        this.isError = true;
+        this.text = this.t('somethingWrong');
+        this.showToast(this.text, 'warning');
+        return;
+      }
+
+      if (!this.isMicrophoneEnabled && !this.padMode) {
+        // No microphone, or no speech model yet. This used to be the end of
+        // the game: a lower-case English message and an "Error" chip. Now it
+        // is a card with a way to play.
+        this.isComputing = false;
+        this.speech_phrases = '';
+        this.showNoMic = true;
+        return;
+      }
+
+      this.isComputing = false;
+      this.isQuery = true;
+      this.isPlayMode = false;
+      this.speech_phrases = '';
+
+      const question = nextQuestion({
+        operator: this.selectedOperator,
+        level: this.selectedLevel,
+        autoLevel: this.currentAutoLevel,
+        mode: this.sessionMode
+      });
+      if (question.levelChange) {
+        this.showToast(this.t(question.levelChange === 'up' ? 'difficultyIncreased' : 'difficultyDecreased'), 'primary');
+      }
+      this.currentAutoLevel = question.autoLevel;
+      // The level and operator actually used, for the history. In the practice
+      // modes the operator can differ from the one chosen.
+      this.currentEffectiveLevel = question.level;
+      this.currentOperator = question.operator;
+      this.number1 = question.number1;
+      this.number2 = question.number2;
+
+      const words = { plus: this.t('plus'), minus: this.t('minus'), times: this.t('times'), divide: this.t('dividedBy') };
+      this.text = `${this.t('whatIs')} ${this.number1} ${words[question.operator] || question.operator} ${this.number2}?`;
+      this.currentQuestion = this.text; // Store for repeat
+      this.questionActive = true;
+      if (this.firstRun) {
+        this.firstRun = false;
+        try {
+          localStorage.seenIntro = '1';
+        } catch (err) {
+          console.warn('Could not save the intro flag:', err);
+        }
+      }
+      this.speak();
+      // Tapping does not have to wait for the robot to stop talking, and must
+      // not depend on the voice finishing at all: a device with no working
+      // voice would otherwise never reach the pad.
+      if (this.padMode && !this.isMicrophoneEnabled) {
+        this.isQuery = false;
+        this.openPad();
+      }
     },
     /**
-     * Speak text using Azure Neural TTS with caching
+     * The robot says this.text. A new line cuts off the one before it.
      */
     async speak() {
-        // Prevent overlapping audio
-        if (this.audioPlayer && !this.audioPlayer.paused) {
-          return;
-        }
-        
-        // Show text immediately
-        this.speech_phrases = this.text;
-        this.isTalking = true;
-        this.isOnBoundary = true;
+      // Show text immediately
+      this.speech_phrases = this.text;
+      this.isTalking = true;
 
-        // Native apps speak with the system voice: offline, and nothing to pay.
-        if (isNativeApp) {
-          const speechLocale = SPEECH_VOICES[this.selectedLanguage] || 'en-GB';
-          try {
-            const result = await speakOnDevice(this.text, speechLocale);
-            // Stopped by hand, or replaced by the next line. Whoever stopped it
-            // has already moved the turn on.
-            if (result && result.completed === false) return;
-          } catch (error) {
-            // The words are on screen, so the game carries on without a voice.
-            console.warn('Device voice failed:', error);
-          }
-          this.afterSpeaking();
-          return;
-        }
-
-        try {
-          // Use cached audio service with language-specific voice
-          const speechLang = SPEECH_VOICES[this.selectedLanguage] || 'en-GB';
-          const audio = await getCachedAudio(this.text, speechLang);
-          this.audioPlayer = audio;
-          
-          // Set up audio analysis for lip sync
-          audio.crossOrigin = "anonymous";
-          
-          audio.onplay = () => {
-            this.startAudioAnalysis(audio);
-          };
-          
-          audio.onended = () => {
-            this.isTalking = false;
-            this.stopAudioAnalysis();
-            if (this.clearAfterSpeak) {
-              this.clearAfterSpeak = false;
-              this.text = '';
-              this.speech_phrases = '';
-            }
-            // Trigger listening after speech ends
-            if (this.isQuery) {
-              this.isQuery = false;
-              this.listen();
-            }
-          };
-          
-          audio.onerror = () => {
-            this.isTalking = false;
-            this.stopAudioAnalysis();
-            this.speakWithBrowser();
-          };
-          
-          await audio.play();
-          
-        } catch (error) {
-          console.error('Azure TTS error:', error);
-          this.isTalking = false;
-          this.stopAudioAnalysis();
-          this.speakWithBrowser();
-        }
+      const result = await this.speech.speak(this.text, this.speechLocale);
+      // Stopped by hand, or replaced by the next line. Whoever stopped it has
+      // already moved the turn on.
+      if (result === 'stopped') return;
+      this.afterSpeaking();
     },
-    /**
-     * Fallback to browser speech synthesis
-     */
     /**
      * What happens when the robot finishes a line: tidy up, and open the
      * microphone if the line was a question.
      */
     afterSpeaking() {
       this.isTalking = false;
-      this.stopAudioAnalysis();
+      this.audioLevel = 0;
       if (this.clearAfterSpeak) {
         this.clearAfterSpeak = false;
         this.text = '';
@@ -1592,35 +1307,6 @@ export default {
       if (this.isQuery) {
         this.isQuery = false;
         this.listen();
-      }
-    },
-    /**
-     * One answer, heard by the phone's own speech model. Mirrors what
-     * listenForSpeechRecordingEvents() does with the Azure recogniser.
-     */
-    async listenWithDevice() {
-      const turn = (this.deviceTurn = (this.deviceTurn || 0) + 1);
-      const locale = SPEECH_VOICES[this.selectedLanguage] || 'en-GB';
-      try {
-        const heard = await listenOnDevice(locale, (partial) => {
-          // Display only, as on the web: one spoken number, one score.
-          if (turn === this.deviceTurn && this.isListening) this.heardText = partial;
-        });
-        if (turn !== this.deviceTurn) return;
-        const wasAlreadyFinalised = this.answerFinalised;
-        this.isListening = false;
-        this.isComputing = false;
-        if (wasAlreadyFinalised || this.padOpen) return;
-        this.validateSpeechRecording(heard, true);
-      } catch (err) {
-        console.warn('Device listening failed:', err);
-        if (turn !== this.deviceTurn) return;
-        this.isListening = false;
-        this.isComputing = false;
-        if (this.answerFinalised || this.padOpen) return;
-        // The phone could not listen at all. Same sum, on the pad.
-        this.isQuery = false;
-        this.openPad();
       }
     },
     chooseOperator(value) {
@@ -1738,69 +1424,46 @@ export default {
       }
       this.padMode = false;
       this.showNoMic = false;
-      this.preparedLocale = null;
+      this.speech.reset();
       this.askQuestion();
     },
     /**
-     * The browser's own voice, used when the cloud voice cannot be reached.
-     *
-     * A new utterance for every line. The old code reused one, skipped the new
-     * line whenever the previous one was still being spoken, and rebuilt the
-     * bubble word by word on top of text that was already there - which is why
-     * every line appeared twice.
+     * The child's turn. Opens the microphone for one answer, or the number pad
+     * when they are playing without one.
      */
-    speakWithBrowser() {
-      this.speech_phrases = this.text;
-      if (!this.synth) {
-        this.afterSpeaking();
-        return;
-      }
-      this.synth.cancel();
-      const utterance = new window.SpeechSynthesisUtterance(this.text);
-      utterance.lang = SPEECH_VOICES[this.selectedLanguage] || 'en-GB';
-      this.greetingSpeech = utterance;
-      this.isTalking = true;
-      // A cancelled line still reports that it ended. Only the current one
-      // may move the turn on.
-      const finished = () => {
-        if (this.greetingSpeech !== utterance) return;
-        this.afterSpeaking();
-      };
-      utterance.onend = finished;
-      utterance.onerror = finished;
-      this.synth.speak(utterance);
-    },
-    listen() {
+    async listen() {
       // The microphone is open, so it is the child's turn to speak RIGHT NOW.
-      // This used to set isComputing, which rendered as "Thinking..." with a
-      // frozen grey-gear robot - telling the child to wait at the exact moment
-      // it needed them to talk. isListening gives them the green listening
-      // robot and "Your turn!" instead.
-      // No toast: the listening panel in the dock carries this now, and four
-      // stacked 4-second toasts per answer was the noisiest thing on screen.
+      // isListening gives them the green listening robot and "Your turn!".
       this.isComputing = false;
       if (this.padMode && !this.isMicrophoneEnabled) {
         this.openPad();
         return;
       }
       this.isListening = true;
-      if (isNativeApp) {
-        this.listenWithDevice();
-        return;
+      const turn = (this.listenTurn = (this.listenTurn || 0) + 1);
+      try {
+        const heard = await this.speech.listen(this.speechLocale, (partial) => {
+          // Display only: one spoken number, one score.
+          if (turn === this.listenTurn && this.isListening) this.heardText = partial;
+        });
+        if (turn !== this.listenTurn) return;
+        // The turn may already be over - the child tapped Done, or opened the
+        // pad - so a late result is dropped rather than scored twice.
+        const wasAlreadyFinalised = this.answerFinalised;
+        this.isListening = false;
+        this.isComputing = false;
+        if (wasAlreadyFinalised || this.padOpen) return;
+        this.validateSpeechRecording(heard, true);
+      } catch (error) {
+        console.warn('Listening failed:', error);
+        if (turn !== this.listenTurn) return;
+        this.isListening = false;
+        this.isComputing = false;
+        if (this.answerFinalised || this.padOpen) return;
+        // The game could not listen at all. Same sum, on the pad.
+        this.isQuery = false;
+        this.openPad();
       }
-      var sc = this.sdk.SpeechConfig.fromAuthorizationToken(
-         
-        this.token,
-        this.speechRegion
-      );
-      // Use language-specific speech recognition
-      sc.speechRecognitionLanguage = SPEECH_VOICES[this.selectedLanguage] || 'en-GB';
-      this.speechConfig = sc;
-      this.speechRecording = new this.sdk.SpeechRecognizer(
-        this.speechConfig,
-        this.audioConfig
-      );
-      this.listenForSpeechRecordingEvents();
     },
     /**
      * Persist the robot camera framing. localStorage is written directly here
@@ -1836,14 +1499,9 @@ export default {
       this.clearAfterSpeak = false;
       this.text = '';
       this.speech_phrases = '';
-      if (this.audioPlayer && !this.audioPlayer.paused) {
-        this.audioPlayer.pause();
-        this.audioPlayer.currentTime = 0;
-      }
-      if (window.speechSynthesis) window.speechSynthesis.cancel();
-      if (isNativeApp) stopDeviceSpeaking();
+      this.speech.stopSpeaking();
       this.isTalking = false;
-      this.stopAudioAnalysis();
+      this.audioLevel = 0;
 
       // Pausing the audio means onended never fires, so the work it would have
       // done has to happen here - otherwise the turn strands with neither the
@@ -2002,25 +1660,13 @@ export default {
       }
     },
     /**
-     * Close the recogniser and release the microphone. Safe to call more than
-     * once, and safe to call while recognizeOnceAsync is still in flight - its
-     * callbacks null-check the handle before touching it.
+     * Close the microphone. Safe to call more than once, and while a listen is
+     * still in flight: its result arrives as silence and is dropped.
      */
     stopListening() {
-      const recogniser = this.speechRecording;
-      this.speechRecording = null;
       this.isListening = false;
       this.isComputing = false;
-
-      // Ends the turn in the native recogniser; a no-op when none is open.
-      if (isNativeApp) stopDeviceListening();
-
-      if (!recogniser) return;
-      try {
-        recogniser.close();
-      } catch (err) {
-        console.warn('Could not close the speech recogniser:', err);
-      }
+      this.speech.stopListening();
     },
     /**
      * "Done" button: the child says they have finished speaking. Ends the turn
@@ -2033,52 +1679,6 @@ export default {
       this.stopListening();
       this.isQuery = false;
       this.isPlayMode = true;
-    },
-    /**
-     * React to speech recording events
-     */
-    listenForSpeechRecordingEvents() {
-      const self = this;
-
-      // Signals that a new session has started with the speech service
-      this.speechRecording.speechStartDetected = function () {
-        console.log("speechStartDetected");
-        self.isListening = true;
-        self.isComputing = false;
-      };
-
-      this.speechRecording.recognizing = function (s, e) {
-        // Display only. This used to run the full validation path for every
-        // partial hypothesis, which fired a backend call each time, let two
-        // concurrent validations score the same answer, and could finalise a
-        // turn from an interim - closing the recogniser before the final-only
-        // path restored the Play button. One spoken number, one score.
-        self.heardText = e.result.text || '';
-      };
-
-      this.speechRecording.recognizeOnceAsync(
-        function (result) {
-          // The turn may already be over - a correct interim transcript stops
-          // listening, and the child can tap Done - so release the recogniser
-          // and drop the late result rather than scoring it twice.
-          const wasAlreadyFinalised = self.answerFinalised;
-          self.stopListening();
-          if (wasAlreadyFinalised || self.padOpen) return;
-          self.validateSpeechRecording(result.text, true);
-        },
-        function (err) {
-          console.log("err recognizeOnceAsync", err);
-          self.stopListening();
-          if (self.answerFinalised || self.padOpen) return;
-          self.isQuery = false;
-          self.text = self.t('didntHear');
-          self.showToast(self.text, "warning");
-          // Deliberately NOT isError: that makes botState 'broken', which hides
-          // the Play button. A failed recognition is transient and not the
-          // child's fault, so leave them a way to try again.
-          self.isPlayMode = true;
-        }
-      );
     },
     /**
      * Calculate points based on streak and level
@@ -2420,34 +2020,8 @@ export default {
       };
       return symbols[operator] || operator;
     },
-    /**
-     * Get word at position in string
-     */
-    getWordAt(str, pos) {
-      str = String(str);
-      pos = Number(pos) >>> 0;
-
-      if (this.previousPosition === pos) {
-        this.isTalking = false;
-        return "";
-      }
-      this.previousPosition = pos;
-
-      const left = str.slice(0, pos + 1).search(/\S+$/);
-      const right = str.slice(pos).search(/\s/);
-      
-      if (right < 0) {
-        if (!this.isQuery) {
-          this.isPlayMode = true;
-        }
-        this.isTalking = false;
-        return str.slice(left);
-      }
-
-      return str.slice(left, right + pos);
-    },
   },
-  async mounted() {
+  mounted() {
     // Try to start the music immediately. Browsers block an AudioContext until
     // the page has been interacted with, so if that is refused we arm a
     // one-shot listener and start on the very first touch or key instead.
@@ -2462,18 +2036,6 @@ export default {
 
     this.startIdleChat();
     this.scheduleBubbleClear();
-
-    // Check microphone availability. Not in the native apps: there the phone
-    // asks for the microphone on the first Play, through the speech plugin.
-    if (!isNativeApp) {
-      try {
-        await navigator.mediaDevices.getUserMedia({ audio: true });
-        this.isMicrophoneEnabled = true;
-      } catch {
-        console.warn("Microphone not available");
-      }
-    }
-
 
     // Load saved game data
     const savedStars = localStorage.getItem('stars');
@@ -2513,33 +2075,22 @@ export default {
     // Preload sounds
     preloadSounds().catch(err => console.warn('Sound preload failed:', err));
 
-    // The native apps listen and speak on the device, so there is no server
-    // to ask for a token and nothing that can be "unavailable".
-    if (isNativeApp) {
-      // A browser will not play sound before the first tap; the apps can, so
-      // on a first launch the robot explains the game by itself.
-      if (this.firstRun) {
-        this.text = this.t('explainSpoken');
-        this.isQuery = false;
-        // Leaves a clean screen when the robot has finished explaining.
-        this.clearAfterSpeak = true;
-        this.speak();
-      }
-      return;
-    }
+    // Get the first Play ready in the background.
+    this.speech.warmUp();
 
-    // Get speech token from API
-    try {
-      const { token, region } = await getSpeechToken();
-      this.token = token;
-      this.speechRegion = region;
-    } catch (error) {
-      // Not an error state any more. Play asks again, and if the service is
-      // still unreachable the child is offered the number pad.
-      console.warn("Speech service not reachable yet:", error);
+    // A browser will not play sound before the first tap; the apps can, so on
+    // a first launch there the robot explains the game by itself.
+    if (isNativeApp && this.firstRun) {
+      this.text = this.t('explainSpoken');
+      this.isQuery = false;
+      // Leaves a clean screen when the robot has finished explaining.
+      this.clearAfterSpeak = true;
+      this.speak();
     }
   },
   created() {
+    // Not reactive: the engine holds SDK objects that Vue should not wrap.
+    this.speech = createSpeech({ onLevel: (level) => { this.audioLevel = level; } });
     window.addEventListener('keydown', this.keyDownHandler);
   },
   unmounted() {
@@ -2553,17 +2104,8 @@ export default {
       window.removeEventListener('keydown', this.firstGesture);
     }
     window.removeEventListener('keydown', this.keyDownHandler);
-    // Cleanup audio player
-    if (this.audioPlayer) {
-      this.audioPlayer.pause();
-      this.audioPlayer = null;
-    }
-    // Cleanup audio analysis
-    this.stopAudioAnalysis();
-    if (this.audioContext) {
-      this.audioContext.close();
-      this.audioContext = null;
-    }
+    this.speech.stopSpeaking();
+    this.speech.stopListening();
     // Clear any pending timeouts
     if (this.timeout) {
       clearTimeout(this.timeout);
