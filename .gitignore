@@ -58,3 +58,7 @@ azure/functions/node_modules
 # committed when Pages served it from the branch; that is no longer how the
 # site is deployed.
 /docs
+
+# The film's working files: the take, the answer recording and the cut.
+# The finished film is copied into site/ when it is ready to publish.
+/film

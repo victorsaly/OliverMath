@@ -4,9 +4,6 @@
 //
 //   node scripts/make-native-assets.mjs     (needs Google Chrome installed)
 //   npx @capacitor/assets generate --ios --android
-//
-// puppeteer-core is not a project dependency; run this with it available, for
-// example `npx -y -p puppeteer-core node scripts/make-native-assets.mjs`.
 import { readFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
