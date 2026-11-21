@@ -3248,15 +3248,19 @@ ion-toolbar.navy-bar {
 }
 .learn-bar i {
   display: block;
-  width: 40%;
+  width: 100%;
   height: 100%;
   border-radius: 6px;
   background: #ffc62e;
-  animation: learn-slide 1.4s ease-in-out infinite alternate;
+  transform-origin: left center;
+  /* Fills and fades rather than sliding across: it says "working" without
+     anything travelling along the bar. */
+  animation: learn-fill 1.6s ease-in-out infinite;
 }
-@keyframes learn-slide {
-  from { transform: translateX(-20%); }
-  to { transform: translateX(170%); }
+@keyframes learn-fill {
+  0% { transform: scaleX(0.08); opacity: 1; }
+  70% { transform: scaleX(1); opacity: 1; }
+  100% { transform: scaleX(1); opacity: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
   .learn-bar i {
