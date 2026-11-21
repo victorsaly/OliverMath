@@ -9,5 +9,6 @@
   },
   "ios": {
     "contentInset": "never"
-  }
+  },
+  "backgroundColor": "#1f63d6"
 }
