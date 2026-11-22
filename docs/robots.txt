@@ -1,5 +1,0 @@
-# Oliver Math
-User-agent: *
-Allow: /
-
-Sitemap: https://victorsaly.github.io/OliverMath/sitemap.xml
