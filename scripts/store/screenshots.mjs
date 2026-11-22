@@ -160,8 +160,18 @@ for (let round = 0; round < 3; round++) {
 
 // 5. Choosing the kind of sum.
 await closeBubble();
-await sleep(600);
-await page.click('.sum-chip');
+// The chip steps aside while the robot is talking; wait for it to come back.
+// It can go again at any moment if the robot speaks, so try until a tap lands.
+for (let attempt = 0; attempt < 8; attempt++) {
+  try {
+    await page.waitForSelector('.sum-chip', { timeout: 30000 });
+    await page.click('.sum-chip');
+    await page.waitForSelector('.pick-sheet', { timeout: 3000 });
+    break;
+  } catch (error) {
+    if (attempt === 7) throw error;
+  }
+}
 await sleep(900);
 await shot(5, 'choose-sums');
 await page.click('.sheet-close');
