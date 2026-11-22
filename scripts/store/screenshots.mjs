@@ -87,9 +87,10 @@ await page.evaluateOnNewDocument((language) => {
 }, language);
 
 let count = 0;
-const shot = async (name) => {
-  const file = `${String(++count).padStart(2, '0')}-${name}.png`;
+const shot = async (number, name) => {
+  const file = `${String(number).padStart(2, '0')}-${name}.png`;
   await page.screenshot({ path: path.join(out, file) });
+  count += 1;
   console.log('saved', file);
 };
 const pressKey = async (digit) => {
@@ -106,21 +107,19 @@ await page.goto(url, { waitUntil: 'networkidle2' });
 await sleep(4500);
 
 // 1. The home screen, as a returning player sees it.
-await shot('home');
+await shot(1, 'home');
 
 // 2. A spoken answer: the robot has asked 7 x 8 and heard "56".
 await page.click('.round-btn.play');
 await page.waitForSelector('.sum-answer b:not(.empty)', { timeout: 40000 });
 await sleep(250);
-await shot('answer-heard');
+await shot(2, 'answer-heard');
 
-// 3. The reward.
 await page.waitForSelector('.reward-panel', { timeout: 20000 });
-await sleep(700);
-await shot('stars-earned');
-await sleep(4500);
+await sleep(5200);
 
-// 4. The number pad, part-way through an answer.
+// 4. The number pad, part-way through an answer - and 3. the reward for a
+//    third right answer in a row, which is when the confetti comes.
 for (let round = 0; round < 3; round++) {
   await page.click('.round-btn.play');
   await page.waitForSelector('.round-btn.pad', { timeout: 30000 });
@@ -135,13 +134,27 @@ for (let round = 0; round < 3; round++) {
   if (round === 0) {
     if (digits.length === 1) await pressKey(digits);
     await sleep(300);
-    await shot('number-pad');
+    await shot(4, 'number-pad');
     if (digits.length > 1) await pressKey(digits.slice(-1));
   } else {
     await pressKey(digits.slice(-1));
   }
   await sleep(150);
   await page.click('.pad-key.ok');
+  if (round === 1) {
+    await page.waitForSelector('.reward-panel', { timeout: 20000 });
+    if (arg('burst', '')) {
+      // Several moments after the reward appears, to choose the best one.
+      for (const ms of [150, 300, 450, 600, 800, 1000]) {
+        await sleep(150);
+        await page.screenshot({ path: path.join(out, `burst-${ms}.jpg`), type: 'jpeg', quality: 70 });
+      }
+      await browser.close();
+      process.exit(0);
+    }
+    await sleep(Number(arg('reward-delay', 800)));
+    await shot(3, 'stars-earned');
+  }
   await sleep(5200);
 }
 
@@ -150,7 +163,7 @@ await closeBubble();
 await sleep(600);
 await page.click('.sum-chip');
 await sleep(900);
-await shot('choose-sums');
+await shot(5, 'choose-sums');
 await page.click('.sheet-close');
 await sleep(500);
 
@@ -158,7 +171,7 @@ await sleep(500);
 await page.click('.hud-stars');
 await page.waitForSelector('.star-hero', { timeout: 10000 });
 await sleep(1200);
-await shot('stars-page');
+await shot(6, 'stars-page');
 
 await browser.close();
 console.log(`${count} screenshots at ${width * scale} x ${height * scale} in ${path.relative(process.cwd(), out)}`);
