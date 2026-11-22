@@ -17,7 +17,9 @@
     "sync:native": "npm run build:native && cap sync",
     "ios": "npm run sync:native && cap open ios",
     "android": "npm run sync:native && cap open android",
-    "film": "node scripts/film/record.mjs && node scripts/film/cut.mjs"
+    "film": "node scripts/film/record.mjs && node scripts/film/cut.mjs",
+    "ios:archive": "npm run sync:native && xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release -destination generic/platform=iOS -archivePath \"$HOME/Library/Developer/Xcode/Archives/Oliver Math.xcarchive\" archive",
+    "ios:upload": "xcodebuild -exportArchive -archivePath \"$HOME/Library/Developer/Xcode/Archives/Oliver Math.xcarchive\" -exportOptionsPlist ios/App/ExportOptions.plist -exportPath ios/build/export -allowProvisioningUpdates"
   },
   "dependencies": {
     "@capacitor/android": "^8.6.2",
