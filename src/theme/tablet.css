@@ -1,0 +1,83 @@
+/* Tablets.
+ *
+ * The game was drawn for a phone. On a tablet the same controls sat at phone
+ * size in the middle of a much larger screen: a Play button the size of a
+ * coin, a number pad a child had to aim at. Nothing about the layout is wrong
+ * for a tablet except its scale, so the pieces that float over the scene are
+ * enlarged as they are, and the two reading pages are given a column.
+ *
+ * Touch screens only (pointer: coarse). A desktop browser of the same width
+ * is used from further away with a precise pointer and keeps the phone scale.
+ */
+@media (min-width: 700px) and (min-height: 700px) and (pointer: coarse) {
+  :root {
+    --tablet-scale: 1.4;
+  }
+
+  .hud,
+  .dock,
+  .sum-card,
+  .how-chips,
+  .action-buttons,
+  .pad-sheet,
+  .nomic-sheet,
+  .gate-sheet,
+  .pick-sheet,
+  .intro-card {
+    zoom: var(--tablet-scale);
+  }
+
+  /* There is room beside the top-right buttons on a wide screen, so the sum
+     sits higher and clear of the robot's face. */
+  .ion-page > .sum-card.sum-card {
+    top: calc(env(safe-area-inset-top, 0px) + 58px);
+  }
+
+  /* The speech bubble is placed by the robot's position on screen, in real
+     pixels, so it is made larger by its own measurements rather than zoomed. */
+  .bot-container .animated-bot-container .bubble {
+    width: min(440px, 64vw);
+    padding: 15px 22px;
+    border-radius: 26px;
+    font-size: 22px;
+  }
+  .bot-container .animated-bot-container .bubble-close {
+    width: 38px;
+    height: 38px;
+  }
+
+  /* Stars and the pages for parents: a readable column, not full width. */
+  .stats-content {
+    zoom: 1.3;
+    --padding-start: max(16px, calc((100vw / 1.3 - 620px) / 2));
+    --padding-end: max(16px, calc((100vw / 1.3 - 620px) / 2));
+  }
+
+  .settings-modal .settings-list {
+    zoom: 1.15;
+  }
+}
+
+/* The largest tablets have room for more. */
+@media (min-width: 1000px) and (min-height: 1000px) and (pointer: coarse) {
+  :root {
+    --tablet-scale: 1.7;
+  }
+  .bot-container .animated-bot-container .bubble {
+    width: min(580px, 60vw);
+    padding: 18px 26px;
+    font-size: 28px;
+  }
+  .bot-container .animated-bot-container .bubble-close {
+    width: 46px;
+    height: 46px;
+  }
+  .stats-content {
+    zoom: 1.7;
+    --padding-start: max(16px, calc((100vw / 1.7 - 540px) / 2));
+    --padding-end: max(16px, calc((100vw / 1.7 - 540px) / 2));
+  }
+  .settings-modal .settings-list {
+    zoom: 1.3;
+  }
+}

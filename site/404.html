@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Oliver Math</title>
+  <meta name="robots" content="noindex">
+  <link rel="stylesheet" href="__SITE_BASE__site.css">
+  <!-- GitHub Pages serves this for any address it has no file for. Two kinds
+       of visitor arrive here: someone with an old link from when the game
+       lived at the front address (for example /stats), and someone opening a
+       page inside the game directly (/play/stats). Both are sent to the game,
+       which then opens the page they asked for. -->
+  <script>
+    (function () {
+      var path = window.location.pathname;
+      // The site's own address, written in when the site is built.
+      var home = '__SITE_BASE__';
+      var rest = path.indexOf(home) === 0 ? path.slice(home.length) : path.replace(/^\//, '');
+      if (rest.indexOf('play/') === 0) rest = rest.slice(5);
+      try {
+        window.sessionStorage.setItem('oliver-redirect', '/' + rest + window.location.search);
+      } catch (e) { /* the game opens on its home screen instead */ }
+      window.location.replace(home + 'play/');
+    })();
+  </script>
+</head>
+<body>
+  <main style="max-width: 40rem; margin: 0 auto; padding: 48px 20px;">
+    <h1 style="font-size: 32px;">Taking you to the game…</h1>
+    <p style="margin-top: 12px;">If nothing happens, <a href="__SITE_BASE__play/">open Oliver Math</a>.</p>
+  </main>
+</body>
+</html>

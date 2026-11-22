@@ -28,7 +28,6 @@ jobs:
 
       - name: Type check
         run: npm run typecheck
-        continue-on-error: true  # Allow JS files for now
 
       - name: Unit tests
         run: npm run test:unit
@@ -36,43 +35,40 @@ jobs:
       - name: Build
         run: npm run build
 
+      # Started here rather than by the Cypress action, so that when the
+      # server does not come up the log says why instead of only
+      # "Socket closed before the connection was established".
+      - name: Start the preview server
+        run: |
+          npm run preview -- --port 8100 > preview.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -sf -o /dev/null http://127.0.0.1:8100/OliverMath/play/; then
+              echo "Preview server up after ${i}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Preview server did not start:"
+          cat preview.log
+          exit 1
+
       - name: E2E tests
-        uses: cypress-io/github-action@v6
-        with:
-          start: npm run preview -- --port 8100
-          wait-on: 'http://localhost:8100'
-          wait-on-timeout: 60
-          command: npm run test:e2e
+        run: |
+          set -o pipefail
+          npm run test:e2e 2>&1 | tee e2e.log
 
-  deploy:
-    needs: test
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
-    
-    permissions:
-      contents: write
-      pages: write
-      id-token: write
+      # Puts the failing tests and their reasons on the run's summary page, so
+      # a failure can be read without opening the full log.
+      - name: Report failing E2E tests
+        if: failure()
+        run: |
+          if [ -f e2e.log ]; then
+            sed 's/\x1b\[[0-9;]*m//g' e2e.log \
+              | grep -E '^ +[0-9]+\) |AssertionError|CypressError|Timed out' \
+              | head -20 \
+              | while IFS= read -r line; do echo "::error::${line}"; done
+          fi
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build
-        run: npm run build
-
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./docs
-          cname: ''  # Remove if not using custom domain
+# Deployment lives in deploy.yml, which publishes through GitHub Pages' own
+# workflow source. A second deploy job here pushed the same build to a gh-pages
+# branch that nothing serves.

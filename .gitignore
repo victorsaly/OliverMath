@@ -46,14 +46,19 @@ azure/functions/local.settings.json*
 /www
 azure/functions/node_modules
 
-# Capacitor
-/android
-/ios
+# Capacitor: the native projects are committed (they hold the permission
+# texts and app settings). Their own .gitignore files exclude build output.
 
 # Test outputs
 /test-results
 /cypress/videos
 /cypress/screenshots
 
-# Keep docs/ for GitHub Pages deployment (do NOT ignore)
-# /docs
+# Built by `npm run build` and published by the deploy workflow. It was
+# committed when Pages served it from the branch; that is no longer how the
+# site is deployed.
+/docs
+
+# The film's working files: the take, the answer recording and the cut.
+# The finished film is copied into site/ when it is ready to publish.
+/film

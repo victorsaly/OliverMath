@@ -37,8 +37,13 @@ describe('Oliver Math - Home Page', () => {
     cy.get('.hud-stars').should('be.visible');
   });
 
-  it('shows the status pill', () => {
-    cy.get('.status-pill').should('exist');
+  // "Ready to play!" used to sit beside a bare icon. Play now carries its own
+  // word, and the status pill is kept for states that need one.
+  it('shows a labelled Play button and the first-run steps', () => {
+    cy.get('.round-btn.play').should('be.visible');
+    cy.get('.play-label').should('not.be.empty');
+    cy.get('.how-chips span').should('have.length', 3);
+    cy.get('.status-pill').should('not.exist');
   });
 });
 
@@ -53,14 +58,31 @@ describe('Oliver Math - Settings', () => {
     });
   });
 
-  it('opens the settings modal from the HUD', () => {
+  // Grown-ups sits behind a gate: three numbers written as words.
+  const passGate = () => {
+    const words = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'];
     cy.get('.hud-btn').first().click();
+    cy.get('.gate-words').invoke('text').then((text) => {
+      text.split(',').forEach((word) => {
+        cy.contains('.gate-sheet .pad-key', new RegExp(`^${words.indexOf(word.trim())}$`)).click();
+      });
+    });
+  };
+
+  it('keeps settings behind the grown-ups gate', () => {
+    cy.get('.hud-btn').first().click();
+    cy.get('.gate-sheet').should('be.visible');
+    cy.get('.settings-group').should('not.exist');
+  });
+
+  it('opens the settings modal from the HUD', () => {
+    passGate();
     cy.get('ion-modal').should('be.visible');
     cy.get('.settings-group').should('have.length.at.least', 1);
   });
 
   it('offers robot colour swatches', () => {
-    cy.get('.hud-btn').first().click();
+    passGate();
     cy.get('ion-modal').should('be.visible');
     cy.get('.colour-swatch').should('have.length.at.least', 4);
   });
@@ -122,5 +144,38 @@ describe('Oliver Math - Accessibility', () => {
 
     cy.viewport(768, 1024);
     cy.get('.round-btn.play').should('be.visible');
+  });
+});
+
+describe('Oliver Math - Choosing the sums', () => {
+  it('lets a returning child pick the kind of sum, and remembers it', () => {
+    // The chip is hidden on a first visit, where the three steps are shown.
+    cy.visit('/');
+    cy.get('.round-btn.play').should('exist');
+    cy.window().then((win) => win.localStorage.setItem('seenIntro', '1'));
+    cy.reload();
+    cy.get('.sum-chip').should('contain.text', '×').click();
+    cy.get('.pick-tile').should('have.length', 4);
+    cy.contains('.pick-tile', '÷').click();
+    cy.get('.pick-sheet').should('not.exist');
+    cy.get('.sum-chip').should('contain.text', '÷');
+
+    cy.reload();
+    cy.get('.sum-chip').should('contain.text', '÷');
+  });
+});
+
+describe('Oliver Math - Pages for parents', () => {
+  [
+    { page: 'privacy.html', heading: 'Privacy for parents' },
+    { page: 'support.html', heading: 'Help and support' }
+  ].forEach(({ page, heading }) => {
+    // Opened in the browser, the way a parent would, and followed back.
+    it(`opens ${page} as a real page and returns to the game`, () => {
+      cy.visit('/' + page);
+      cy.get('h1').should('contain.text', heading);
+      cy.contains('a', 'Back to the game').click();
+      cy.get('.round-btn.play').should('exist');
+    });
   });
 });

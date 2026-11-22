@@ -1,0 +1,15 @@
+{
+  "name": "oliver-device-speech",
+  "version": "0.1.0",
+  "description": "Speech recognition and speech synthesis that stay on the device. Local Capacitor plugin for Oliver Math.",
+  "private": true,
+  "main": "index.js",
+  "files": ["index.js", "Package.swift", "OliverDeviceSpeech.podspec", "ios/", "android/"],
+  "capacitor": {
+    "ios": { "src": "ios" },
+    "android": { "src": "android" }
+  },
+  "peerDependencies": {
+    "@capacitor/core": ">=8.0.0"
+  }
+}

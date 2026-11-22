@@ -1,7 +1,7 @@
 <template>
   <ion-app>
     <!-- Offline Banner -->
-    <div v-if="!isOnline" class="offline-banner" role="alert">
+    <div v-if="!isOnline && !isNativeApp" class="offline-banner" role="alert">
       <ion-icon :icon="cloudOfflineOutline" aria-hidden="true"></ion-icon>
       <span>You're offline. Some features may be limited.</span>
     </div>
@@ -36,9 +36,10 @@
 
 <script>
 import { IonApp, IonRouterOutlet, IonIcon, IonButton } from '@ionic/vue';
-import { defineComponent, ref, onMounted } from 'vue';
+import { defineComponent, ref } from 'vue';
 import { cloudOfflineOutline, downloadOutline } from 'ionicons/icons';
 import { usePWA } from '@/composables/usePWA';
+import { isNativeApp } from '@/services/deviceSpeech';
 
 export default defineComponent({
   name: 'App',
@@ -49,26 +50,12 @@ export default defineComponent({
     IonButton
   },
   setup() {
-    const { isOnline, canInstall, isInstalled, needsUpdate, installApp, updateApp } = usePWA();
+    const { isOnline, canInstall, needsUpdate, installApp, updateApp } = usePWA();
     const showInstallPrompt = ref(false);
     
-    // Check if we should show install prompt (not dismissed recently)
-    onMounted(() => {
-      const dismissed = localStorage.getItem('pwa-install-dismissed');
-      const dismissedTime = dismissed ? parseInt(dismissed, 10) : 0;
-      const oneWeek = 7 * 24 * 60 * 60 * 1000;
-      
-      // Show prompt if not dismissed in the last week
-      if (!dismissed || Date.now() - dismissedTime > oneWeek) {
-        // Delay showing prompt for better UX
-        setTimeout(() => {
-          if (canInstall.value && !isInstalled.value) {
-            showInstallPrompt.value = true;
-          }
-        }, 3000);
-      }
-    });
-    
+    // The install bar used to slide over the Play button a few seconds after a
+    // child arrived. Installing is a grown-up's decision and belongs on the
+    // product site, so it is no longer raised over the game by itself.
     const dismissInstallPrompt = () => {
       showInstallPrompt.value = false;
       localStorage.setItem('pwa-install-dismissed', Date.now().toString());
@@ -82,6 +69,7 @@ export default defineComponent({
     };
     
     return {
+      isNativeApp,
       isOnline,
       canInstall,
       needsUpdate,

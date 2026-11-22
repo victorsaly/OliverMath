@@ -1,0 +1,323 @@
+/* Sheets that slide up over the game: the number pad, the microphone cards,
+   the sum picker and the parental gate. They share one look, and several
+   components use these classes, so the rules are global rather than repeated
+   in each component. The slide itself is here too, as is the fade used by the
+   panels along the bottom. */
+/* Parental gate ------------------------------------------------------------- */
+.gate-sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  margin: 0 auto;
+  max-width: 460px;
+  padding: 18px 18px calc(env(safe-area-inset-bottom, 0px) + 18px);
+  border-radius: 26px 26px 0 0;
+  background: linear-gradient(160deg, #1d2a4d, #141d36);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-bottom: none;
+  box-shadow: 0 -18px 50px rgba(0, 0, 0, 0.45);
+  color: #ffffff;
+  text-align: center;
+}
+.gate-sheet h2 {
+  margin: 6px 44px 6px;
+  font-size: 22px;
+  font-weight: 800;
+}
+.gate-sheet p {
+  margin: 0;
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.78);
+}
+.gate-sheet .gate-words {
+  margin: 6px 0 10px;
+  font-size: 24px;
+  font-weight: 800;
+  color: #ffc62e;
+}
+.gate-dots {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  padding-bottom: 14px;
+}
+.gate-dots i {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+}
+.gate-dots i.on {
+  background: #ffffff;
+  border-color: #ffffff;
+}
+.sum-chip span::first-letter,
+.pick-tile span::first-letter {
+  text-transform: uppercase;
+}
+.pick-sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  margin: 0 auto;
+  max-width: 460px;
+  padding: 18px 18px calc(env(safe-area-inset-bottom, 0px) + 18px);
+  border-radius: 26px 26px 0 0;
+  background: linear-gradient(160deg, #1d2a4d, #141d36);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-bottom: none;
+  box-shadow: 0 -18px 50px rgba(0, 0, 0, 0.45);
+  color: #ffffff;
+  text-align: center;
+}
+.pick-sheet h2 {
+  margin: 6px 44px 14px;
+  font-size: 22px;
+  font-weight: 800;
+}
+.pick-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.pick-tile {
+  min-height: 104px;
+  padding: 10px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: 3px solid transparent;
+  border-radius: 20px;
+  background: #26355f;
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.pick-tile b {
+  color: #ffc62e;
+  font-size: 46px;
+  line-height: 1;
+}
+.pick-tile.active {
+  background: #1f57c9;
+  border-color: #ffffff;
+}
+.sum-chip:focus-visible,
+.pick-tile:focus-visible {
+  outline: 3px solid #ffc62e;
+  outline-offset: 2px;
+}
+
+/* Number pad and no-microphone card ---------------------------------------- */
+.pad-sheet,
+.nomic-sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  margin: 0 auto;
+  max-width: 460px;
+  padding: 18px 18px calc(env(safe-area-inset-bottom, 0px) + 18px);
+  border-radius: 26px 26px 0 0;
+  background: linear-gradient(160deg, #1d2a4d, #141d36);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-bottom: none;
+  box-shadow: 0 -18px 50px rgba(0, 0, 0, 0.45);
+  color: #ffffff;
+  text-align: center;
+}
+.sheet-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 24px;
+  cursor: pointer;
+}
+.pad-sum {
+  margin: 0 44px 14px;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 10px;
+  font-size: 34px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.pad-sum b {
+  min-width: 1.6em;
+  padding: 0 6px 2px;
+  color: #3fe07f;
+  border-bottom: 4px dashed #3fe07f;
+}
+.pad-sum b.empty {
+  color: rgba(255, 255, 255, 0.45);
+  border-bottom-color: rgba(255, 255, 255, 0.35);
+}
+.pad-keys {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 9px;
+}
+.pad-key {
+  height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 16px;
+  background: #26355f;
+  color: #ffffff;
+  font-size: 27px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: transform 0.12s ease, background 0.12s ease;
+}
+.pad-key:active {
+  transform: scale(0.96);
+  background: #31437a;
+}
+.pad-key.del {
+  background: #1b2748;
+}
+.pad-key.ok {
+  background: #2fbf6b;
+  color: #06301a;
+  font-size: 30px;
+}
+.pad-key.ok[disabled] {
+  opacity: 0.4;
+  cursor: default;
+}
+.nomic-sheet h2 {
+  margin: 6px 44px 8px;
+  font-size: 22px;
+  font-weight: 800;
+}
+.nomic-sheet p {
+  margin: 0 0 16px;
+  font-size: 16px;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.78);
+}
+.learn-bar {
+  height: 12px;
+  margin: 4px 0 8px;
+  border-radius: 6px;
+  background: #26355f;
+  overflow: hidden;
+}
+.learn-bar i {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 6px;
+  background: #ffc62e;
+  transform-origin: left center;
+  /* Fills and fades rather than sliding across: it says "working" without
+     anything travelling along the bar. */
+  animation: learn-fill 1.6s ease-in-out infinite;
+}
+@keyframes learn-fill {
+  0% { transform: scaleX(0.08); opacity: 1; }
+  70% { transform: scaleX(1); opacity: 1; }
+  100% { transform: scaleX(1); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .learn-bar i {
+    width: 100%;
+    animation: none;
+    opacity: 0.6;
+  }
+}
+.sheet-btn {
+  width: 100%;
+  min-height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 16px;
+  background: #26355f;
+  color: #ffffff;
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.sheet-btn + .sheet-btn {
+  margin-top: 10px;
+}
+.sheet-btn.primary {
+  background: linear-gradient(145deg, #2a74ea, #1b57bc);
+}
+.sheet-btn ion-icon {
+  font-size: 21px;
+}
+.sheet-123 {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.pad-key:focus-visible,
+.sheet-btn:focus-visible,
+.sheet-close:focus-visible {
+  outline: 3px solid #ffc62e;
+  outline-offset: 2px;
+}
+.sheet-enter-active,
+.sheet-leave-active {
+  transition: transform 0.26s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.2s ease;
+}
+.sheet-enter-from,
+.sheet-leave-to {
+  transform: translateY(100%);
+  opacity: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sheet-enter-active,
+  .sheet-leave-active {
+    transition: opacity 0.15s ease;
+  }
+  .sheet-enter-from,
+  .sheet-leave-to {
+    transform: none;
+  }
+}
+
+.panel-enter-active,
+.panel-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.panel-enter-from,
+.panel-leave-to {
+  opacity: 0;
+  transform: translateY(8px) scale(0.96);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel-enter-active,
+  .panel-leave-active {
+    transition: none;
+  }
+}

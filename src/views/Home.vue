@@ -6,249 +6,47 @@
          even that is hidden - but it must still be in the document. -->
     <h1 class="visually-hidden">Oliver Math - practise maths by talking to a robot</h1>
 
-    <!-- Floating HUD. No toolbar: the robot's world is the interface, so the
-         controls sit over the scene as glass buttons instead of inside a bar. -->
-    <div class="hud">
-      <div class="hud-left">
-        <button class="hud-btn" @click="showSettingsModal = true" :aria-label="t('settings')">
-          <ion-icon :icon="settingsIcon" aria-hidden="true"></ion-icon>
-        </button>
-        <!-- Permanent entry point. This used to live only inside the first-run
-             card, which meant it disappeared forever after one dismissal. -->
-        <button class="hud-btn help" @click="showIntro = true" :aria-label="t('howToPlay')">
-          <ion-icon :icon="helpIcon" aria-hidden="true"></ion-icon>
-        </button>
-        <!-- Tapping holds the sky at day or night; the automatic cycle can be
-             restored from Settings. The icon shows what the tap will give you. -->
-        <button class="hud-btn sky" @click="toggleDayNight" :aria-label="t('dayNight')">
-          <ion-icon :icon="dayMode === 'night' ? sunIcon : moonIcon" aria-hidden="true"></ion-icon>
-        </button>
-      </div>
-
-      <!-- Wordmark. Absolutely centred rather than a flex child, so it stays
-           put when the star count grows a digit and the right group widens. -->
-      <p class="wordmark" aria-label="Oliver Math">
-        <ion-icon :icon="calculatorIcon" class="wordmark-icon" aria-hidden="true"></ion-icon>
-        <span class="wordmark-words"><span class="wordmark-oliver">Oliver</span><span class="wordmark-math">Math</span></span>
-      </p>
-
-      <div class="hud-right">
-        <button class="hud-btn" id="language-trigger-header" aria-label="Change language" aria-haspopup="menu">
-          <span class="hud-flag" aria-hidden="true">{{ availableLanguages[selectedLanguage]?.flag }}</span>
-        </button>
-        <ion-popover trigger="language-trigger-header" trigger-action="click">
-          <ion-content class="ion-padding">
-            <ion-list>
-              <ion-item
-                v-for="(lang, code) in availableLanguages"
-                :key="code"
-                button
-                @click="changeLanguage(code)"
-                :class="{ 'selected-language': code === selectedLanguage }"
-              >
-                <span class="language-flag">{{ lang.flag }}</span>
-                <ion-label>{{ lang.name }}</ion-label>
-              </ion-item>
-            </ion-list>
-          </ion-content>
-        </ion-popover>
-
-        <router-link to="/stats" class="hud-stars" aria-label="View stats and achievements">
-          <ion-icon :icon="star" aria-hidden="true"></ion-icon>
-          <span>{{ stars }}</span>
-        </router-link>
-      </div>
-    </div>
+    <GameHud
+      :language="selectedLanguage"
+      :stars="stars"
+      :dayMode="dayMode"
+      @grown-ups="openGate('grown-ups')"
+      @help="showIntro = true"
+      @toggle-sky="toggleDayNight"
+    />
 
 
-    <!-- First-run help. The app previously explained itself with a single
-         14-word sentence in a speech bubble and nothing else. -->
-    <div class="intro-backdrop" v-if="showIntro" role="dialog" aria-modal="true" aria-labelledby="intro-title">
-      <div class="intro-card" ref="introCard">
-        <p class="intro-brand" id="intro-title">
-          <span class="wordmark-oliver">Oliver</span><span class="wordmark-math">Math</span>
-        </p>
-        <p class="intro-tagline">{{ t('tagline') }}</p>
+    <IntroCard
+      v-if="showIntro"
+      :language="selectedLanguage"
+      :talking="isTalking"
+      @hear="explainGame"
+      @close="dismissIntro"
+    />
 
-        <ol class="intro-steps">
-          <li><span class="intro-num">1</span>{{ t('step1') }}</li>
-          <li><span class="intro-num">2</span>{{ t('step2') }}</li>
-          <li><span class="intro-num">3</span>{{ t('step3') }}</li>
-        </ol>
-
-        <!-- Spoken explanation. The written steps above are no use to a child
-             who cannot read yet, and tapping this is also the user gesture the
-             browser needs before any audio can play. -->
-        <button class="intro-hear" @click="explainGame" :disabled="isTalking">
-          <ion-icon :icon="volumeIcon" aria-hidden="true"></ion-icon>
-          {{ t('hearIt') }}
-        </button>
-
-        <button class="intro-go" @click="dismissIntro">{{ t('gotIt') }}</button>
-      </div>
-    </div>
-
-    <!-- Settings Modal -->
-    <ion-modal 
-      :is-open="showSettingsModal" 
-      @didDismiss="showSettingsModal = false" 
-      class="settings-modal"
-    >
-      <ion-header>
-        <ion-toolbar color="primary">
-          <ion-title>{{ t('settings') }}</ion-title>
-          <ion-buttons slot="end">
-            <ion-button fill="clear" @click="showSettingsModal = false" aria-label="Close settings">
-              <ion-icon :icon="closeIcon" slot="icon-only" style="color: white;"></ion-icon>
-            </ion-button>
-          </ion-buttons>
-        </ion-toolbar>
-      </ion-header>
-      <ion-content class="ion-padding">
-        <div class="settings-list">
-          <!-- Difficulty Level -->
-          <div class="settings-group">
-            <div class="settings-group-header">
-              <ion-icon :icon="speedometerIcon" color="primary"></ion-icon>
-              <span>{{ t('level') }}</span>
-            </div>
-            <div class="settings-options">
-              <button 
-                v-for="level in levelOptions" 
-                :key="level.value" 
-                class="setting-option" 
-                :class="{ active: selectedLevel === level.value }"
-                @click="selectedLevel = level.value"
-              >
-                {{ level.label }}
-              </button>
-            </div>
-          </div>
-
-          <!-- Operator -->
-          <div class="settings-group">
-            <div class="settings-group-header">
-              <ion-icon :icon="calculatorIcon" color="secondary"></ion-icon>
-              <span>{{ t('operators') }}</span>
-            </div>
-            <div class="settings-options">
-              <button 
-                v-for="op in operatorOptions" 
-                :key="op.value" 
-                class="setting-option" 
-                :class="{ active: selectedOperator === op.value }"
-                @click="selectedOperator = op.value"
-              >
-                {{ op.label }}
-              </button>
-            </div>
-          </div>
-
-          <!-- Robot view: lives in settings rather than the game screen, which
-               already carries six icon controls in one corner. -->
-          <div class="settings-group">
-            <div class="settings-group-header">
-              <ion-icon :icon="doneIcon" color="tertiary"></ion-icon>
-              <span>{{ t('robotView') }}</span>
-            </div>
-            <div class="settings-options">
-              <button
-                v-for="option in viewOptions"
-                :key="option.value"
-                class="setting-option"
-                :class="{ active: botView === option.value }"
-                :aria-pressed="botView === option.value"
-                @click="setBotView(option.value)"
-              >
-                {{ option.label }}
-              </button>
-            </div>
-          </div>
-
-          <div class="settings-group">
-            <div class="settings-group-header">
-              <ion-icon :icon="sunIcon" color="warning"></ion-icon>
-              <span>{{ t('dayNight') }}</span>
-            </div>
-            <div class="settings-options">
-              <button
-                v-for="option in dayOptions"
-                :key="option.value"
-                class="setting-option"
-                :class="{ active: dayMode === option.value }"
-                :aria-pressed="dayMode === option.value"
-                @click="setDayMode(option.value)"
-              >
-                {{ option.label }}
-              </button>
-            </div>
-          </div>
-
-          <div class="settings-group">
-            <div class="settings-group-header">
-              <ion-icon :icon="star" color="warning"></ion-icon>
-              <span>{{ t('robotColour') }}</span>
-            </div>
-            <div class="settings-options">
-              <button
-                v-for="colour in colourOptions"
-                :key="colour.value"
-                class="colour-swatch"
-                :class="{ active: botColour === colour.value }"
-                :style="{ background: colour.value }"
-                :aria-label="colour.label"
-                :aria-pressed="botColour === colour.value"
-                @click="setBotColour(colour.value)"
-              ></button>
-            </div>
-          </div>
-
-          <div class="settings-group">
-            <div class="settings-group-header">
-              <ion-icon :icon="volumeIcon" color="secondary"></ion-icon>
-              <span>{{ t('robotChat') }}</span>
-            </div>
-            <div class="settings-options">
-              <button
-                v-for="option in chatOptions"
-                :key="String(option.value)"
-                class="setting-option"
-                :class="{ active: autoChat === option.value }"
-                :aria-pressed="autoChat === option.value"
-                @click="setAutoChat(option.value)"
-              >
-                {{ option.label }}
-              </button>
-            </div>
-          </div>
-
-          <div class="settings-group">
-            <button class="setting-option wide" @click="showIntro = true; showSettingsModal = false">
-              {{ t('howToPlay') }}
-            </button>
-          </div>
-
-          <!-- Practice Mode -->
-          <div class="settings-group">
-            <div class="settings-group-header">
-              <ion-icon :icon="targetIcon" color="tertiary"></ion-icon>
-              <span>{{ t('sessionMode') }}</span>
-            </div>
-            <div class="settings-options vertical">
-              <button 
-                v-for="mode in modeOptions" 
-                :key="mode.value" 
-                class="setting-option wide" 
-                :class="{ active: sessionMode === mode.value }"
-                @click="sessionMode = mode.value"
-              >
-                {{ mode.label }}
-              </button>
-            </div>
-          </div>
-        </div>
-      </ion-content>
-    </ion-modal>
+    <GrownUpsSheet
+      :open="showSettingsModal"
+      :language="selectedLanguage"
+      :languages="availableLanguages"
+      v-model:level="selectedLevel"
+      v-model:operator="selectedOperator"
+      v-model:mode="sessionMode"
+      :view="botView"
+      :dayMode="dayMode"
+      :colour="botColour"
+      :autoChat="autoChat"
+      :muted="isMuted"
+      :historyCount="problemHistory.length"
+      @update:language="changeLanguage"
+      @update:view="setBotView"
+      @update:dayMode="setDayMode"
+      @update:colour="setBotColour"
+      @update:autoChat="setAutoChat"
+      @toggle-mute="handleToggleMute"
+      @clear-history="handleClearHistory"
+      @help="showIntro = true; showSettingsModal = false"
+      @close="showSettingsModal = false"
+    />
     
     <ion-content :fullscreen="true" class="ion-padding" role="main">
       <!-- Action Buttons (when not in play mode) -->
@@ -256,60 +54,18 @@
         <ion-button fill="clear" size="small" @click="repeatQuestion" :disabled="!currentQuestion || isTalking" aria-label="Repeat question" :title="!currentQuestion ? 'No question available' : 'Repeat question'">
           <ion-icon :icon="refreshIcon" slot="icon-only" aria-hidden="true"></ion-icon>
         </ion-button>
-        <ion-button fill="clear" size="small" @click="handleToggleMute" :aria-label="isMuted ? 'Unmute' : 'Mute'" :title="isMuted ? 'Unmute audio' : 'Mute audio'">
-          <ion-icon :icon="isMuted ? muteIcon : volumeIcon" slot="icon-only" aria-hidden="true"></ion-icon>
-        </ion-button>
         <ion-button fill="clear" size="small" @click="openHistoryModal" aria-label="View problem history" title="View previously solved problems">
           <ion-icon :icon="historyIcon" slot="icon-only" aria-hidden="true"></ion-icon>
         </ion-button>
       </div>
 
       <!-- Problem History Modal -->
-      <ion-modal :is-open="showHistoryModal" @didDismiss="showHistoryModal = false" role="dialog" aria-labelledby="history-modal-title">
-        <ion-header>
-          <ion-toolbar color="primary">
-            <ion-title id="history-modal-title">{{ t('problemHistory') }}</ion-title>
-            <ion-button slot="end" fill="clear" @click="showHistoryModal = false" aria-label="Close history">
-              <ion-icon :icon="alertIcon" slot="icon-only" style="color: white;" aria-hidden="true"></ion-icon>
-            </ion-button>
-          </ion-toolbar>
-        </ion-header>
-        <ion-content class="ion-padding">
-          <div v-if="problemHistory.length === 0" class="no-history">
-            <p>{{ t('noHistory') }}</p>
-          </div>
-          <ion-list v-else>
-            <ion-item v-for="problem in problemHistory" :key="problem.id" :class="problem.isCorrect ? 'correct-item' : 'incorrect-item'">
-              <ion-label>
-                <h2 class="problem-equation">
-                  {{ problem.num1 }} {{ getOperatorSymbol(problem.operator) }} {{ problem.num2 }} = {{ problem.correctAnswer }}
-                </h2>
-                <p v-if="!problem.isCorrect" class="user-answer">
-                  {{ t('yourAnswer') }}: {{ problem.userAnswer || '?' }}
-                </p>
-                <p class="problem-time">{{ formatTimestamp(problem.timestamp) }}</p>
-              </ion-label>
-              <ion-icon 
-                slot="end" 
-                :icon="problem.isCorrect ? star : alertIcon" 
-                :color="problem.isCorrect ? 'success' : 'danger'"
-              ></ion-icon>
-            </ion-item>
-          </ion-list>
-          <ion-button 
-            v-if="problemHistory.length > 0" 
-            expand="block" 
-            color="danger" 
-            fill="outline"
-            @click="handleClearHistory"
-            class="clear-history-btn"
-            aria-label="Delete all problem history"
-          >
-            <ion-icon :icon="trashIcon" slot="start" aria-hidden="true"></ion-icon>
-            {{ t('clearHistory') }}
-          </ion-button>
-        </ion-content>
-      </ion-modal>
+      <HistorySheet
+        :open="showHistoryModal"
+        :language="selectedLanguage"
+        :history="problemHistory"
+        @close="showHistoryModal = false"
+      />
 
       <!-- Speech glow. The robot talking is otherwise inaudible AND invisible
            with the volume down or the device muted, so the screen edges pulse
@@ -321,7 +77,7 @@
       <div class="bot-container">
         <AnimatedBot
           :botState="botState"
-          :text="speech_phrases"
+          :text="bubbleText"
           :audioLevel="audioLevel"
           :view="botView"
           :bodyColor="botColour"
@@ -335,150 +91,139 @@
       </div>
     </ion-content>
     
-    <!-- Transparent dock over the scene: a status pill and one round control.
-         No toolbar chrome - the 3D world runs edge to edge behind it. -->
-    <div class="dock">
-      <!-- Listening panel: a pre-reading child needs to know the microphone is
-           open without reading a word, so this leads with an animated mic and
-           level bars, with the transcript underneath only once there is one. -->
-      <transition name="panel">
-        <div class="listen-panel" v-if="isListening" role="status" aria-live="polite">
-          <span class="listen-bars" aria-hidden="true">
-            <i></i><i></i><i></i><i></i><i></i>
-          </span>
-          <span class="listen-text">{{ t('yourTurn') }}</span>
-          <span class="listen-heard" v-if="heardText">{{ heardText }}</span>
-        </div>
-      </transition>
-
-      <!-- Correct answer: the star and the equation carry it, not the words. -->
-      <transition name="panel">
-        <div class="reward-panel" v-if="reward" role="status" aria-live="polite">
-          <ion-icon :icon="star" class="reward-star" aria-hidden="true"></ion-icon>
-          <span class="reward-points">+{{ reward.points }}</span>
-          <span class="reward-equation">{{ reward.equation }}</span>
-          <span class="reward-streak" v-if="reward.streak >= 3">{{ t('streak') }} {{ reward.streak }}</span>
-        </div>
-      </transition>
-
-      <div class="status-pill" :class="botState" v-if="statusText" role="status" aria-live="polite">
-        <ion-icon :icon="statusIcon" aria-hidden="true"></ion-icon>
-        <span>{{ statusText }}</span>
+    <!-- The sum as big figures. It used to exist only as a sentence in a small
+         bubble that the next line replaced; a child who missed the voice had
+         nothing to go on. Figures are readable before sentences are, and they
+         stay until the answer is marked. -->
+    <transition name="panel">
+      <div class="sum-card" v-if="showSum" role="status" :aria-label="currentQuestion">
+        <span class="sum-figures" aria-hidden="true">{{ number1 }} <i>{{ sumSymbol }}</i> {{ number2 }}</span>
+        <span class="sum-answer" v-if="isListening || sumHeard" aria-hidden="true">= <b :class="{ empty: !sumHeard }">{{ sumHeard || '?' }}</b></span>
       </div>
+    </transition>
 
-      <button
-        v-if="isPlayMode"
-        class="round-btn play"
-        @click="askQuestion"
-        :disabled="isComputing"
-        :aria-label="t('play')"
-      >
-        <ion-spinner name="crescent" v-if="isComputing"></ion-spinner>
-        <ion-icon :icon="playIcon" v-else aria-hidden="true"></ion-icon>
-      </button>
+    <!-- First run. No card to read and dismiss: the game is the first screen,
+         and the three steps are pictures. Tapping them makes the robot say it
+         out loud, for a child who cannot read the words yet. -->
+    <button class="how-chips" v-if="firstRun && isPlayMode && !showNoMic && !showIntro && !micAsk && !isTalking" @click="explainGame" :aria-label="t('hearIt')">
+      <span><ion-icon :icon="playIcon" aria-hidden="true"></ion-icon>{{ t('howTap') }}</span>
+      <span><ion-icon :icon="volumeIcon" aria-hidden="true"></ion-icon>{{ t('howListen') }}</span>
+      <span><ion-icon :icon="micIcon" aria-hidden="true"></ion-icon>{{ t('howSay') }}</span>
+    </button>
 
-      <!-- Lets the child end their turn themselves instead of waiting for the
-           recogniser to time out. Only shown while the mic is actually open. -->
-      <button
-        v-else-if="isListening"
-        class="round-btn done"
-        @click="finishAnswering"
-        :aria-label="t('stop')"
-      >
-        <ion-icon :icon="doneIcon" aria-hidden="true"></ion-icon>
-      </button>
+    <GameDock
+      :language="selectedLanguage"
+      :botState="botState"
+      :playing="isPlayMode"
+      :listening="isListening"
+      :talking="isTalking"
+      :computing="isComputing"
+      :firstRun="firstRun"
+      :padOpen="padOpen"
+      :heardText="heardText"
+      :reward="reward"
+      :sums="operatorChoices.find((choice) => choice.value === selectedOperator)"
+      @play="askQuestion"
+      @done="finishAnswering"
+      @pad="openPad"
+      @choose-sums="showSumPicker = true"
+    />
 
-    </div>
+    <NumberPad
+      :open="padOpen"
+      :language="selectedLanguage"
+      :equation="padEquation"
+      @key="triggerHaptic('light')"
+      @submit="submitPad"
+      @close="closePad"
+    />
+
+    <MicrophoneCards
+      :language="selectedLanguage"
+      :languageName="availableLanguages[selectedLanguage]?.name"
+      :noMic="showNoMic"
+      :noMicBody="noMicBody"
+      :refused="micRefused"
+      :asking="micAsk"
+      :learning="learningLanguage"
+      @use-pad="playWithPad"
+      @retry="retryMicrophone"
+      @close="showNoMic = false"
+      @answer="answerMicAsk"
+    />
+
+    <SumPicker
+      :open="showSumPicker"
+      :language="selectedLanguage"
+      :choices="operatorChoices"
+      :selected="selectedOperator"
+      @choose="chooseOperator"
+      @close="showSumPicker = false"
+    />
+
+    <ParentalGate
+      :open="gateOpen"
+      :language="selectedLanguage"
+      @pass="onGatePassed"
+      @miss="triggerHaptic('error')"
+      @close="gateOpen = false"
+    />
   </ion-page>
 </template>
 <script>
-import {
-  IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
-  IonContent,
-  IonLabel,
-  IonIcon,
-  toastController,
-  IonItem,
-  IonButton,
-  IonButtons,
-  IonSpinner,
-  IonModal,
-  IonPopover,
-  IonList
-} from "@ionic/vue";
+import { IonPage, IonContent, IonIcon, IonButton, toastController } from "@ionic/vue";
+import { play, volumeHigh, mic, refresh, timeOutline } from "ionicons/icons";
 import AnimatedBot from "@/components/AnimatedBot.vue";
-// The Azure Speech SDK is 455KB - a third of the entry payload - and is not
-// needed until the child taps Play. Loaded on demand, and the module cached on
-// first use so later turns pay nothing.
-let speechSdk = null;
-async function loadSpeechSdk() {
-  if (!speechSdk) {
-    speechSdk = await import("microsoft-cognitiveservices-speech-sdk");
-  }
-  return speechSdk;
-}
-import { star, play, speedometer, calculator, mic, volumeHigh, sync, alertCircle, refresh, volumeMute, timeOutline, trashOutline, globe, fitness, settingsOutline, close, stopCircle, helpCircle, sunny, moon } from "ionicons/icons";
-import { OPERATORS, LEVELS, NUMBER_RANGES, SCORING } from "@/config/gameConfig";
-import { getRandomInt } from "@/utils/helpers";
+import GameHud from "@/components/game/GameHud.vue";
+import GameDock from "@/components/game/GameDock.vue";
+import IntroCard from "@/components/game/IntroCard.vue";
+import GrownUpsSheet from "@/components/game/GrownUpsSheet.vue";
+import HistorySheet from "@/components/game/HistorySheet.vue";
+import NumberPad from "@/components/game/NumberPad.vue";
+import MicrophoneCards from "@/components/game/MicrophoneCards.vue";
+import SumPicker from "@/components/game/SumPicker.vue";
+import ParentalGate from "@/components/game/ParentalGate.vue";
+import { OPERATORS, LEVELS, SCORING } from "@/config/gameConfig";
 import { checkSpokenAnswer } from "@/utils/numberWords";
-import { getSpeechToken, getCachedAudio, validateAnswer } from "@/services/apiService";
+import { createSpeech, isNativeApp, openDeviceSettings } from "@/game/speech";
+import { nextQuestion, answerTo } from "@/game/questions";
+import { BODY_COLOURS } from "@/game/options";
 import { LANGUAGES, SPEECH_VOICES, getPreferredLanguage, setLanguage, t, getRandomPhrase } from "@/config/i18n";
-import { addToHistory, getHistory, clearHistory as clearHistoryService, formatTimestamp, getOperatorSymbol, getRecommendedDifficulty, getSpacedRepetitionProblem } from "@/services/historyService";
+import { addToHistory, getHistory, clearHistory as clearHistoryService, getOperatorSymbol } from "@/services/historyService";
 import { preloadSounds, playCorrectSound, playIncorrectSound, toggleMute, startMusic, stopMusic, duckMusic } from "@/services/soundService";
 import { celebrateConfetti, celebrateStreak, showStar } from "@/utils/confetti";
 
-// Kept beside the component so the saved-value check and the swatch list
-// cannot drift apart.
-const BODY_COLOURS = [
-  '#ffc62e', '#2fb4ff', '#3fe07f', '#2fe8e0',
-  '#ff6fb5', '#b47cff', '#ff8a3d', '#ff5f57'
-];
-
+/**
+ * The game screen. It owns the turn: ask a sum, hear or read the answer, mark
+ * it, reward it. What the screen is made of lives in components/game, the
+ * robot's voice and ears in game/speech.js, and the choice of sum in
+ * game/questions.js.
+ */
 export default {
   name: "Math",
   components: {
     AnimatedBot,
-    IonHeader,
-    IonToolbar,
-    IonTitle,
-    IonContent,
+    GameHud,
+    GameDock,
+    IntroCard,
+    GrownUpsSheet,
+    HistorySheet,
+    NumberPad,
+    MicrophoneCards,
+    SumPicker,
+    ParentalGate,
     IonPage,
-    IonLabel,
+    IonContent,
     IonIcon,
-    IonItem,
-    IonButton,
-    IonButtons,
-    IonSpinner,
-    IonModal,
-    IonPopover,
-    IonList
+    IonButton
   },
   setup() {
     return {
-      star,
-      starIcon: star,
       playIcon: play,
-      doneIcon: stopCircle,
-      helpIcon: helpCircle,
-      sunIcon: sunny,
-      moonIcon: moon,
-      speedometerIcon: speedometer,
-      calculatorIcon: calculator,
-      micIcon: mic,
       volumeIcon: volumeHigh,
-      syncIcon: sync,
-      alertIcon: alertCircle,
+      micIcon: mic,
       refreshIcon: refresh,
-      muteIcon: volumeMute,
-      historyIcon: timeOutline,
-      trashIcon: trashOutline,
-      globeIcon: globe,
-      targetIcon: fitness,
-      settingsIcon: settingsOutline,
-      closeIcon: close
+      historyIcon: timeOutline
     };
   },
   data() {
@@ -486,7 +231,6 @@ export default {
       // UI state
       typeText: [],
       isLoading: true,
-      isOnBoundary: false,
       isTalking: false,
       isListening: false,
       isComputing: false,
@@ -508,7 +252,12 @@ export default {
       reward: null,
       rewardTimer: null,
       // First-run help. Shown once, reopenable from settings or the HUD.
-      showIntro: !localStorage.seenIntro,
+      // The help card is now opened from the "?" button only. A first visit
+      // lands on the game itself, with the three steps shown as pictures.
+      showIntro: false,
+      firstRun: !localStorage.seenIntro,
+      // A sum has been asked and not yet marked.
+      questionActive: false,
       // Set when the next utterance should leave a clean screen behind it.
       clearAfterSpeak: false,
       // Idle chatter: the robot prompts and offers tips while waiting.
@@ -534,8 +283,15 @@ export default {
       
       // Game state
       text: "",
-      selectedLevel: LEVELS.MEDIUM,
-      selectedOperator: OPERATORS.TIMES,
+      // Remembered between visits. They used to reset to Medium and times
+      // every time the game was opened.
+      selectedLevel: [...Object.values(LEVELS), 'auto'].includes(localStorage.selectedLevel)
+        ? localStorage.selectedLevel
+        : LEVELS.MEDIUM,
+      selectedOperator: Object.values(OPERATORS).includes(localStorage.selectedOperator)
+        ? localStorage.selectedOperator
+        : OPERATORS.TIMES,
+      showSumPicker: false,
       sessionMode: 'random', // random, weak_operators, recent_failures
       currentAutoLevel: 'medium', // Used when selectedLevel is 'auto'
       currentEffectiveLevel: 'medium', // Tracks actual difficulty used for current question
@@ -555,26 +311,26 @@ export default {
       currentQuestion: "",  // Store current question for repeat
       showHistoryModal: false,
       showSettingsModal: false,
+      // Native apps: the card shown before the system asks for the
+      // microphone, and the one shown while a language's speech model arrives.
+      micAsk: false,
+      learningLanguage: false,
+      // Parental gate in front of Grown-ups.
+      gateThen: 'grown-ups',
+      gateOpen: false,
+      // Number pad and the no-microphone card.
+      padOpen: false,
+      // The child chose to tap answers. Not saved: every visit gets a fresh
+      // chance to use the microphone.
+      padMode: false,
+      showNoMic: false,
+      // Why the phone cannot listen, from the native speech plugin.
+      deviceSpeechReason: '',
       problemHistory: [],
       availableLanguages: LANGUAGES,
       
-      // Speech
-      synth: window.speechSynthesis,
-      greetingSpeech: new window.SpeechSynthesisUtterance(),
-      audioConfig: null,
-      speechConfig: null,
-      speechRecognizer: null,
-      speechRecording: null,
-      token: null,
-      speechRegion: null,
-      audioPlayer: null,
-      
-      // Audio analysis for lip sync
-      audioContext: null,
-      audioAnalyser: null,
-      audioSource: null,
+      // The loudness of the robot's voice, 0 to 1, for its mouth and the glow.
       audioLevel: 0,
-      animationFrameId: null,
       
       // Config
       isMicrophoneEnabled: false,
@@ -584,36 +340,76 @@ export default {
     };
   },
   watch: {
-    // aria-modal only tells assistive tech that the rest of the page is inert;
-    // it does not make it so. Without this, keyboard and screen-reader users
-    // could tab straight out of the card and onto the controls behind it.
-    showIntro: {
-      immediate: true,
-      handler(open) {
-        if (open) {
-          this.introReturnFocus = document.activeElement;
-          this.$nextTick(() => {
-            const first = this.$refs.introCard?.querySelector('button');
-            if (first) first.focus();
-            document.addEventListener('keydown', this.onIntroKeydown);
-          });
-        } else {
-          document.removeEventListener('keydown', this.onIntroKeydown);
-          if (this.introReturnFocus && this.introReturnFocus.focus) {
-            this.introReturnFocus.focus();
-          }
-          this.introReturnFocus = null;
-        }
-      }
-    },
     // Music through the speaker is picked straight back up by an open
     // microphone, so pull it down whenever the robot is talking or listening
     // and bring it back once the turn is over.
     botState(state) {
       duckMusic(['speaking', 'listening', 'computing'].includes(state));
+    },
+    selectedOperator(value) {
+      try {
+        localStorage.selectedOperator = value;
+      } catch (err) {
+        console.warn('Could not save the type of sum:', err);
+      }
+    },
+    selectedLevel(value) {
+      try {
+        localStorage.selectedLevel = value;
+      } catch (err) {
+        console.warn('Could not save the level:', err);
+      }
+    },
+    // Play is back on screen, so the turn is over and the sum comes down.
+    isPlayMode(playing) {
+      if (playing) this.questionActive = false;
     }
   },
   computed: {
+    /** The four kinds of sum, each as a symbol and a word in the chosen language. */
+    operatorChoices() {
+      return [
+        { value: 'times', symbol: '×', word: this.t('times') },
+        { value: 'plus', symbol: '+', word: this.t('plus') },
+        { value: 'minus', symbol: '−', word: this.t('minus') },
+        { value: 'divide', symbol: '÷', word: this.t('dividedBy') }
+      ];
+    },
+    sumSymbol() {
+      const symbols = { plus: '+', minus: '−', times: '×', divide: '÷' };
+      return symbols[this.currentOperator] || symbols[this.selectedOperator] || '×';
+    },
+    /** The sum as figures, for the number pad: "3 × 11". */
+    padEquation() {
+      return `${this.number1} ${this.sumSymbol} ${this.number2}`;
+    },
+    /** The pad shows the sum itself, so the card steps aside for it. */
+    showSum() {
+      return this.questionActive && !this.isPlayMode && !this.padOpen;
+    },
+    /** What the robot heard, once it is a number: it drops into the sum. */
+    sumHeard() {
+      return /^\d+$/.test(String(this.heardText || '')) ? String(this.heardText) : '';
+    },
+    /**
+     * The bubble is for things the robot says that are not on screen already.
+     * While the sum is up in figures, repeating it as a sentence underneath
+     * only crowds a phone.
+     */
+    bubbleText() {
+      if (this.showSum && this.text === this.currentQuestion) return '';
+      return this.speech_phrases;
+    },
+    /** In the apps, a refused microphone can only be turned back on in Settings. */
+    micRefused() {
+      return isNativeApp && this.deviceSpeechReason === 'microphone-denied';
+    },
+    /** In the apps the microphone may be fine and the speech model missing. */
+    noMicBody() {
+      if (isNativeApp && this.deviceSpeechReason === 'model-not-installed') return this.t('cantListenYet');
+      if (isNativeApp && this.deviceSpeechReason && this.deviceSpeechReason !== 'microphone-denied') return this.t('cantListenHere');
+      return this.t('cantHearBody');
+    },
     botState() {
       if (this.isError) {
         return "broken";
@@ -657,18 +453,12 @@ export default {
       return "neutral";
     },
     expectedResultAsNumber() {
-      // Use currentOperator (may differ from selectedOperator in spaced repetition mode)
-      const op = this.currentOperator || this.selectedOperator;
-      if (op == "plus") {
-        return this.number1 + this.number2;
-      }
-      if (op == "minus") {
-        return this.number1 - this.number2;
-      }
-      if (op == "divide") {
-        return this.number1 / this.number2;
-      }
-      return this.number1 * this.number2;
+      // currentOperator may differ from the one chosen, in the practice modes.
+      return answerTo(this.number1, this.number2, this.currentOperator || this.selectedOperator);
+    },
+    /** The language the robot speaks and listens in, e.g. 'en-GB'. */
+    speechLocale() {
+      return SPEECH_VOICES[this.selectedLanguage] || 'en-GB';
     },
     accuracy() {
       if (this.totalQuestionsAnswered === 0) return 0;
@@ -679,64 +469,9 @@ export default {
       const displayStars = Math.min(this.stars, 100);
       return this.stars >= 100 ? '100 ⭐' : displayStars.toString();
     },
-    levelOptions() {
-      return [
-        { value: 'beginner', label: this.t('easy') },
-        { value: 'medium', label: this.t('medium') },
-        { value: 'expert', label: this.t('hard') },
-        { value: 'auto', label: '🎯 ' + this.t('auto') },
-      ];
-    },
-    operatorOptions() {
-      return [
-        { value: 'times', label: '×' },
-        { value: 'plus', label: '+' },
-        { value: 'minus', label: '−' },
-        { value: 'divide', label: '÷' },
-      ];
-    },
-    modeOptions() {
-      return [
-        { value: 'random', label: this.t('randomMode') },
-        { value: 'weak_operators', label: this.t('practiceWeakOperators') },
-        { value: 'recent_failures', label: this.t('practiceRecentFailures') },
-      ];
-    },
     // 0-1, used as the strength of the edge glow while the robot talks.
     speakGlow() {
       return (0.22 + Math.min(this.audioLevel, 1) * 0.6).toFixed(3);
-    },
-    dayOptions() {
-      return [
-        { value: 'auto', label: this.t('viewAuto') },
-        { value: 'day', label: this.t('optionDay') },
-        { value: 'night', label: this.t('optionNight') },
-      ];
-    },
-    colourOptions() {
-      return [
-        { value: BODY_COLOURS[0], label: 'Yellow' },
-        { value: BODY_COLOURS[1], label: 'Blue' },
-        { value: BODY_COLOURS[2], label: 'Green' },
-        { value: BODY_COLOURS[3], label: 'Cyan' },
-        { value: BODY_COLOURS[4], label: 'Pink' },
-        { value: BODY_COLOURS[5], label: 'Purple' },
-        { value: BODY_COLOURS[6], label: 'Orange' },
-        { value: BODY_COLOURS[7], label: 'Red' },
-      ];
-    },
-    chatOptions() {
-      return [
-        { value: true, label: this.t('optionOn') },
-        { value: false, label: this.t('optionOff') },
-      ];
-    },
-    viewOptions() {
-      return [
-        { value: 'auto', label: this.t('viewAuto') },
-        { value: 'face', label: this.t('viewFace') },
-        { value: 'full', label: this.t('viewFull') },
-      ];
     },
     statusColor() {
       switch (this.botState) {
@@ -754,37 +489,6 @@ export default {
         default: return 'medium';
       }
     },
-    statusText() {
-      switch (this.botState) {
-        case 'speaking': return this.t('speaking');
-        case 'listening': return this.t('listening');
-        case 'computing': return this.t('thinking');
-        case 'broken': return 'Error';
-        case 'laughing': return 'Haha!';
-        case 'happy': return this.t('correct') + '! 🎉';
-        case 'sad': return '...';
-        case 'excited': return '🎉';
-        case 'proud': return '⭐';
-        case 'surprised': return '!';
-        case 'confused': return '?';
-        default: return this.t('ready');
-      }
-    },
-    statusIcon() {
-      switch (this.botState) {
-        case 'speaking': return this.volumeIcon;
-        case 'listening': return this.micIcon;
-        case 'computing': return this.syncIcon;
-        case 'broken': return this.alertIcon;
-        case 'happy': return this.starIcon;
-        case 'sad': return this.alertIcon;
-        case 'excited': return this.starIcon;
-        case 'proud': return this.starIcon;
-        case 'surprised': return this.starIcon;
-        case 'confused': return this.syncIcon;
-        default: return this.syncIcon;
-      }
-    }
   },
   methods: {
     /**
@@ -834,97 +538,6 @@ export default {
         this.isConfused = false;
       }, duration);
     },
-    /**
-     * Initialize audio context for lip sync analysis
-     */
-    initAudioAnalysis() {
-      if (!this.audioContext) {
-        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        this.audioAnalyser = this.audioContext.createAnalyser();
-        this.audioAnalyser.fftSize = 256;
-        this.audioAnalyser.smoothingTimeConstant = 0.3;
-      }
-    },
-    /**
-     * Start analyzing audio for lip sync
-     */
-    startAudioAnalysis(audioElement) {
-      this.initAudioAnalysis();
-      
-      // Connect audio element to analyser
-      if (this.audioSource) {
-        try {
-          this.audioSource.disconnect();
-        } catch {
-          // Ignore disconnect errors
-        }
-      }
-      
-      try {
-        this.audioSource = this.audioContext.createMediaElementSource(audioElement);
-        this.audioSource.connect(this.audioAnalyser);
-        this.audioAnalyser.connect(this.audioContext.destination);
-      } catch (e) {
-        // Audio element might already be connected, just update the analyser
-        console.warn('Audio source already connected:', e.message);
-      }
-      
-      // Resume audio context if suspended
-      if (this.audioContext.state === 'suspended') {
-        this.audioContext.resume();
-      }
-      
-      // Start the animation loop
-      this.analyzeAudio();
-    },
-    /**
-     * Analyze audio amplitude for lip sync
-     */
-    analyzeAudio() {
-      if (!this.isTalking || !this.audioAnalyser) {
-        this.audioLevel = 0;
-        return;
-      }
-      
-      // Reuse buffer to reduce GC pressure
-      if (!this._audioDataArray || this._audioDataArray.length !== this.audioAnalyser.frequencyBinCount) {
-        this._audioDataArray = new Uint8Array(this.audioAnalyser.frequencyBinCount);
-        // Pre-calculate voice frequency range bounds (cache these)
-        this._voiceStart = Math.floor(80 / (this.audioContext.sampleRate / this.audioAnalyser.fftSize));
-        this._voiceEnd = Math.floor(3000 / (this.audioContext.sampleRate / this.audioAnalyser.fftSize));
-      }
-      
-      this.audioAnalyser.getByteFrequencyData(this._audioDataArray);
-      
-      // Calculate average amplitude from voice frequency range
-      let sum = 0;
-      const end = Math.min(this._voiceEnd, this._audioDataArray.length);
-      for (let i = this._voiceStart; i < end; i++) {
-        sum += this._audioDataArray[i];
-      }
-      
-      const count = end - this._voiceStart;
-      const average = count > 0 ? sum / count : 0;
-      // Normalize to 0-1 range with some amplification
-      this.audioLevel = Math.min(1, (average / 128) * 1.5);
-      
-      // Continue analyzing
-      this.animationFrameId = requestAnimationFrame(() => this.analyzeAudio());
-    },
-    /**
-     * Stop audio analysis
-     */
-    stopAudioAnalysis() {
-      if (this.animationFrameId) {
-        cancelAnimationFrame(this.animationFrameId);
-        this.animationFrameId = null;
-      }
-      this.audioLevel = 0;
-      // Clear cached analysis buffers
-      this._audioDataArray = null;
-      this._voiceStart = null;
-      this._voiceEnd = null;
-    },
     changeStatus(status) {
       if (this.timeout) {
         clearTimeout(this.timeout);
@@ -941,6 +554,8 @@ export default {
       }
     },
     keyDownHandler(e) {
+      // The sheets handle their own keys while they are open.
+      if (this.padOpen || this.gateOpen || this.showSumPicker) return;
       let value = e.key * 1;
       if (!isNaN(parseFloat(value)) && isFinite(value)){
         this.typeText.push(value);
@@ -949,7 +564,6 @@ export default {
           this.timeout = setTimeout(async () => {
             if (this.typeText.length > 0){
               var typeText = this.typeText.join('');
-              this.showToast("Your typed response: " + typeText, "secondary");
               // For typed numbers, we can do simple validation
               const number = parseInt(typeText, 10);
               if (!isNaN(number) && number === this.expectedResultAsNumber) {
@@ -973,33 +587,35 @@ export default {
       });
       return toast.present();
     },
+    /**
+     * Make sure the robot can listen: the microphone, and whatever the engine
+     * needs behind it (a token on the web, a speech model in the apps).
+     * Sets isMicrophoneEnabled; never throws.
+     */
     async enableMicrophone() {
-      var self = this;
-      this.sdk = await loadSpeechSdk();
-      if (!this.isMicrophoneEnabled) {
-        self.speech_phrases = "enabling microphone..";
-        self.isMicrophoneEnabled = true;
-        await navigator.mediaDevices
-          .getUserMedia({ audio: true, video: false })
-          .then(function (e) {
-            self.audioConfig = self.sdk.AudioConfig.fromMicrophoneInput(e.id);
-            self.speech_phrases = "microphone enabled";
-          })
-          .catch(function () {
-            self.speech_phrases = "microphone disabled";
-            self.isError = true;
-            self.showToast("Microphone disabled", "danger");
-            self.isMicrophoneEnabled = false;
-          });
+      // Playing with the number pad: do not ask for the microphone again on
+      // every question.
+      if (this.padMode && !this.isMicrophoneEnabled) return;
+      let readiness;
+      try {
+        readiness = await this.speech.prepare(this.speechLocale, {
+          // Never asked before: the robot asks for a grown-up first.
+          beforePrompt: () => this.askForGrownUp(),
+          onDownloading: () => { this.learningLanguage = true; }
+        });
+      } finally {
+        this.learningLanguage = false;
       }
+      this.isMicrophoneEnabled = readiness.ready;
+      this.deviceSpeechReason = readiness.reason;
+      // "Use the number pad" on the ask-a-grown-up card.
+      if (readiness.reason === 'declined') this.padMode = true;
     },
+    /**
+     * Play: ask the next sum.
+     */
     async askQuestion() {
-      // Pull the Speech SDK in before anything touches it. First tap pays the
-      // download; every later one hits the cached module.
-      this.sdk = await loadSpeechSdk();
-      this.audioConfig = this.sdk.AudioConfig.fromDefaultMicrophoneInput();
       this.isResolved = false;
-      var self = this;
       this.isComputing = true;
       // Every Play is a fresh attempt. isError used to be a one-way latch, so a
       // single denied permission or cold backend hid the Play button forever.
@@ -1011,205 +627,220 @@ export default {
       startMusic();
       this.heardText = '';
       this.reward = null;
-      
+
       // Brief surprised expression when starting new question
       this.showExpression('surprised', 800);
 
-      await this.enableMicrophone()
-        .then(function () {
-          if (self.isMicrophoneEnabled) {
-            self.isComputing = false;
-            self.isQuery = true;
-            self.isPlayMode = false;
-            self.speech_phrases = "";
-            
-            // Handle adaptive difficulty (auto mode)
-            let effectiveLevel = self.selectedLevel;
-            if (self.selectedLevel === 'auto') {
-              const recommendation = getRecommendedDifficulty(self.selectedOperator, self.currentAutoLevel);
-              if (recommendation.recommended !== self.currentAutoLevel) {
-                self.currentAutoLevel = recommendation.recommended;
-                // Show toast notification about difficulty change
-                const message = recommendation.reason === 'high_accuracy' 
-                  ? self.t('difficultyIncreased') 
-                  : self.t('difficultyDecreased');
-                self.showToast(message, 'primary');
-              }
-              effectiveLevel = self.currentAutoLevel;
-            }
-            
-            // Store effective level for history tracking
-            self.currentEffectiveLevel = effectiveLevel;
-            
-            // Check for spaced repetition problem based on sessionMode
-            let srProblem = null;
-            if (self.sessionMode !== 'random') {
-              // Only use spaced repetition when not in random mode
-              srProblem = getSpacedRepetitionProblem(self.selectedOperator, effectiveLevel, self.sessionMode);
-            }
-            let operatorToUse = self.selectedOperator;
-            
-            if (srProblem && srProblem.type === 'retry_failure') {
-              // Reuse exact problem from history
-              self.number1 = srProblem.num1;
-              self.number2 = srProblem.num2;
-              // Map operator symbol back to operator key
-              const opSymbolToKey = { '+': 'plus', '−': 'minus', '×': 'times', '÷': 'divide' };
-              operatorToUse = opSymbolToKey[srProblem.operator] || self.selectedOperator;
-            } else if (srProblem && srProblem.type === 'weak_operator') {
-              // Generate new problem for weak operator
-              const opSymbolToKey = { '+': 'plus', '−': 'minus', '×': 'times', '÷': 'divide' };
-              operatorToUse = opSymbolToKey[srProblem.operator] || self.selectedOperator;
-              const ranges = NUMBER_RANGES[operatorToUse]?.[effectiveLevel] 
-                || NUMBER_RANGES[OPERATORS.TIMES][LEVELS.BEGINNER];
-              if (operatorToUse === 'divide') {
-                const divisor = getRandomInt(ranges.min2, ranges.max2);
-                const quotient = getRandomInt(ranges.min1, ranges.max1);
-                self.number1 = divisor * quotient;
-                self.number2 = divisor;
-              } else {
-                self.number1 = getRandomInt(ranges.min1, ranges.max1);
-                self.number2 = getRandomInt(ranges.min2, ranges.max2);
-              }
-            } else {
-              // Standard random generation
-              const ranges = NUMBER_RANGES[self.selectedOperator]?.[effectiveLevel] 
-                || NUMBER_RANGES[OPERATORS.TIMES][LEVELS.BEGINNER];
-              
-              // For division, generate numbers that result in whole number answers
-              if (self.selectedOperator === 'divide') {
-                // Generate divisor and quotient, then calculate dividend
-                const divisor = getRandomInt(ranges.min2, ranges.max2);
-                const quotient = getRandomInt(ranges.min1, ranges.max1);
-                self.number1 = divisor * quotient; // dividend
-                self.number2 = divisor;
-              } else {
-                self.number1 = getRandomInt(ranges.min1, ranges.max1);
-                self.number2 = getRandomInt(ranges.min2, ranges.max2);
-              }
-            }
-            
-            // Store the actual operator being used
-            self.currentOperator = operatorToUse;
-            
-            // Get translated operator word
-            const operatorWords = {
-              'plus': self.t('plus'),
-              'minus': self.t('minus'),
-              'times': self.t('times'),
-              'divide': self.t('dividedBy')
-            };
-            const operatorWord = operatorWords[operatorToUse] || operatorToUse;
-            self.text = `${self.t('whatIs')} ${self.number1} ${operatorWord} ${self.number2}?`;
-            self.currentQuestion = self.text; // Store for repeat
-            self.speak();
-          } else {
-            self.speech_phrases = "microphone not available";
-            self.isError = true;
-            self.showToast("Microphone not available", "danger");
-          }
-        })
-        .catch(function (e) {
-          console.error("Failed to ask question:", e);
-          self.isError = true;
-          self.text = "Something went wrong. Please try again.";
-          self.showToast(self.text, "danger");
-        });
-    },
-    /**
-     * Speak text using Azure Neural TTS with caching
-     */
-    async speak() {
-        // Prevent overlapping audio
-        if (this.audioPlayer && !this.audioPlayer.paused) {
-          return;
-        }
-        
-        // Show text immediately
-        this.speech_phrases = this.text;
-        this.isTalking = true;
-        this.isOnBoundary = true;
+      try {
+        await this.enableMicrophone();
+      } catch (error) {
+        console.error('Failed to ask question:', error);
+        this.isComputing = false;
+        this.isError = true;
+        this.text = this.t('somethingWrong');
+        this.showToast(this.text, 'warning');
+        return;
+      }
 
+      if (!this.isMicrophoneEnabled && !this.padMode) {
+        // No microphone, or no speech model yet. This used to be the end of
+        // the game: a lower-case English message and an "Error" chip. Now it
+        // is a card with a way to play.
+        this.isComputing = false;
+        this.speech_phrases = '';
+        this.showNoMic = true;
+        return;
+      }
+
+      this.isComputing = false;
+      this.isQuery = true;
+      this.isPlayMode = false;
+      this.speech_phrases = '';
+
+      const question = nextQuestion({
+        operator: this.selectedOperator,
+        level: this.selectedLevel,
+        autoLevel: this.currentAutoLevel,
+        mode: this.sessionMode
+      });
+      if (question.levelChange) {
+        this.showToast(this.t(question.levelChange === 'up' ? 'difficultyIncreased' : 'difficultyDecreased'), 'primary');
+      }
+      this.currentAutoLevel = question.autoLevel;
+      // The level and operator actually used, for the history. In the practice
+      // modes the operator can differ from the one chosen.
+      this.currentEffectiveLevel = question.level;
+      this.currentOperator = question.operator;
+      this.number1 = question.number1;
+      this.number2 = question.number2;
+
+      const words = { plus: this.t('plus'), minus: this.t('minus'), times: this.t('times'), divide: this.t('dividedBy') };
+      this.text = `${this.t('whatIs')} ${this.number1} ${words[question.operator] || question.operator} ${this.number2}?`;
+      this.currentQuestion = this.text; // Store for repeat
+      this.questionActive = true;
+      if (this.firstRun) {
+        this.firstRun = false;
         try {
-          // Use cached audio service with language-specific voice
-          const speechLang = SPEECH_VOICES[this.selectedLanguage] || 'en-GB';
-          const audio = await getCachedAudio(this.text, speechLang);
-          this.audioPlayer = audio;
-          
-          // Set up audio analysis for lip sync
-          audio.crossOrigin = "anonymous";
-          
-          audio.onplay = () => {
-            this.startAudioAnalysis(audio);
-          };
-          
-          audio.onended = () => {
-            this.isTalking = false;
-            this.stopAudioAnalysis();
-            if (this.clearAfterSpeak) {
-              this.clearAfterSpeak = false;
-              this.text = '';
-              this.speech_phrases = '';
-            }
-            // Trigger listening after speech ends
-            if (this.isQuery) {
-              this.isQuery = false;
-              this.listen();
-            }
-          };
-          
-          audio.onerror = () => {
-            this.isTalking = false;
-            this.stopAudioAnalysis();
-            this.speakWithBrowser();
-          };
-          
-          await audio.play();
-          
-        } catch (error) {
-          console.error('Azure TTS error:', error);
-          this.isTalking = false;
-          this.stopAudioAnalysis();
-          this.speakWithBrowser();
+          localStorage.seenIntro = '1';
+        } catch (err) {
+          console.warn('Could not save the intro flag:', err);
         }
-    },
-    /**
-     * Fallback to browser speech synthesis
-     */
-    speakWithBrowser() {
-      if (!this.synth.speaking) {
-        this.greetingSpeech.text = this.text;
-        this.synth.speak(this.greetingSpeech);
+      }
+      this.speak();
+      // Tapping does not have to wait for the robot to stop talking, and must
+      // not depend on the voice finishing at all: a device with no working
+      // voice would otherwise never reach the pad.
+      if (this.padMode && !this.isMicrophoneEnabled) {
+        this.isQuery = false;
+        this.openPad();
       }
     },
-    listen() {
-      // The microphone is open, so it is the child's turn to speak RIGHT NOW.
-      // This used to set isComputing, which rendered as "Thinking..." with a
-      // frozen grey-gear robot - telling the child to wait at the exact moment
-      // it needed them to talk. isListening gives them the green listening
-      // robot and "Your turn!" instead.
-      // No toast: the listening panel in the dock carries this now, and four
-      // stacked 4-second toasts per answer was the noisiest thing on screen.
-      this.isComputing = false;
-      this.isListening = true;
-      var sc = this.sdk.SpeechConfig.fromAuthorizationToken(
-         
-        this.token,
-        this.speechRegion
-      );
-      // Use language-specific speech recognition
-      sc.speechRecognitionLanguage = SPEECH_VOICES[this.selectedLanguage] || 'en-GB';
-      this.speechConfig = sc;
-      this.speechRecording = new this.sdk.SpeechRecognizer(
-        this.speechConfig,
-        this.audioConfig
-      );
-      this.listenForSpeechRecordingEvents();
+    /**
+     * The robot says this.text. A new line cuts off the one before it.
+     */
+    async speak() {
+      // Show text immediately
+      this.speech_phrases = this.text;
+      this.isTalking = true;
+
+      const result = await this.speech.speak(this.text, this.speechLocale);
+      // Stopped by hand, or replaced by the next line. Whoever stopped it has
+      // already moved the turn on.
+      if (result === 'stopped') return;
+      this.afterSpeaking();
     },
     /**
-     * Persist the robot camera framing. localStorage is written directly here
-     * to match how every other preference in this view is stored.
+     * What happens when the robot finishes a line: tidy up, and open the
+     * microphone if the line was a question.
      */
+    afterSpeaking() {
+      this.isTalking = false;
+      this.audioLevel = 0;
+      if (this.clearAfterSpeak) {
+        this.clearAfterSpeak = false;
+        this.text = '';
+        this.speech_phrases = '';
+      }
+      if (this.isQuery) {
+        this.isQuery = false;
+        this.listen();
+      }
+    },
+    chooseOperator(value) {
+      this.selectedOperator = value;
+      this.showSumPicker = false;
+    },
+    /** Shows the "ask a grown-up" card and waits for one of its two buttons. */
+    askForGrownUp() {
+      this.isComputing = false;
+      this.micAsk = true;
+      return new Promise((resolve) => {
+        this.micAskResolve = resolve;
+      });
+    },
+    answerMicAsk(goAhead) {
+      this.micAsk = false;
+      const resolve = this.micAskResolve;
+      this.micAskResolve = null;
+      if (resolve) resolve(goAhead);
+    },
+    /**
+     * @param {'grown-ups'|'device-settings'} then - what passing the gate opens
+     */
+    openGate(then) {
+      this.gateThen = then === 'device-settings' ? 'device-settings' : 'grown-ups';
+      this.gateOpen = true;
+    },
+    onGatePassed() {
+      this.gateOpen = false;
+      // Leaving the app for the phone's Settings is a grown-up's step too.
+      if (this.gateThen === 'device-settings') openDeviceSettings();
+      else this.showSettingsModal = true;
+    },
+    /** A tapped answer goes down the same path as a spoken one: same stars. */
+    async submitPad(answer) {
+      this.padOpen = false;
+      await this.validateSpeechRecording(answer, true);
+    },
+    /**
+     * Open the number pad for the current sum. If the microphone is open it is
+     * closed first; whatever it was in the middle of hearing is dropped, not
+     * scored, because the child has chosen to tap instead.
+     */
+    openPad() {
+      this.padOpen = true;
+      this.showNoMic = false;
+      if (this.isListening) this.stopListening();
+      this.isListening = false;
+      this.isComputing = false;
+      this.isPlayMode = false;
+    },
+    /** Close without answering. Like Done: the turn ends and is not scored. */
+    closePad() {
+      this.padOpen = false;
+      if (this.answerFinalised) return;
+      this.answerFinalised = true;
+      this.isQuery = false;
+      this.isPlayMode = true;
+    },
+    /** "Play with the number pad" on the no-microphone card. */
+    playWithPad() {
+      this.padMode = true;
+      this.showNoMic = false;
+      this.askQuestion();
+    },
+    /** "Try the microphone again" on the no-microphone card. */
+    retryMicrophone() {
+      // Refused in the app: asking again does nothing, the phone will not show
+      // its question twice. The way back is Settings, behind the gate.
+      if (this.micRefused) {
+        this.showNoMic = false;
+        this.openGate('device-settings');
+        return;
+      }
+      this.padMode = false;
+      this.showNoMic = false;
+      this.speech.reset();
+      this.askQuestion();
+    },
+    /**
+     * The child's turn. Opens the microphone for one answer, or the number pad
+     * when they are playing without one.
+     */
+    async listen() {
+      // The microphone is open, so it is the child's turn to speak RIGHT NOW.
+      // isListening gives them the green listening robot and "Your turn!".
+      this.isComputing = false;
+      if (this.padMode && !this.isMicrophoneEnabled) {
+        this.openPad();
+        return;
+      }
+      this.isListening = true;
+      const turn = (this.listenTurn = (this.listenTurn || 0) + 1);
+      try {
+        const heard = await this.speech.listen(this.speechLocale, (partial) => {
+          // Display only: one spoken number, one score.
+          if (turn === this.listenTurn && this.isListening) this.heardText = partial;
+        });
+        if (turn !== this.listenTurn) return;
+        // The turn may already be over - the child tapped Done, or opened the
+        // pad - so a late result is dropped rather than scored twice.
+        const wasAlreadyFinalised = this.answerFinalised;
+        this.isListening = false;
+        this.isComputing = false;
+        if (wasAlreadyFinalised || this.padOpen) return;
+        this.validateSpeechRecording(heard, true);
+      } catch (error) {
+        console.warn('Listening failed:', error);
+        if (turn !== this.listenTurn) return;
+        this.isListening = false;
+        this.isComputing = false;
+        if (this.answerFinalised || this.padOpen) return;
+        // The game could not listen at all. Same sum, on the pad.
+        this.isQuery = false;
+        this.openPad();
+      }
+    },
     /**
      * Celebration panel for a correct answer. Replaces a plain text toast with
      * something a child who cannot read fluently can still understand: a big
@@ -1240,13 +871,9 @@ export default {
       this.clearAfterSpeak = false;
       this.text = '';
       this.speech_phrases = '';
-      if (this.audioPlayer && !this.audioPlayer.paused) {
-        this.audioPlayer.pause();
-        this.audioPlayer.currentTime = 0;
-      }
-      if (window.speechSynthesis) window.speechSynthesis.cancel();
+      this.speech.stopSpeaking();
       this.isTalking = false;
-      this.stopAudioAnalysis();
+      this.audioLevel = 0;
 
       // Pausing the audio means onended never fires, so the work it would have
       // done has to happen here - otherwise the turn strands with neither the
@@ -1254,7 +881,7 @@ export default {
       if (this.isQuery) {
         this.isQuery = false;
         this.listen();
-      } else if (!this.isListening) {
+      } else if (!this.isListening && !this.padOpen) {
         this.isPlayMode = true;
       }
     },
@@ -1358,35 +985,6 @@ export default {
       await this.speak();
     },
 
-    /**
-     * Escape closes the card; Tab cycles within it.
-     */
-    onIntroKeydown(e) {
-      if (!this.showIntro) return;
-
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        this.dismissIntro();
-        return;
-      }
-
-      if (e.key !== 'Tab') return;
-
-      const focusable = this.$refs.introCard?.querySelectorAll('button, [href], [tabindex]:not([tabindex="-1"])');
-      if (!focusable || !focusable.length) return;
-
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault();
-        last.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
-        first.focus();
-      }
-    },
-
     dismissIntro() {
       this.showIntro = false;
       try {
@@ -1405,22 +1003,13 @@ export default {
       }
     },
     /**
-     * Close the recogniser and release the microphone. Safe to call more than
-     * once, and safe to call while recognizeOnceAsync is still in flight - its
-     * callbacks null-check the handle before touching it.
+     * Close the microphone. Safe to call more than once, and while a listen is
+     * still in flight: its result arrives as silence and is dropped.
      */
     stopListening() {
-      const recogniser = this.speechRecording;
-      this.speechRecording = null;
       this.isListening = false;
       this.isComputing = false;
-
-      if (!recogniser) return;
-      try {
-        recogniser.close();
-      } catch (err) {
-        console.warn('Could not close the speech recogniser:', err);
-      }
+      this.speech.stopListening();
     },
     /**
      * "Done" button: the child says they have finished speaking. Ends the turn
@@ -1433,103 +1022,6 @@ export default {
       this.stopListening();
       this.isQuery = false;
       this.isPlayMode = true;
-    },
-    /**
-     * React to speech recording events
-     */
-    listenForSpeechRecordingEvents() {
-      const self = this;
-
-      // Signals that a new session has started with the speech service
-      this.speechRecording.speechStartDetected = function () {
-        console.log("speechStartDetected");
-        self.isListening = true;
-        self.isComputing = false;
-      };
-
-      this.speechRecording.recognizing = function (s, e) {
-        // Display only. This used to run the full validation path for every
-        // partial hypothesis, which fired a backend call each time, let two
-        // concurrent validations score the same answer, and could finalise a
-        // turn from an interim - closing the recogniser before the final-only
-        // path restored the Play button. One spoken number, one score.
-        self.heardText = e.result.text || '';
-      };
-
-      this.speechRecording.recognizeOnceAsync(
-        function (result) {
-          // The turn may already be over - a correct interim transcript stops
-          // listening, and the child can tap Done - so release the recogniser
-          // and drop the late result rather than scoring it twice.
-          const wasAlreadyFinalised = self.answerFinalised;
-          self.stopListening();
-          if (wasAlreadyFinalised) return;
-          self.validateSpeechRecording(result.text, true);
-        },
-        function (err) {
-          console.log("err recognizeOnceAsync", err);
-          self.stopListening();
-          if (self.answerFinalised) return;
-          self.isQuery = false;
-          self.text = self.t('didntHear');
-          self.showToast(self.text, "warning");
-          // Deliberately NOT isError: that makes botState 'broken', which hides
-          // the Play button. A failed recognition is transient and not the
-          // child's fault, so leave them a way to try again.
-          self.isPlayMode = true;
-        }
-      );
-    },
-    /**
-     * React to speech events
-     */
-    listenForSpeechEvents() {
-      this.greetingSpeech.onstart = () => {
-        this.isTalking = true;
-        this.isOnBoundary = false;
-         if (this.timeout) 
-          clearTimeout(this.timeout); 
-          this.timeout = setTimeout(() => {
-            if (!this.isOnBoundary){
-              this.speech_phrases = this.text;
-              this.isOnBoundary = true;
-            }
-          }, 600); // delay
-      };
-
-      this.greetingSpeech.onend = () => {
-        this.isTalking = false;
-        if (this.clearAfterSpeak) {
-          this.clearAfterSpeak = false;
-          this.text = '';
-          this.speech_phrases = '';
-        }
-        if (this.isQuery) {
-          this.isQuery = false;
-          this.listen();
-        }
-      };
-
-      this.greetingSpeech.onboundary = (e) => {
-        this.isOnBoundary = true;
-        if (e.name == "word") {
-          var word = this.getWordAt(this.text, e.charIndex).toLowerCase();
-          // console.log(word);
-          if (word == "times") {
-            word = "x";
-          }
-
-          if (word == "plus") {
-            word = "+";
-          }
-
-          if (word == "minus") {
-            word = "-";
-          }
-
-          this.speech_phrases += word + " ";
-        }
-      };
     },
     /**
      * Calculate points based on streak and level
@@ -1615,10 +1107,6 @@ export default {
      */
     getOperatorSymbol,
     /**
-     * Format timestamp for display
-     */
-    formatTimestamp,
-    /**
      * Trigger haptic feedback if available
      */
     triggerHaptic(type = 'light') {
@@ -1665,29 +1153,12 @@ export default {
         };
       }
 
-      // Nothing recognisable locally - ask the backend, if it is there.
-      try {
-        const result = await validateAnswer(
-          word,
-          this.expectedResultAsNumber,
-          // The question, NOT this.text. this.text is whatever the robot is
-          // currently saying, and the retry path overwrites it with the
-          // "I didn't hear you" line - so the retry was being validated
-          // without the sum ever being shown to the model.
-          this.currentQuestion || this.text,
-          this.selectedLanguage
-        );
-
-        if (result.correct) {
-          this.isResolved = true;
-        }
-        return result;
-      } catch (error) {
-        console.warn('Answer validation service unavailable:', error);
-        // Local parsing already found no number, so this is "I did not catch
-        // that" - never a wrong answer.
-        return { correct: false, understood: false, interpretedNumber: null };
-      }
+      // Nothing recognisable locally, so this is "I did not catch that" -
+      // never a wrong answer. The web version used to send the transcript on
+      // to a backend that passed it to a language model and logged it. A
+      // children's game should not send what a child said anywhere it does
+      // not have to, and the child now has the number pad instead.
+      return { correct: false, understood: false, interpretedNumber: null };
     },
     /**
      * Process speech recognition result
@@ -1753,9 +1224,13 @@ export default {
           return;
         }
 
-        this.answerFinalised = true;
+        // Not heard twice. This used to end the turn with "Say it again!" on
+        // screen, the microphone closed and the sum thrown away. Keep the sum
+        // and let the child tap it.
+        this.isQuery = false;
+        this.text = this.t('padPrompt');
+        this.openPad();
         this.speak();
-        this.isPlayMode = true;
         return;
       }
 
@@ -1884,34 +1359,8 @@ export default {
       };
       return symbols[operator] || operator;
     },
-    /**
-     * Get word at position in string
-     */
-    getWordAt(str, pos) {
-      str = String(str);
-      pos = Number(pos) >>> 0;
-
-      if (this.previousPosition === pos) {
-        this.isTalking = false;
-        return "";
-      }
-      this.previousPosition = pos;
-
-      const left = str.slice(0, pos + 1).search(/\S+$/);
-      const right = str.slice(pos).search(/\s/);
-      
-      if (right < 0) {
-        if (!this.isQuery) {
-          this.isPlayMode = true;
-        }
-        this.isTalking = false;
-        return str.slice(left);
-      }
-
-      return str.slice(left, right + pos);
-    },
   },
-  async mounted() {
+  mounted() {
     // Try to start the music immediately. Browsers block an AudioContext until
     // the page has been interacted with, so if that is refused we arm a
     // one-shot listener and start on the very first touch or key instead.
@@ -1926,16 +1375,6 @@ export default {
 
     this.startIdleChat();
     this.scheduleBubbleClear();
-
-    // Check microphone availability
-    try {
-      await navigator.mediaDevices.getUserMedia({ audio: true });
-      this.isMicrophoneEnabled = true;
-    } catch {
-      console.warn("Microphone not available");
-    }
-
-    this.listenForSpeechEvents();
 
     // Load saved game data
     const savedStars = localStorage.getItem('stars');
@@ -1975,24 +1414,26 @@ export default {
     // Preload sounds
     preloadSounds().catch(err => console.warn('Sound preload failed:', err));
 
-    // Get speech token from API
-    try {
-      const { token, region } = await getSpeechToken();
-      this.token = token;
-      this.speechRegion = region;
-    } catch (error) {
-      console.error("Failed to get speech token:", error);
-      this.isError = true;
-      this.speech_phrases = "Server is unavailable. Please refresh the page.";
-      this.showToast(this.speech_phrases, "danger");
+    // Get the first Play ready in the background.
+    this.speech.warmUp();
+
+    // A browser will not play sound before the first tap; the apps can, so on
+    // a first launch there the robot explains the game by itself.
+    if (isNativeApp && this.firstRun) {
+      this.text = this.t('explainSpoken');
+      this.isQuery = false;
+      // Leaves a clean screen when the robot has finished explaining.
+      this.clearAfterSpeak = true;
+      this.speak();
     }
   },
   created() {
+    // Not reactive: the engine holds SDK objects that Vue should not wrap.
+    this.speech = createSpeech({ onLevel: (level) => { this.audioLevel = level; } });
     window.addEventListener('keydown', this.keyDownHandler);
   },
   unmounted() {
     stopMusic();
-    document.removeEventListener('keydown', this.onIntroKeydown);
     this.stopIdleChat();
     clearTimeout(this.bubbleTimer);
     clearTimeout(this.rewardTimer);
@@ -2001,17 +1442,8 @@ export default {
       window.removeEventListener('keydown', this.firstGesture);
     }
     window.removeEventListener('keydown', this.keyDownHandler);
-    // Cleanup audio player
-    if (this.audioPlayer) {
-      this.audioPlayer.pause();
-      this.audioPlayer = null;
-    }
-    // Cleanup audio analysis
-    this.stopAudioAnalysis();
-    if (this.audioContext) {
-      this.audioContext.close();
-      this.audioContext = null;
-    }
+    this.speech.stopSpeaking();
+    this.speech.stopListening();
     // Clear any pending timeouts
     if (this.timeout) {
       clearTimeout(this.timeout);
@@ -2024,266 +1456,93 @@ export default {
 </script>
 
 <style scoped>
-/* Settings Modal Styles */
-ion-modal.settings-modal {
-  --height: 60%;
-  --min-height: 400px;
-  --border-radius: 16px 16px 0 0;
-  align-items: flex-end;
-}
 
-.settings-modal ion-content {
-  --background: #1a1a2e;
-}
-
-.settings-list {
+/* The sum in figures ------------------------------------------------------- */
+.sum-card {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 134px);
+  left: 0;
+  right: 0;
+  z-index: 15;
+  width: fit-content;
+  max-width: calc(100% - 32px);
+  margin: 0 auto;
+  padding: 10px 26px 12px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
-}
-
-.settings-group {
-  background: #16213e;
-  border-radius: 12px;
-  padding: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-}
-
-.settings-group-header {
-  display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 12px;
-  font-weight: 600;
-  font-size: 15px;
-  color: #e2e8f0;
+  border-radius: 24px;
+  background: rgba(16, 27, 61, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.05;
+  pointer-events: none;
 }
-
-.settings-group-header ion-icon {
-  font-size: 20px;
+.sum-figures {
+  font-size: clamp(44px, 15vw, 68px);
+  white-space: nowrap;
 }
-
-.settings-options {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+.sum-figures i {
+  font-style: normal;
+  color: #ffc62e;
 }
-
-.settings-options.vertical {
-  flex-direction: column;
+.sum-answer {
+  font-size: clamp(30px, 10vw, 44px);
 }
-
-.setting-option {
-  flex: 1;
-  min-width: 60px;
-  padding: 12px 16px;
-  border: 2px solid #2d3748;
-  border-radius: 10px;
-  background: #0f3460;
-  font-size: 15px;
-  font-weight: 500;
-  color: #cbd5e0;
-  cursor: pointer;
-  transition: all 0.2s ease;
+.sum-answer b {
+  display: inline-block;
+  min-width: 1.4em;
+  padding: 0 6px;
   text-align: center;
+  color: #3fe07f;
+  border-bottom: 4px dashed #3fe07f;
+}
+.sum-answer b.empty {
+  color: rgba(255, 255, 255, 0.5);
+  border-bottom-color: rgba(255, 255, 255, 0.35);
 }
 
-.setting-option.wide {
-  flex: none;
-  width: 100%;
-  text-align: left;
-}
-
-.setting-option:hover {
-  border-color: #4299e1;
-  background: #1a4a7a;
-}
-
-.setting-option.active {
-  border-color: #4299e1;
-  background: #3182ce;
-  color: white;
-}
-
-/* ---------------------------------------------------------------------------
-   Immersive chrome. There is no toolbar: the robot's world runs edge to edge
-   and the controls float over it as glass. Everything here respects the safe
-   area, because a full-bleed layout puts controls under the notch otherwise.
-   --------------------------------------------------------------------------- */
-
-.hud {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 20;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: calc(env(safe-area-inset-top, 0px) + 10px) 12px 10px;
-  pointer-events: none;
-}
-
-.hud > *,
-.hud-left > *,
-.hud-right > * {
-  pointer-events: auto;
-}
-
-.hud-right,
-.hud-left {
-  display: flex;
-  align-items: center;
-  flex: 0 0 auto;
-  gap: 8px;
-}
-
-.hud-btn.help {
-  border-color: rgba(255, 215, 0, 0.45);
-  color: #ffd700;
-}
-
-.hud-btn.sky {
-  border-color: rgba(160, 200, 255, 0.5);
-  color: #cfe4ff;
-}
-
-/* 48px, comfortably above the 44px minimum. The old icon buttons were 28px. */
-.hud-btn {
-  width: 44px;
-  height: 44px;
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  border-radius: 50%;
-  background: rgba(16, 24, 40, 0.42);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  color: #ffffff;
-  font-size: 22px;
-  cursor: pointer;
-  transition: transform 0.18s ease, background 0.18s ease;
-}
-
-.hud-btn:hover {
-  background: rgba(16, 24, 40, 0.6);
-}
-
-.hud-btn:active {
-  transform: scale(0.94);
-}
-
-.hud-btn:focus-visible,
-.hud-stars:focus-visible,
-.round-btn:focus-visible {
-  outline: 3px solid #ffd700;
-  outline-offset: 3px;
-}
-
-.hud-flag {
-  font-size: 22px;
-  line-height: 1;
-}
-
-.hud-stars {
-  display: flex;
-  align-items: center;
-  flex: 0 0 auto;
-  gap: 5px;
-  height: 44px;
-  padding: 0 12px;
-  border-radius: 22px;
-  border: 1px solid rgba(255, 215, 0, 0.45);
-  background: rgba(16, 24, 40, 0.42);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  color: #ffd700;
-  font-size: 18px;
-  font-weight: 700;
-  text-decoration: none;
-}
-
-/* Dock -------------------------------------------------------------------- */
-
-.dock {
+/* First run: the three steps as pictures ----------------------------------- */
+.how-chips {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 0;
-  z-index: 20;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 150px);
+  z-index: 18;
+  width: fit-content;
+  max-width: calc(100% - 24px);
+  margin: 0 auto;
+  padding: 0;
   display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
-  /* One row: status and control side by side, so they occupy a single band at
-     the bottom and leave the robot as much of the screen as possible. */
-  gap: 12px;
-  padding: 8px 16px calc(env(safe-area-inset-bottom, 0px) + 12px);
-  pointer-events: none;
-  background: linear-gradient(to top, rgba(10, 14, 26, 0.62), transparent);
-}
-
-.dock > * {
-  pointer-events: auto;
-}
-
-/* One big round control instead of a full-width rectangle, which read as a
-   form submit rather than a game. 84px is a generous target for a child. */
-.round-btn {
-  width: 64px;
-  height: 64px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  gap: 8px;
   border: none;
-  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+.how-chips span {
+  min-width: 84px;
+  padding: 9px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  border-radius: 16px;
+  background: rgba(16, 27, 61, 0.86);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   color: #ffffff;
-  font-size: 29px;
-  cursor: pointer;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.38);
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  font-size: 15px;
+  font-weight: 800;
 }
-
-.round-btn:active {
-  transform: scale(0.93);
+.how-chips ion-icon {
+  font-size: 24px;
+  color: #ffc62e;
 }
-
-.round-btn[disabled] {
-  opacity: 0.6;
-  cursor: default;
-}
-
-.round-btn.play {
-  background: linear-gradient(145deg, #2a74ea, #1b57bc);
-}
-
-/* Not success green: green with a tick is the correct-answer signal, and a
-   control must not borrow the vocabulary of feedback. */
-.round-btn.done {
-  background: linear-gradient(145deg, #5a4dc4, #3a3192);
-}
-
-
-.colour-swatch {
-  /* 44px: the minimum touch target, which the rest of this redesign holds to. */
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  border: 3px solid transparent;
-  cursor: pointer;
-}
-
-.colour-swatch.active {
-  border-color: #ffffff;
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.28);
-}
-
-.colour-swatch:focus-visible {
-  outline: 3px solid #ffd700;
-  outline-offset: 3px;
+.how-chips:focus-visible {
+  outline: 3px solid #ffc62e;
+  outline-offset: 4px;
+  border-radius: 18px;
 }
 
 /* Available to assistive tech and crawlers, absent from the layout. Not
@@ -2299,93 +1558,6 @@ ion-modal.settings-modal {
   clip-path: inset(50%);
   white-space: nowrap;
   border: 0;
-}
-
-/* Wordmark ----------------------------------------------------------------- */
-
-/* A flex child between the two button groups, NOT absolutely centred.
-   Centring it with position:absolute meant it was laid out independently of
-   the buttons, so on a phone it sat straight on top of them - the icons
-   appeared to collapse and the words overlapped them. As a flex item it gets
-   its own space and shrinks before anything collides. */
-.wordmark {
-  flex: 0 1 auto;
-  min-width: 0;
-  margin: 0;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  /* Only the icon is spaced away; the two words sit tight together so they
-     read as one mark rather than two labels. */
-  gap: 6px;
-  font-size: clamp(14px, 3.6vw, 21px);
-  font-weight: 800;
-  letter-spacing: -0.4px;
-  white-space: nowrap;
-  overflow: hidden;
-  pointer-events: none;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.55);
-}
-
-/* Hidden outright on phones. Five controls plus a mark do not fit across a
-   phone at any size that leaves the mark legible: at 320px the two button
-   groups alone need 283px of a 296px content box. Showing just the icon still
-   crowded the controls on a real device, so the mark is desktop and tablet
-   only - the app is identified by its own icon on a phone home screen anyway. */
-@media (max-width: 767px) {
-  .wordmark {
-    display: none;
-  }
-}
-
-.wordmark-oliver {
-  color: #ffffff;
-}
-
-/* Solid gold with a brightness pulse, not a gradient clipped to the text:
-   background-clip renders the glyphs dark wherever the gradient happens to be
-   mid-sweep, and it drops out entirely where it is unsupported. */
-.wordmark-math {
-  color: #ffd700;
-  animation: wordmark-pulse 4s ease-in-out infinite;
-}
-
-.wordmark-words {
-  display: inline-flex;
-  gap: 2px;
-}
-
-/* Tilted and gently rocking - a calculator sitting perfectly straight looked
-   like a toolbar icon rather than part of a logo. */
-.wordmark-icon {
-  font-size: 1.3em;
-  color: #ffd700;
-  transform-origin: 50% 70%;
-  animation: wordmark-wiggle 3.2s ease-in-out infinite;
-}
-
-@keyframes wordmark-wiggle {
-  0%, 100% { transform: rotate(-9deg) translateY(0); filter: brightness(1); }
-  35% { transform: rotate(7deg) translateY(-1px); filter: brightness(1.3); }
-  70% { transform: rotate(-4deg) translateY(0.5px); filter: brightness(1.1); }
-}
-
-@keyframes wordmark-pulse {
-  0%, 100% { filter: brightness(1); }
-  50% { filter: brightness(1.35); }
-}
-
-.intro-brand .wordmark-oliver,
-.intro-brand .wordmark-math {
-  font-size: inherit;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .wordmark-math,
-  .wordmark-icon {
-    animation: none;
-  }
 }
 
 /* Speech glow -------------------------------------------------------------- */
@@ -2421,289 +1593,7 @@ ion-modal.settings-modal {
   .speak-glow {
     animation: none;
   }
-}
 
-/* Listening panel ---------------------------------------------------------- */
-
-.listen-panel,
-.reward-panel {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 16px;
-  border-radius: 20px;
-  background: rgba(10, 14, 26, 0.82);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  color: #ffffff;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
-}
-
-.listen-panel {
-  border-color: rgba(51, 230, 102, 0.55);
-}
-
-.listen-bars {
-  display: flex;
-  align-items: flex-end;
-  gap: 3px;
-  height: 22px;
-}
-
-.listen-bars i {
-  width: 4px;
-  border-radius: 2px;
-  background: #6ef09a;
-  animation: listen-bar 0.9s ease-in-out infinite;
-}
-
-.listen-bars i:nth-child(1) { height: 40%; animation-delay: 0s; }
-.listen-bars i:nth-child(2) { height: 70%; animation-delay: 0.12s; }
-.listen-bars i:nth-child(3) { height: 100%; animation-delay: 0.24s; }
-.listen-bars i:nth-child(4) { height: 65%; animation-delay: 0.36s; }
-.listen-bars i:nth-child(5) { height: 45%; animation-delay: 0.48s; }
-
-@keyframes listen-bar {
-  0%, 100% { transform: scaleY(0.4); }
-  50% { transform: scaleY(1); }
-}
-
-.listen-text {
-  font-size: 16px;
-  font-weight: 700;
-}
-
-.listen-heard {
-  padding: 3px 10px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.12);
-  font-size: 14px;
-  font-weight: 600;
-}
-
-/* Reward panel ------------------------------------------------------------- */
-
-.reward-panel {
-  border-color: rgba(255, 215, 0, 0.55);
-}
-
-.reward-star {
-  font-size: 26px;
-  color: #ffd700;
-}
-
-.reward-points {
-  font-size: 20px;
-  font-weight: 800;
-  color: #ffd700;
-}
-
-.reward-equation {
-  font-size: 16px;
-  font-weight: 700;
-  letter-spacing: 0.4px;
-}
-
-.reward-streak {
-  padding: 3px 10px;
-  border-radius: 12px;
-  background: rgba(255, 215, 0, 0.18);
-  font-size: 13px;
-  font-weight: 700;
-  color: #ffd700;
-}
-
-.panel-enter-active,
-.panel-leave-active {
-  transition: opacity 0.2s ease, transform 0.2s ease;
-}
-
-.panel-enter-from,
-.panel-leave-to {
-  opacity: 0;
-  transform: translateY(8px) scale(0.96);
-}
-
-/* Intro card --------------------------------------------------------------- */
-
-.intro-backdrop {
-  position: absolute;
-  inset: 0;
-  z-index: 40;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  background: rgba(6, 10, 20, 0.72);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-}
-
-.intro-card {
-  width: min(360px, 100%);
-  padding: 26px 24px;
-  border-radius: 26px;
-  background: linear-gradient(160deg, #1d2a4d, #141d36);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
-  text-align: center;
-  color: #ffffff;
-}
-
-.intro-brand {
-  margin: 0;
-  font-size: 26px;
-  font-weight: 800;
-  letter-spacing: -0.4px;
-}
-
-.intro-tagline {
-  margin: 6px 0 20px;
-  font-size: 14px;
-  line-height: 1.4;
-  color: #cbd6e8;
-}
-
-.intro-steps {
-  margin: 0 0 22px;
-  padding: 0;
-  list-style: none;
-  text-align: left;
-}
-
-.intro-steps li {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.intro-num {
-  flex: 0 0 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: #2a74ea;
-  font-size: 15px;
-  font-weight: 800;
-}
-
-.intro-hear {
-  width: 100%;
-  height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin-bottom: 10px;
-  border: 1px solid rgba(255, 215, 0, 0.5);
-  border-radius: 16px;
-  background: rgba(255, 215, 0, 0.12);
-  color: #ffd700;
-  font-size: 16px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.intro-hear ion-icon {
-  font-size: 20px;
-}
-
-.intro-hear[disabled] {
-  opacity: 0.55;
-  cursor: default;
-}
-
-.intro-hear:focus-visible {
-  outline: 3px solid #ffd700;
-  outline-offset: 3px;
-}
-
-.intro-go {
-  width: 100%;
-  height: 52px;
-  border: none;
-  border-radius: 16px;
-  background: linear-gradient(145deg, #2a74ea, #1b57bc);
-  color: #ffffff;
-  font-size: 17px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.intro-go:focus-visible {
-  outline: 3px solid #ffd700;
-  outline-offset: 3px;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .listen-bars i {
-    animation: none;
-  }
-  .panel-enter-active,
-  .panel-leave-active {
-    transition: none;
-  }
-}
-
-/* Status pill: carries state in colour AND an icon AND a word, so it does not
-   depend on colour alone. Replaces the ion-chip, whose shadow DOM overrode the
-   background and left white text at ~1.06:1 in light mode. */
-.status-pill {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 14px;
-  border-radius: 20px;
-  background: rgba(10, 14, 26, 0.78);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  color: #ffffff;
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.status-pill ion-icon {
-  font-size: 18px;
-  color: #8fd8ff;
-}
-
-.status-pill.listening {
-  border-color: rgba(51, 230, 102, 0.6);
-}
-
-.status-pill.listening ion-icon {
-  color: #6ef09a;
-}
-
-.status-pill.speaking ion-icon {
-  color: #7fdcff;
-}
-
-.status-pill.computing ion-icon,
-.status-pill.thinking ion-icon {
-  color: #ffc766;
-}
-
-.status-pill.broken {
-  border-color: rgba(255, 122, 147, 0.6);
-}
-
-.status-pill.broken ion-icon {
-  color: #ff9aae;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .hud-btn,
-  .round-btn {
-    transition: none;
-  }
 }
 
 /* Full-bleed: the robot is the scene, not a picture placed on the page. It
@@ -2721,83 +1611,15 @@ ion-modal.settings-modal {
   /* The whole viewport now: there is no header, and the dock floats over the
      scene rather than taking layout space. dvh rather than vh because 100vh on
      iOS Safari is the LARGE viewport and would run the scene under the chrome. */
-  min-height: 100vh;
-  min-height: 100dvh;
-  height: 100%;
+  /* The scroll container has 16px of padding all round, cancelled by the
+     negative margin below. A plain 100% is therefore 32px short, which showed
+     as a black strip under the scene on every screen. */
+  height: calc(100% + 32px);
   margin: -16px;
   padding: 0;
-}
-
-.status-indicator {
-  display: flex;
-  justify-content: center;
-  width: 100%;
-  padding: 12px 0;
-}
-
-.status-indicator ion-chip {
-  font-size: 14px;
-  padding: 8px 16px;
-  --border-radius: 16px;
-  /* `background`, not `--background`: ion-chip is shadow-encapsulated and its
-     own :host(.ion-color) rule sets background directly, which beat the custom
-     property. The chip was rendering white-on-8%-tint at ~1.06:1 - invisible on
-     any phone not set to dark mode. */
-  background: #0b4fd0;
-  color: white;
-}
-
-.status-indicator ion-icon {
-  color: #ffd700;
-  margin-right: 6px;
-}
-
-.status-indicator ion-label {
-  color: white;
-}
-
-ion-footer.footer-spacer {
-  min-height: 90px;
-}
-
-ion-footer ion-toolbar {
-  padding: 8px 16px 16px;
-  --background: transparent;
-}
-
-.play-button {
-  --border-radius: 16px;
-  font-size: 18px;
-  font-weight: 600;
-  height: 56px;
-  text-transform: none;
-}
-
-.play-button ion-icon {
-  font-size: 24px;
-  margin-right: 8px;
-}
-
-/* Same size and weight as Play: it occupies the same slot and is just as
-   important to a child who has finished speaking.
-   Deliberately NOT success green - green plus a checkmark is the correct-answer
-   signal, and a control must not borrow the vocabulary of feedback. Indigo is
-   distinct from the primary-blue Play button; white on it is 7.99:1. */
-.done-button {
-  --border-radius: 16px;
-  --background: #4a3fb0;
-  --background-activated: #3a3192;
-  --background-hover: #3a3192;
-  --color: #ffffff;
-  font-size: 18px;
-  font-weight: 600;
-  height: 56px;
-  text-transform: none;
-}
-
-.done-button ion-icon {
-  font-size: 24px;
-  margin-right: 8px;
+  /* The sky's own colours, shown for the moment before the 3D scene has
+     loaded. Without it the app opened on a white screen. */
+  background: linear-gradient(#4a8be0, #8fb6ea 55%, #8a94a8 55%);
 }
 
 /* Responsive adjustments */
@@ -2805,48 +1627,7 @@ ion-footer ion-toolbar {
   .bot-container {
     min-height: 300px;
   }
-  
-  .stats-row {
-    flex-wrap: wrap;
-  }
-  
-  .stat-chip {
-    font-size: 11px;
-    padding: 4px 8px;
-  }
-}
 
-/* Stats row styling */
-.stats-row {
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid var(--ion-color-step-100);
-}
-
-.stat-chip {
-  font-size: 12px;
-  margin: 2px;
-}
-
-.star-chip {
-  --background: #ffd700 !important;
-  color: #000 !important;
-  cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.star-chip:hover,
-.star-chip:focus {
-  transform: scale(1.05);
-  box-shadow: 0 2px 8px rgba(255, 215, 0, 0.5);
-}
-
-.star-chip:active {
-  transform: scale(0.98);
-}
-
-.star-chip ion-icon {
-  color: #000 !important;
 }
 
 /* Action buttons */
@@ -2877,27 +1658,6 @@ ion-footer ion-toolbar {
   --color: var(--ion-color-primary);
 }
 
-/* Language selector */
-.language-selector {
-  position: absolute;
-  top: 60px;
-  right: 8px;
-  z-index: 10;
-}
-
-.language-flag {
-  font-size: 24px;
-}
-
-.language-flag-toolbar {
-  font-size: 20px;
-  margin: 0 4px;
-}
-
-.selected-language {
-  --background: var(--ion-color-primary-tint);
-}
-
 /* Toast styling */
 .toast-compact::part(container) {
   padding: 12px 16px;
@@ -2912,84 +1672,22 @@ ion-footer ion-toolbar {
   padding: 0;
 }
 
-/* Problem History Modal */
-.no-history {
-  text-align: center;
-  padding: 40px 20px;
-  color: var(--ion-color-medium);
-}
-
-.correct-item {
-  --border-left: 4px solid var(--ion-color-success);
-}
-
-.incorrect-item {
-  --border-left: 4px solid var(--ion-color-danger);
-}
-
-.problem-equation {
-  font-size: 18px;
-  font-weight: 600;
-  font-family: 'Courier New', monospace;
-}
-
-.user-answer {
-  color: var(--ion-color-danger);
-  font-size: 13px;
-}
-
-.problem-time {
-  font-size: 11px;
-  color: var(--ion-color-medium);
-}
-
-.clear-history-btn {
-  margin-top: 20px;
-}
-
 @media (min-width: 768px) {
-  .settings-modal {
-    --max-width: 500px;
-    --border-radius: 16px;
-    align-items: center;
-  }
   
   .bot-container {
     min-height: 400px;
   }
-  
-  ion-footer ion-toolbar {
-    max-width: 400px;
-    margin: 0 auto;
-  }
-}
 
-/* Animation for status chip */
-.status-indicator ion-chip {
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.7;
-  }
 }
 
 /* Respect a reduced-motion preference. This stops the decorative loops only -
    the correct/incorrect feedback, expression changes and state colours all
    still happen, because that is information, not decoration. */
 @media (prefers-reduced-motion: reduce) {
-  .status-indicator ion-chip {
-    animation: none;
-  }
 
-  .toast-compact,
-  .setting-option,
-  .star-chip {
+  .toast-compact {
     transition: none;
   }
+
 }
 </style>

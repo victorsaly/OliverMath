@@ -1,9 +1,9 @@
 <template>
   <ion-page>
     <ion-header>
-      <ion-toolbar color="primary">
+      <ion-toolbar class="navy-bar">
         <ion-buttons slot="start">
-          <ion-back-button default-href="/"></ion-back-button>
+          <ion-back-button default-href="/" :text="t('back')"></ion-back-button>
         </ion-buttons>
         <ion-title>{{ t('stats') }}</ion-title>
       </ion-toolbar>
@@ -21,19 +21,24 @@
 
       <!-- Quick Stats Row -->
       <div class="quick-stats-row">
+        <!-- Three figures a child understands. "Accuracy 0%" used to be the
+             first thing a new player read about themselves. -->
         <div class="quick-stat">
           <span class="quick-value">{{ stats.total }}</span>
-          <span class="quick-label">{{ t('totalProblems') }}</span>
+          <span class="quick-label">{{ t('statSums') }}</span>
         </div>
         <div class="quick-stat success">
           <span class="quick-value">{{ stats.correct }}</span>
-          <span class="quick-label">{{ t('correctAnswers') }}</span>
+          <span class="quick-label">{{ t('statRight') }}</span>
         </div>
         <div class="quick-stat accent">
-          <span class="quick-value">{{ stats.accuracy }}%</span>
-          <span class="quick-label">{{ t('accuracy') }}</span>
+          <span class="quick-value">{{ achievementStats.bestStreak }}</span>
+          <span class="quick-label">{{ t('statBestRun') }}</span>
         </div>
       </div>
+
+      <!-- Badges come before the tables: something earned, then the detail. -->
+      <Achievements :stats="achievementStats" />
 
       <!-- Performance by Operator -->
       <ion-card v-if="operatorStats.length > 0" class="performance-section">
@@ -76,8 +81,6 @@
         </ion-card-content>
       </ion-card>
 
-      <!-- Achievements Section -->
-      <Achievements :stats="achievementStats" />
     </ion-content>
   </ion-page>
 </template>
@@ -176,8 +179,17 @@ export default {
 </script>
 
 <style scoped>
+/* One navy look, shared with the game and the Grown-ups sheet. */
 .stats-content {
-  --background: #1a1a2e;
+  --background: #101b3d;
+}
+ion-toolbar.navy-bar {
+  --background: #101b3d;
+  --color: #ffffff;
+  --border-color: rgba(255, 255, 255, 0.12);
+}
+ion-toolbar.navy-bar ion-back-button {
+  --color: #ffffff;
 }
 
 /* Hero Star Display */
@@ -237,21 +249,12 @@ export default {
 
 .quick-stat {
   flex: 1;
-  background: #16213e;
-  border-radius: 12px;
-  padding: 16px 12px;
+  background: #1a2a57;
+  border-radius: 16px;
+  padding: 14px 6px;
   text-align: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  border-top: 3px solid #3182ce;
 }
 
-.quick-stat.success {
-  border-top-color: #48bb78;
-}
-
-.quick-stat.accent {
-  border-top-color: #9f7aea;
-}
 
 .quick-value {
   display: block;
@@ -262,11 +265,10 @@ export default {
 
 .quick-label {
   display: block;
-  font-size: 10px;
-  color: #a0aec0;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-top: 4px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #b9c6ea;
+  margin-top: 2px;
 }
 
 /* Performance Section */
@@ -368,16 +370,13 @@ export default {
   padding: 10px 12px;
   border-radius: 8px;
   background: #0f3460;
-  border-left: 3px solid #4a5568;
 }
 
 .recent-problem.correct {
-  border-left-color: #48bb78;
   background: rgba(72, 187, 120, 0.15);
 }
 
 .recent-problem.incorrect {
-  border-left-color: #fc8181;
   background: rgba(252, 129, 129, 0.15);
 }
 
@@ -457,5 +456,22 @@ export default {
   :deep(.progress-fill) {
     transition: none;
   }
+}
+
+/* The two detail cards, brought into the same look as the badges above. */
+.performance-section,
+.answer-details-section {
+  --background: #1a2a57;
+  margin: 0 0 14px;
+  border-radius: 18px;
+  box-shadow: none;
+}
+.performance-section ion-card-title,
+.answer-details-section ion-card-title {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #b9c6ea;
 }
 </style>

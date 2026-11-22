@@ -1,0 +1,125 @@
+/* Shared by privacy.html and support.html: plain pages for parents, in the
+   game's navy, readable with no script and no connection to anything else. */
+:root {
+  color-scheme: dark;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: #101b3d;
+  color: #e9edf7;
+  font: 17px/1.6 ui-rounded, 'SF Pro Rounded', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+main {
+  max-width: 44rem;
+  margin: 0 auto;
+  padding-top: calc(env(safe-area-inset-top, 0px) + 24px);
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 48px);
+  padding-left: max(20px, env(safe-area-inset-left, 0px));
+  padding-right: max(20px, env(safe-area-inset-right, 0px));
+}
+.back {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: #1a2a57;
+  color: #ffffff;
+  font-weight: 700;
+  text-decoration: none;
+}
+.brand {
+  margin: 28px 0 0;
+  font-size: 20px;
+  font-weight: 800;
+  color: #ffffff;
+}
+.brand span {
+  color: #ffc62e;
+}
+h1 {
+  margin: 6px 0 4px;
+  font-size: clamp(28px, 6vw, 38px);
+  line-height: 1.15;
+  color: #ffffff;
+  text-wrap: balance;
+}
+h2 {
+  margin: 36px 0 8px;
+  font-size: 21px;
+  line-height: 1.25;
+  color: #ffffff;
+}
+p,
+li {
+  color: #cfd8f0;
+}
+p {
+  margin: 0 0 12px;
+}
+ul {
+  margin: 0 0 12px;
+  padding-left: 22px;
+}
+li + li,
+li > ul {
+  margin-top: 6px;
+}
+strong {
+  color: #ffffff;
+}
+a {
+  color: #9cc0ff;
+}
+a:focus-visible {
+  outline: 3px solid #ffc62e;
+  outline-offset: 3px;
+}
+.updated {
+  color: #9aa5bf;
+  font-size: 15px;
+}
+.short {
+  margin: 22px 0 0;
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: #1a2a57;
+}
+.short p:last-child {
+  margin-bottom: 0;
+}
+.scroll {
+  overflow-x: auto;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 12px;
+  font-size: 16px;
+}
+th,
+td {
+  text-align: left;
+  vertical-align: top;
+  padding: 10px 12px 10px 0;
+  border-bottom: 1px solid #283250;
+  color: #cfd8f0;
+}
+th {
+  color: #ffffff;
+  font-weight: 700;
+}
+footer {
+  margin-top: 40px;
+  padding-top: 18px;
+  border-top: 1px solid #283250;
+  font-size: 15px;
+  color: #9aa5bf;
+}
+footer a {
+  display: inline-block;
+  margin: 0 16px 6px 0;
+}
