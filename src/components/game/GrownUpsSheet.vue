@@ -186,6 +186,21 @@
           </div>
         </div>
 
+        <!-- The free version and the full game. Only shown where there is a
+             limit: in the apps, and on the web once the apps are live. -->
+        <div class="settings-group" v-if="fullGame">
+          <div class="settings-group-header">
+            <ion-icon :icon="starIcon" color="warning"></ion-icon>
+            <span>{{ t('fullGame') }}</span>
+          </div>
+          <p class="full-game-status" :class="{ good: fullGame.unlocked }">
+            {{ fullGame.unlocked ? t('fullGameUnlocked') : t('fullGameLeft', { left: fullGame.left, count: fullGame.count }) }}
+          </p>
+          <button class="setting-option wide active" v-if="!fullGame.unlocked" @click="$emit('full-game')">
+            {{ t('fullGameBuy') }}
+          </button>
+        </div>
+
         <div class="settings-group">
           <button class="setting-option wide" @click="$emit('help')">
             {{ t('howToPlay') }}
@@ -250,11 +265,13 @@ export default {
     colour: { type: String, required: true },
     autoChat: { type: Boolean, default: true },
     muted: { type: Boolean, default: false },
-    historyCount: { type: Number, default: 0 }
+    historyCount: { type: Number, default: 0 },
+    // { unlocked, left, count } where the free version has a limit; null otherwise.
+    fullGame: { type: Object, default: null }
   },
   emits: [
     'update:level', 'update:operator', 'update:mode', 'update:language', 'update:view',
-    'update:dayMode', 'update:colour', 'update:autoChat', 'toggle-mute', 'clear-history', 'help', 'close'
+    'update:dayMode', 'update:colour', 'update:autoChat', 'toggle-mute', 'clear-history', 'help', 'full-game', 'close'
   ],
   setup() {
     return {
@@ -331,8 +348,8 @@ export default {
     }
   },
   methods: {
-    t(key) {
-      return t(this.language, key);
+    t(key, params) {
+      return t(this.language, key, params);
     }
   }
 };
@@ -404,6 +421,16 @@ ion-toolbar.navy-bar {
 .parent-links a {
   display: block;
   text-decoration: none;
+}
+.full-game-status {
+  margin: 0 0 12px;
+  color: #cbd5e0;
+  font-size: 15px;
+}
+.full-game-status.good {
+  margin-bottom: 0;
+  color: #6ee7a0;
+  font-weight: 600;
 }
 .privacy-list {
   margin: 0;

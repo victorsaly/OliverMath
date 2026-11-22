@@ -37,6 +37,8 @@
       :autoChat="autoChat"
       :muted="isMuted"
       :historyCount="problemHistory.length"
+      :fullGame="trialApplies ? { unlocked, left: sumsLeft, count: freeSums } : null"
+      @full-game="showSettingsModal = false; openUnlock()"
       @update:language="changeLanguage"
       @update:view="setBotView"
       @update:dayMode="setDayMode"
@@ -152,6 +154,23 @@
       @answer="answerMicAsk"
     />
 
+    <TrialCards
+      :language="selectedLanguage"
+      :count="freeSums"
+      :limitOpen="showLimit"
+      :unlockOpen="showUnlock"
+      :canPurchase="canPurchase"
+      :price="fullGamePrice"
+      :busy="purchaseBusy"
+      :message="purchaseMessage"
+      :storeLink="storeLink"
+      @grown-ups="showLimit = false; openGate('unlock')"
+      @close-limit="showLimit = false"
+      @buy="buyUnlock"
+      @restore="restoreUnlock"
+      @close-unlock="showUnlock = false"
+    />
+
     <SumPicker
       :open="showSumPicker"
       :language="selectedLanguage"
@@ -183,11 +202,14 @@ import NumberPad from "@/components/game/NumberPad.vue";
 import MicrophoneCards from "@/components/game/MicrophoneCards.vue";
 import SumPicker from "@/components/game/SumPicker.vue";
 import ParentalGate from "@/components/game/ParentalGate.vue";
-import { OPERATORS, LEVELS, SCORING } from "@/config/gameConfig";
+import TrialCards from "@/components/game/TrialCards.vue";
+import { OPERATORS, LEVELS, SCORING, STORE_LINKS } from "@/config/gameConfig";
 import { checkSpokenAnswer } from "@/utils/numberWords";
 import { createSpeech, isNativeApp, openDeviceSettings } from "@/game/speech";
 import { nextQuestion, answerTo } from "@/game/questions";
 import { BODY_COLOURS } from "@/game/options";
+import { FREE_SUMS_PER_DAY, sumsLeftToday, countSum, wasUnlocked, rememberUnlocked } from "@/game/trial";
+import { canPurchase, fullGameProduct, ownsFullGame, buyFullGame, restoreFullGame, onFullGameChange } from "@/services/purchases";
 import { LANGUAGES, SPEECH_VOICES, getPreferredLanguage, setLanguage, t, getRandomPhrase } from "@/config/i18n";
 import { addToHistory, getHistory, clearHistory as clearHistoryService, getOperatorSymbol } from "@/services/historyService";
 import { preloadSounds, playCorrectSound, playIncorrectSound, toggleMute, startMusic, stopMusic, duckMusic } from "@/services/soundService";
@@ -212,6 +234,7 @@ export default {
     MicrophoneCards,
     SumPicker,
     ParentalGate,
+    TrialCards,
     IonPage,
     IonContent,
     IonIcon,
@@ -223,7 +246,9 @@ export default {
       volumeIcon: volumeHigh,
       micIcon: mic,
       refreshIcon: refresh,
-      historyIcon: timeOutline
+      historyIcon: timeOutline,
+      freeSums: FREE_SUMS_PER_DAY,
+      canPurchase
     };
   },
   data() {
@@ -315,6 +340,14 @@ export default {
       // microphone, and the one shown while a language's speech model arrives.
       micAsk: false,
       learningLanguage: false,
+      // The free version: a few sums a day until the full game is unlocked.
+      unlocked: wasUnlocked(),
+      sumsLeft: sumsLeftToday(),
+      showLimit: false,
+      showUnlock: false,
+      fullGamePrice: '',
+      purchaseBusy: false,
+      purchaseMessage: '',
       // Parental gate in front of Grown-ups.
       gateThen: 'grown-ups',
       gateOpen: false,
@@ -399,6 +432,18 @@ export default {
     bubbleText() {
       if (this.showSum && this.text === this.currentQuestion) return '';
       return this.speech_phrases;
+    },
+    /** On the web: the store for this device, if the apps are live. */
+    storeLink() {
+      const apple = /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent);
+      return (apple ? STORE_LINKS.ios : STORE_LINKS.android) || STORE_LINKS.ios || STORE_LINKS.android || '';
+    },
+    /**
+     * Whether the free version's limit is in force here: always in the apps;
+     * on the web only once there is an app to point to.
+     */
+    trialApplies() {
+      return canPurchase || !!this.storeLink;
     },
     /** In the apps, a refused microphone can only be turned back on in Settings. */
     micRefused() {
@@ -555,7 +600,7 @@ export default {
     },
     keyDownHandler(e) {
       // The sheets handle their own keys while they are open.
-      if (this.padOpen || this.gateOpen || this.showSumPicker) return;
+      if (this.padOpen || this.gateOpen || this.showSumPicker || this.showUnlock) return;
       let value = e.key * 1;
       if (!isNaN(parseFloat(value)) && isFinite(value)){
         this.typeText.push(value);
@@ -615,6 +660,13 @@ export default {
      * Play: ask the next sum.
      */
     async askQuestion() {
+      // The free version: today's sums are used up. Good news for the child,
+      // and a way in for a grown-up.
+      if (this.trialApplies && !this.unlocked && sumsLeftToday() <= 0) {
+        this.sumsLeft = 0;
+        this.showLimit = true;
+        return;
+      }
       this.isResolved = false;
       this.isComputing = true;
       // Every Play is a fresh attempt. isError used to be a one-way latch, so a
@@ -745,17 +797,58 @@ export default {
       if (resolve) resolve(goAhead);
     },
     /**
-     * @param {'grown-ups'|'device-settings'} then - what passing the gate opens
+     * @param {'grown-ups'|'device-settings'|'unlock'} then - what passing the gate opens
      */
     openGate(then) {
-      this.gateThen = then === 'device-settings' ? 'device-settings' : 'grown-ups';
+      this.gateThen = ['device-settings', 'unlock'].includes(then) ? then : 'grown-ups';
       this.gateOpen = true;
     },
     onGatePassed() {
       this.gateOpen = false;
-      // Leaving the app for the phone's Settings is a grown-up's step too.
+      // Leaving the app for the phone's Settings, and anything to do with
+      // buying, are grown-ups' steps too.
       if (this.gateThen === 'device-settings') openDeviceSettings();
+      else if (this.gateThen === 'unlock') this.openUnlock();
       else this.showSettingsModal = true;
+    },
+    /** The full-game sheet. Only ever opened from behind the gate. */
+    async openUnlock() {
+      this.purchaseMessage = '';
+      this.showUnlock = true;
+      if (!canPurchase || this.fullGamePrice) return;
+      const product = await fullGameProduct();
+      this.fullGamePrice = product.available ? product.price || '' : '';
+      if (!product.available) this.purchaseMessage = this.t('fullGameUnavailable');
+    },
+    /** As setUnlocked, without the thank-you: used when the app starts. */
+    setUnlockedQuietly(unlocked) {
+      this.unlocked = unlocked;
+      rememberUnlocked(unlocked);
+    },
+    setUnlocked(unlocked) {
+      this.unlocked = unlocked;
+      rememberUnlocked(unlocked);
+      if (unlocked) {
+        this.showLimit = false;
+        this.purchaseMessage = this.t('fullGameUnlocked');
+      }
+    },
+    async buyUnlock() {
+      this.purchaseBusy = true;
+      this.purchaseMessage = '';
+      const result = await buyFullGame();
+      this.purchaseBusy = false;
+      if (result.unlocked) this.setUnlocked(true);
+      else if (result.pending) this.purchaseMessage = this.t('fullGamePending');
+      else if (result.failed) this.purchaseMessage = this.t('fullGameFailed');
+    },
+    async restoreUnlock() {
+      this.purchaseBusy = true;
+      this.purchaseMessage = '';
+      const owned = await restoreFullGame();
+      this.purchaseBusy = false;
+      if (owned) this.setUnlocked(true);
+      else this.purchaseMessage = this.t('fullGameNotFound');
     },
     /** A tapped answer goes down the same path as a spoken one: same stars. */
     async submitPad(answer) {
@@ -1241,6 +1334,8 @@ export default {
       if (this.isResolved || isFinalResult) {
         this.totalQuestionsAnswered++;
         localStorage.totalQuestions = this.totalQuestionsAnswered;
+        // A marked answer uses one of the day's free sums.
+        if (this.trialApplies && !this.unlocked) this.sumsLeft = countSum();
       }
 
       if (this.isResolved) {
@@ -1413,6 +1508,15 @@ export default {
     
     // Preload sounds
     preloadSounds().catch(err => console.warn('Sound preload failed:', err));
+
+    // The store is the authority on whether the full game is owned; the
+    // remembered answer only covers the moment before it replies.
+    if (canPurchase) {
+      ownsFullGame().then((owned) => {
+        if (owned !== null) this.setUnlockedQuietly(owned);
+      });
+      onFullGameChange((owned) => this.setUnlocked(owned));
+    }
 
     // Get the first Play ready in the background.
     this.speech.warmUp();
