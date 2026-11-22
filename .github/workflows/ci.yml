@@ -42,7 +42,7 @@ jobs:
         run: |
           npm run preview -- --port 8100 > preview.log 2>&1 &
           for i in $(seq 1 30); do
-            if curl -sf -o /dev/null http://127.0.0.1:8100/OliverMath/play/; then
+            if curl -sf -o /dev/null http://127.0.0.1:8100/play/; then
               echo "Preview server up after ${i}s"
               exit 0
             fi

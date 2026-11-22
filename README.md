@@ -3,12 +3,12 @@
 A voice-controlled maths game for children aged 7+. A 3D robot asks a question
 out loud, the child answers by speaking, and correct answers earn stars.
 
-**Play it: [victorsaly.github.io/OliverMath](https://victorsaly.github.io/OliverMath/)**
+**Play it: [olivermath.victorsaly.com](https://olivermath.victorsaly.com/)**
 
 Made for Oliver, who wanted a robot that talks and listens like Alexa, but for
 his times tables.
 
-[![Oliver Math: a 3D robot standing in a sunlit landscape, waiting for a child to press Play](.github/images/hero.png)](https://victorsaly.github.io/OliverMath/)
+[![Oliver Math: a 3D robot standing in a sunlit landscape, waiting for a child to press Play](.github/images/hero.png)](https://olivermath.victorsaly.com/)
 
 ## What it offers
 
