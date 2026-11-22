@@ -141,3 +141,14 @@ export const SOUNDS = {
   STREAK: 'streak',
   MILESTONE: 'milestone'
 };
+
+/**
+ * Where the apps are, once they are on the stores. While both are empty the
+ * web version has no limit: a limit that says "the full game is in the app"
+ * needs an app to send people to. Set VITE_APP_STORE_URL and
+ * VITE_PLAY_STORE_URL in .env.production when the listings are live.
+ */
+export const STORE_LINKS = {
+  ios: import.meta.env.VITE_APP_STORE_URL || '',
+  android: import.meta.env.VITE_PLAY_STORE_URL || ''
+};

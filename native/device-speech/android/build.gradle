@@ -25,4 +25,6 @@ repositories {
 dependencies {
     implementation project(':capacitor-android')
     implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    // The one in-app purchase: unlocking the full game.
+    implementation "com.android.billingclient:billing:7.1.1"
 }

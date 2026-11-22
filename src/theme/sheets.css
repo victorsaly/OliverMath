@@ -321,3 +321,24 @@
     transition: none;
   }
 }
+
+/* The full-game sheet */
+.sheet-price {
+  margin-left: 4px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+  font-variant-numeric: tabular-nums;
+}
+.sheet-btn[disabled] {
+  opacity: 0.55;
+  cursor: default;
+}
+a.sheet-btn {
+  text-decoration: none;
+  box-sizing: border-box;
+}
+.nomic-sheet .sheet-note {
+  margin: 14px 0 0;
+  font-size: 15px;
+}
