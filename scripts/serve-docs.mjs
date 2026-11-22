@@ -1,5 +1,5 @@
 // Serves docs/ the way GitHub Pages does, for `npm run preview` and the
-// end-to-end tests: under the site's address (/OliverMath/ by default), with
+// end-to-end tests: at the site's address (the root by default), with
 // 404.html answering anything that has no file.
 //
 //   node scripts/serve-docs.mjs [--port 8100]
@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'docs');
-const base = process.env.SITE_BASE || '/OliverMath/';
+const base = process.env.SITE_BASE || '/';
 const portArg = process.argv.indexOf('--port');
 const port = Number(portArg > -1 ? process.argv[portArg + 1] : process.env.PORT || 8100);
 

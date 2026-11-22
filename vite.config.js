@@ -8,9 +8,9 @@ import path from 'path';
 const isNativeBuild = process.env.NATIVE_BUILD === '1';
 
 // On the web the product site has the front address and the game lives one
-// level down, in play/. SITE_BASE is "/OliverMath/" on GitHub Pages and would
-// be "/" on a domain of its own.
-const siteBase = process.env.SITE_BASE || '/OliverMath/';
+// level down, in play/. The site lives at the root of its own address,
+// olivermath.victorsaly.com; SITE_BASE is there for hosting it under a path.
+const siteBase = process.env.SITE_BASE || '/';
 const gameBase = siteBase + 'play/';
 
 export default defineConfig({
@@ -87,8 +87,8 @@ export default defineConfig({
         orientation: 'portrait-primary',
         start_url: gameBase,
         scope: gameBase,
-        // Unchanged from when the game lived at the front address, so a copy
-        // someone installed then is still recognised as the same app.
+        // Names the installed app. Kept at the site's address rather than
+        // the game's, so it survives the game moving within the site.
         id: siteBase,
         categories: ['education', 'kids', 'games'],
         icons: [
