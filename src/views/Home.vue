@@ -6,293 +6,47 @@
          even that is hidden - but it must still be in the document. -->
     <h1 class="visually-hidden">Oliver Math - practise maths by talking to a robot</h1>
 
-    <!-- Floating HUD. No toolbar: the robot's world is the interface, so the
-         controls sit over the scene as glass buttons instead of inside a bar. -->
-    <div class="hud">
-      <div class="hud-left">
-        <!-- The grown-ups door. Level, language, sound and anything that
-             leaves the app sit behind a gate a young child cannot pass by
-             accident, as the Kids Category requires. -->
-        <button class="hud-btn" @click="openGate('grown-ups')" :aria-label="t('grownUps')">
-          <ion-icon :icon="lockIcon" aria-hidden="true"></ion-icon>
-        </button>
-        <!-- Permanent entry point. This used to live only inside the first-run
-             card, which meant it disappeared forever after one dismissal. -->
-        <button class="hud-btn help" @click="showIntro = true" :aria-label="t('howToPlay')">
-          <ion-icon :icon="helpIcon" aria-hidden="true"></ion-icon>
-        </button>
-        <!-- Tapping holds the sky at day or night; the automatic cycle can be
-             restored from Settings. The icon shows what the tap will give you. -->
-        <button class="hud-btn sky" @click="toggleDayNight" :aria-label="t('dayNight')">
-          <ion-icon :icon="dayMode === 'night' ? sunIcon : moonIcon" aria-hidden="true"></ion-icon>
-        </button>
-      </div>
-
-      <!-- Wordmark. Absolutely centred rather than a flex child, so it stays
-           put when the star count grows a digit and the right group widens. -->
-      <p class="wordmark" aria-label="Oliver Math">
-        <ion-icon :icon="calculatorIcon" class="wordmark-icon" aria-hidden="true"></ion-icon>
-        <span class="wordmark-words"><span class="wordmark-oliver">Oliver</span><span class="wordmark-math">Math</span></span>
-      </p>
-
-      <div class="hud-right">
-        <router-link to="/stats" class="hud-stars" aria-label="View stats and achievements">
-          <ion-icon :icon="star" aria-hidden="true"></ion-icon>
-          <span>{{ stars }}</span>
-        </router-link>
-      </div>
-    </div>
+    <GameHud
+      :language="selectedLanguage"
+      :stars="stars"
+      :dayMode="dayMode"
+      @grown-ups="openGate('grown-ups')"
+      @help="showIntro = true"
+      @toggle-sky="toggleDayNight"
+    />
 
 
-    <!-- First-run help. The app previously explained itself with a single
-         14-word sentence in a speech bubble and nothing else. -->
-    <div class="intro-backdrop" v-if="showIntro" role="dialog" aria-modal="true" aria-labelledby="intro-title">
-      <div class="intro-card" ref="introCard">
-        <p class="intro-brand" id="intro-title">
-          <span class="wordmark-oliver">Oliver</span><span class="wordmark-math">Math</span>
-        </p>
-        <p class="intro-tagline">{{ t('tagline') }}</p>
+    <IntroCard
+      v-if="showIntro"
+      :language="selectedLanguage"
+      :talking="isTalking"
+      @hear="explainGame"
+      @close="dismissIntro"
+    />
 
-        <ol class="intro-steps">
-          <li><span class="intro-num">1</span>{{ t('step1') }}</li>
-          <li><span class="intro-num">2</span>{{ t('step2') }}</li>
-          <li><span class="intro-num">3</span>{{ t('step3') }}</li>
-        </ol>
-
-        <!-- Spoken explanation. The written steps above are no use to a child
-             who cannot read yet, and tapping this is also the user gesture the
-             browser needs before any audio can play. -->
-        <button class="intro-hear" @click="explainGame" :disabled="isTalking">
-          <ion-icon :icon="volumeIcon" aria-hidden="true"></ion-icon>
-          {{ t('hearIt') }}
-        </button>
-
-        <button class="intro-go" @click="dismissIntro">{{ t('gotIt') }}</button>
-      </div>
-    </div>
-
-    <!-- Settings Modal -->
-    <ion-modal 
-      :is-open="showSettingsModal" 
-      @didDismiss="showSettingsModal = false" 
-      class="settings-modal"
-    >
-      <ion-header>
-        <ion-toolbar class="navy-bar">
-          <ion-title>{{ t('grownUps') }}</ion-title>
-          <ion-buttons slot="end">
-            <ion-button fill="clear" @click="showSettingsModal = false" aria-label="Close settings">
-              <ion-icon :icon="closeIcon" slot="icon-only" style="color: white;"></ion-icon>
-            </ion-button>
-          </ion-buttons>
-        </ion-toolbar>
-      </ion-header>
-      <ion-content class="ion-padding">
-        <div class="settings-list">
-          <!-- Difficulty Level -->
-          <div class="settings-group">
-            <div class="settings-group-header">
-              <ion-icon :icon="speedometerIcon" color="primary"></ion-icon>
-              <span>{{ t('level') }}</span>
-            </div>
-            <div class="settings-options">
-              <button 
-                v-for="level in levelOptions" 
-                :key="level.value" 
-                class="setting-option" 
-                :class="{ active: selectedLevel === level.value }"
-                @click="selectedLevel = level.value"
-              >
-                {{ level.label }}
-              </button>
-            </div>
-          </div>
-
-          <!-- Operator -->
-          <div class="settings-group">
-            <div class="settings-group-header">
-              <ion-icon :icon="calculatorIcon" color="secondary"></ion-icon>
-              <span>{{ t('operators') }}</span>
-            </div>
-            <div class="settings-options two">
-              <button 
-                v-for="op in operatorOptions" 
-                :key="op.value" 
-                class="setting-option" 
-                :class="{ active: selectedOperator === op.value }"
-                @click="selectedOperator = op.value"
-              >
-                {{ op.label }}
-              </button>
-            </div>
-          </div>
-
-          <!-- Language. Was a flag button on the game screen, where a child
-               could switch the whole game to a language they do not speak. -->
-          <div class="settings-group">
-            <div class="settings-group-header">
-              <ion-icon :icon="globeIcon" color="primary"></ion-icon>
-              <span>{{ t('language') }}</span>
-            </div>
-            <div class="settings-options two">
-              <button
-                v-for="(lang, code) in availableLanguages"
-                :key="code"
-                class="setting-option"
-                :class="{ active: selectedLanguage === code }"
-                :aria-pressed="selectedLanguage === code"
-                @click="changeLanguage(code)"
-              >
-                <span aria-hidden="true">{{ lang.flag }}</span> {{ lang.name }}
-              </button>
-            </div>
-          </div>
-
-          <!-- Robot view: lives in settings rather than the game screen, which
-               already carries six icon controls in one corner. -->
-          <div class="settings-group">
-            <div class="settings-group-header">
-              <ion-icon :icon="doneIcon" color="tertiary"></ion-icon>
-              <span>{{ t('robotView') }}</span>
-            </div>
-            <div class="settings-options">
-              <button
-                v-for="option in viewOptions"
-                :key="option.value"
-                class="setting-option"
-                :class="{ active: botView === option.value }"
-                :aria-pressed="botView === option.value"
-                @click="setBotView(option.value)"
-              >
-                {{ option.label }}
-              </button>
-            </div>
-          </div>
-
-          <div class="settings-group">
-            <div class="settings-group-header">
-              <ion-icon :icon="sunIcon" color="warning"></ion-icon>
-              <span>{{ t('dayNight') }}</span>
-            </div>
-            <div class="settings-options">
-              <button
-                v-for="option in dayOptions"
-                :key="option.value"
-                class="setting-option"
-                :class="{ active: dayMode === option.value }"
-                :aria-pressed="dayMode === option.value"
-                @click="setDayMode(option.value)"
-              >
-                {{ option.label }}
-              </button>
-            </div>
-          </div>
-
-          <div class="settings-group">
-            <div class="settings-group-header">
-              <ion-icon :icon="star" color="warning"></ion-icon>
-              <span>{{ t('robotColour') }}</span>
-            </div>
-            <div class="settings-options">
-              <button
-                v-for="colour in colourOptions"
-                :key="colour.value"
-                class="colour-swatch"
-                :class="{ active: botColour === colour.value }"
-                :style="{ background: colour.value }"
-                :aria-label="colour.label"
-                :aria-pressed="botColour === colour.value"
-                @click="setBotColour(colour.value)"
-              ></button>
-            </div>
-          </div>
-
-          <div class="settings-group">
-            <div class="settings-group-header">
-              <ion-icon :icon="volumeIcon" color="secondary"></ion-icon>
-              <span>{{ t('robotChat') }}</span>
-            </div>
-            <div class="settings-options">
-              <button
-                v-for="option in chatOptions"
-                :key="String(option.value)"
-                class="setting-option"
-                :class="{ active: autoChat === option.value }"
-                :aria-pressed="autoChat === option.value"
-                @click="setAutoChat(option.value)"
-              >
-                {{ option.label }}
-              </button>
-            </div>
-          </div>
-
-          <!-- Sound. Was a bare speaker icon on the game screen. -->
-          <div class="settings-group">
-            <div class="settings-group-header">
-              <ion-icon :icon="volumeIcon" color="secondary"></ion-icon>
-              <span>{{ t('sound') }}</span>
-            </div>
-            <div class="settings-options">
-              <button class="setting-option" :class="{ active: !isMuted }" :aria-pressed="!isMuted" @click="isMuted && handleToggleMute()">{{ t('soundOn') }}</button>
-              <button class="setting-option" :class="{ active: isMuted }" :aria-pressed="isMuted" @click="!isMuted && handleToggleMute()">{{ t('soundOff') }}</button>
-            </div>
-          </div>
-
-          <!-- Where the child's voice goes, in plain words. The app and the
-               web version differ, so each says its own truth. -->
-          <div class="settings-group">
-            <div class="settings-group-header">
-              <ion-icon :icon="lockIcon" color="success"></ion-icon>
-              <span>{{ t('privacy') }}</span>
-            </div>
-            <dl class="privacy-list">
-              <div><dt>{{ t('privacyVoice') }}</dt><dd :class="{ good: isNative }">{{ isNative ? t('privacyVoiceDevice') : t('privacyVoiceWeb') }}</dd></div>
-              <div><dt>{{ t('privacyProgress') }}</dt><dd class="good">{{ t('privacyProgressValue') }}</dd></div>
-              <div><dt>{{ t('privacyAds') }}</dt><dd class="good">{{ t('privacyNone') }}</dd></div>
-            </dl>
-            <!-- Plain pages, not part of the game: they open in its place and
-                 carry their own way back. Reachable only from behind the gate. -->
-            <div class="settings-options vertical parent-links">
-              <a class="setting-option wide" :href="publicPath + 'privacy.html'">{{ t('privacyForParents') }}</a>
-              <a class="setting-option wide" :href="publicPath + 'support.html'">{{ t('helpAndSupport') }}</a>
-            </div>
-          </div>
-
-          <div class="settings-group">
-            <button class="setting-option wide" @click="showIntro = true; showSettingsModal = false">
-              {{ t('howToPlay') }}
-            </button>
-          </div>
-
-          <!-- Wiping the record of every sum is a grown-up's decision. It used
-               to be a button in the child's own history panel. -->
-          <div class="settings-group" v-if="problemHistory.length > 0">
-            <button class="setting-option wide danger" @click="handleClearHistory">
-              {{ t('clearHistory') }} ({{ problemHistory.length }})
-            </button>
-          </div>
-
-          <!-- Practice Mode -->
-          <div class="settings-group">
-            <div class="settings-group-header">
-              <ion-icon :icon="targetIcon" color="tertiary"></ion-icon>
-              <span>{{ t('sessionMode') }}</span>
-            </div>
-            <div class="settings-options vertical">
-              <button 
-                v-for="mode in modeOptions" 
-                :key="mode.value" 
-                class="setting-option wide" 
-                :class="{ active: sessionMode === mode.value }"
-                @click="sessionMode = mode.value"
-              >
-                {{ mode.label }}
-              </button>
-            </div>
-          </div>
-        </div>
-      </ion-content>
-    </ion-modal>
+    <GrownUpsSheet
+      :open="showSettingsModal"
+      :language="selectedLanguage"
+      :languages="availableLanguages"
+      v-model:level="selectedLevel"
+      v-model:operator="selectedOperator"
+      v-model:mode="sessionMode"
+      :view="botView"
+      :dayMode="dayMode"
+      :colour="botColour"
+      :autoChat="autoChat"
+      :muted="isMuted"
+      :historyCount="problemHistory.length"
+      @update:language="changeLanguage"
+      @update:view="setBotView"
+      @update:dayMode="setDayMode"
+      @update:colour="setBotColour"
+      @update:autoChat="setAutoChat"
+      @toggle-mute="handleToggleMute"
+      @clear-history="handleClearHistory"
+      @help="showIntro = true; showSettingsModal = false"
+      @close="showSettingsModal = false"
+    />
     
     <ion-content :fullscreen="true" class="ion-padding" role="main">
       <!-- Action Buttons (when not in play mode) -->
@@ -306,39 +60,12 @@
       </div>
 
       <!-- Problem History Modal -->
-      <ion-modal :is-open="showHistoryModal" @didDismiss="showHistoryModal = false" role="dialog" aria-labelledby="history-modal-title">
-        <ion-header>
-          <ion-toolbar class="navy-bar">
-            <ion-title id="history-modal-title">{{ t('problemHistory') }}</ion-title>
-            <ion-button slot="end" fill="clear" @click="showHistoryModal = false" aria-label="Close history">
-              <ion-icon :icon="alertIcon" slot="icon-only" style="color: white;" aria-hidden="true"></ion-icon>
-            </ion-button>
-          </ion-toolbar>
-        </ion-header>
-        <ion-content class="ion-padding">
-          <div v-if="problemHistory.length === 0" class="no-history">
-            <p>{{ t('noHistory') }}</p>
-          </div>
-          <ion-list v-else>
-            <ion-item v-for="problem in problemHistory" :key="problem.id" :class="problem.isCorrect ? 'correct-item' : 'incorrect-item'">
-              <ion-label>
-                <h2 class="problem-equation">
-                  {{ problem.num1 }} {{ getOperatorSymbol(problem.operator) }} {{ problem.num2 }} = {{ problem.correctAnswer }}
-                </h2>
-                <p v-if="!problem.isCorrect" class="user-answer">
-                  {{ t('yourAnswer') }}: {{ problem.userAnswer || '?' }}
-                </p>
-                <p class="problem-time">{{ formatTimestamp(problem.timestamp) }}</p>
-              </ion-label>
-              <ion-icon 
-                slot="end" 
-                :icon="problem.isCorrect ? star : alertIcon" 
-                :color="problem.isCorrect ? 'success' : 'danger'"
-              ></ion-icon>
-            </ion-item>
-          </ion-list>
-        </ion-content>
-      </ion-modal>
+      <HistorySheet
+        :open="showHistoryModal"
+        :language="selectedLanguage"
+        :history="problemHistory"
+        @close="showHistoryModal = false"
+      />
 
       <!-- Speech glow. The robot talking is otherwise inaudible AND invisible
            with the volume down or the device muted, so the screen edges pulse
@@ -384,287 +111,119 @@
       <span><ion-icon :icon="micIcon" aria-hidden="true"></ion-icon>{{ t('howSay') }}</span>
     </button>
 
-    <!-- Transparent dock over the scene: a status pill and one round control.
-         No toolbar chrome - the 3D world runs edge to edge behind it. -->
-    <div class="dock" :class="{ 'play-mode': isPlayMode }">
-      <!-- Listening panel: a pre-reading child needs to know the microphone is
-           open without reading a word, so this leads with an animated mic and
-           level bars, with the transcript underneath only once there is one. -->
-      <transition name="panel">
-        <div class="listen-panel" v-if="isListening" role="status" aria-live="polite">
-          <span class="listen-bars" aria-hidden="true">
-            <i></i><i></i><i></i><i></i><i></i>
-          </span>
-          <span class="listen-text">{{ t('yourTurn') }}</span>
-          <span class="listen-heard" v-if="heardText">{{ heardText }}</span>
-        </div>
-      </transition>
+    <GameDock
+      :language="selectedLanguage"
+      :botState="botState"
+      :playing="isPlayMode"
+      :listening="isListening"
+      :talking="isTalking"
+      :computing="isComputing"
+      :firstRun="firstRun"
+      :padOpen="padOpen"
+      :heardText="heardText"
+      :reward="reward"
+      :sums="operatorChoices.find((choice) => choice.value === selectedOperator)"
+      @play="askQuestion"
+      @done="finishAnswering"
+      @pad="openPad"
+      @choose-sums="showSumPicker = true"
+    />
 
-      <!-- Correct answer: the star and the equation carry it, not the words. -->
-      <transition name="panel">
-        <div class="reward-panel" v-if="reward" role="status" aria-live="polite">
-          <ion-icon :icon="star" class="reward-star" aria-hidden="true"></ion-icon>
-          <span class="reward-points">+{{ reward.points }}</span>
-          <span class="reward-equation">{{ reward.equation }}</span>
-          <span class="reward-streak" v-if="reward.streak >= 3">{{ t('streak') }} {{ reward.streak }}</span>
-        </div>
-      </transition>
+    <NumberPad
+      :open="padOpen"
+      :language="selectedLanguage"
+      :equation="padEquation"
+      @key="triggerHaptic('light')"
+      @submit="submitPad"
+      @close="closePad"
+    />
 
-      <!-- Hidden while listening: the "Your turn!" panel already says it, and
-           four things in one row pushed the number pad button off a phone. -->
-      <div class="status-pill" :class="botState" v-if="showStatus" role="status" aria-live="polite">
-        <ion-icon :icon="statusIcon" aria-hidden="true"></ion-icon>
-        <span>{{ statusText }}</span>
-      </div>
+    <MicrophoneCards
+      :language="selectedLanguage"
+      :languageName="availableLanguages[selectedLanguage]?.name"
+      :noMic="showNoMic"
+      :noMicBody="noMicBody"
+      :refused="micRefused"
+      :asking="micAsk"
+      :learning="learningLanguage"
+      @use-pad="playWithPad"
+      @retry="retryMicrophone"
+      @close="showNoMic = false"
+      @answer="answerMicAsk"
+    />
 
-      <!-- What the child is practising, and theirs to change. It used to be
-           four bare symbols inside Settings. Hidden on a first visit, where
-           the three step pictures have this place. -->
-      <button
-        class="sum-chip"
-        v-if="isPlayMode && !firstRun && !isTalking"
-        @click="showSumPicker = true"
-        :aria-label="t('changeSums')"
-      >
-        <b aria-hidden="true">{{ operatorChoices.find((c) => c.value === selectedOperator)?.symbol }}</b>
-        <span>{{ operatorChoices.find((c) => c.value === selectedOperator)?.word }}</span>
-        <ion-icon :icon="chevronIcon" aria-hidden="true"></ion-icon>
-      </button>
+    <SumPicker
+      :open="showSumPicker"
+      :language="selectedLanguage"
+      :choices="operatorChoices"
+      :selected="selectedOperator"
+      @choose="chooseOperator"
+      @close="showSumPicker = false"
+    />
 
-      <!-- Centred, large and named. It was a bare icon at the bottom right. -->
-      <div class="play-wrap" v-if="isPlayMode">
-        <button
-          class="round-btn play"
-          @click="askQuestion"
-          :disabled="isComputing"
-          :aria-label="t('play')"
-        >
-          <ion-spinner name="crescent" v-if="isComputing"></ion-spinner>
-          <ion-icon :icon="playIcon" v-else aria-hidden="true"></ion-icon>
-        </button>
-        <span class="play-label" aria-hidden="true">{{ t('play') }}</span>
-      </div>
-
-      <!-- Lets the child end their turn themselves instead of waiting for the
-           recogniser to time out. Only shown while the mic is actually open. -->
-      <button
-        v-else-if="isListening"
-        class="round-btn done"
-        @click="finishAnswering"
-        :aria-label="t('stop')"
-      >
-        <ion-icon :icon="doneIcon" aria-hidden="true"></ion-icon>
-      </button>
-
-      <!-- Always one tap away while it is the child's turn: a noisy room, a
-           shy child, or a recogniser that keeps mishearing "eight". -->
-      <button
-        v-if="isListening && !padOpen"
-        class="round-btn pad"
-        @click="openPad"
-        :aria-label="t('numberPad')"
-      >123</button>
-
-    </div>
-
-    <!-- Number pad. The game used to be unplayable without a microphone; this
-         is the other way to answer, and it scores exactly like a spoken one. -->
-    <transition name="sheet">
-      <div class="pad-sheet" v-if="padOpen" role="dialog" :aria-label="t('numberPad')">
-        <button class="sheet-close" @click="closePad" :aria-label="t('closeMessage')">
-          <ion-icon :icon="closeIcon" aria-hidden="true"></ion-icon>
-        </button>
-        <p class="pad-sum" aria-live="polite">
-          <span>{{ padEquation }} =</span>
-          <b :class="{ empty: !padValue }">{{ padValue || '?' }}</b>
-        </p>
-        <div class="pad-keys">
-          <button v-for="n in [1, 2, 3, 4, 5, 6, 7, 8, 9]" :key="n" class="pad-key" @click="padPress(n)">{{ n }}</button>
-          <button class="pad-key del" @click="padDelete" :aria-label="t('padDelete')">
-            <ion-icon :icon="backspaceIcon" aria-hidden="true"></ion-icon>
-          </button>
-          <button class="pad-key" @click="padPress(0)">0</button>
-          <button class="pad-key ok" @click="submitPad" :disabled="!padValue" :aria-label="t('padOk')">
-            <ion-icon :icon="checkIcon" aria-hidden="true"></ion-icon>
-          </button>
-        </div>
-      </div>
-    </transition>
-
-    <!-- No microphone, or (in the apps) no speech model for the language yet.
-         Never a dead end: the first button always leads to a playable game. -->
-    <transition name="sheet">
-      <div class="nomic-sheet" v-if="showNoMic" role="dialog" aria-labelledby="nomic-title">
-        <button class="sheet-close" @click="showNoMic = false" :aria-label="t('closeMessage')">
-          <ion-icon :icon="closeIcon" aria-hidden="true"></ion-icon>
-        </button>
-        <h2 id="nomic-title">{{ t('cantHearTitle') }}</h2>
-        <p>{{ noMicBody }}</p>
-        <button class="sheet-btn primary" @click="playWithPad">
-          <span class="sheet-123" aria-hidden="true">123</span>{{ t('useNumberPad') }}
-        </button>
-        <button class="sheet-btn" @click="retryMicrophone">
-          <ion-icon :icon="micIcon" aria-hidden="true"></ion-icon>{{ micRefused ? t('openSettings') : t('tryMicrophone') }}
-        </button>
-      </div>
-    </transition>
-
-    <!-- Before the phone asks for the microphone. The system's question is
-         written for adults and appears on a child's first Play; the robot asks
-         for a grown-up first, so the answer is not a child's guess. -->
-    <transition name="sheet">
-      <div class="nomic-sheet" v-if="micAsk" role="dialog" aria-labelledby="micask-title">
-        <h2 id="micask-title">{{ t('micAskTitle') }}</h2>
-        <p>{{ t('micAskBody') }}</p>
-        <button class="sheet-btn primary" @click="answerMicAsk(true)">
-          <ion-icon :icon="micIcon" aria-hidden="true"></ion-icon>{{ t('micAskOk') }}
-        </button>
-        <button class="sheet-btn" @click="answerMicAsk(false)">
-          <span class="sheet-123" aria-hidden="true">123</span>{{ t('useNumberPad') }}
-        </button>
-      </div>
-    </transition>
-
-    <!-- The phone is fetching the speech model for this language. It happens
-         once per language and can take a little while. -->
-    <transition name="sheet">
-      <div class="nomic-sheet" v-if="learningLanguage" role="status" aria-live="polite">
-        <h2>{{ t('learningTitle', { language: availableLanguages[selectedLanguage]?.name }) }}</h2>
-        <p>{{ t('learningBody') }}</p>
-        <div class="learn-bar" aria-hidden="true"><i></i></div>
-      </div>
-    </transition>
-
-    <!-- The child's choice of sum: four big tiles, a symbol and a word each. -->
-    <transition name="sheet">
-      <div class="pick-sheet" v-if="showSumPicker" role="dialog" aria-labelledby="pick-title">
-        <button class="sheet-close" @click="showSumPicker = false" :aria-label="t('closeMessage')">
-          <ion-icon :icon="closeIcon" aria-hidden="true"></ion-icon>
-        </button>
-        <h2 id="pick-title">{{ t('chooseSums') }}</h2>
-        <div class="pick-grid">
-          <button
-            v-for="choice in operatorChoices"
-            :key="choice.value"
-            class="pick-tile"
-            :class="{ active: selectedOperator === choice.value }"
-            :aria-pressed="selectedOperator === choice.value"
-            @click="chooseOperator(choice.value)"
-          >
-            <b aria-hidden="true">{{ choice.symbol }}</b>
-            <span>{{ choice.word }}</span>
-          </button>
-        </div>
-      </div>
-    </transition>
-
-    <!-- Parental gate. Three numbers written as words: easy for an adult,
-         not something a child who is still learning to read taps through. -->
-    <transition name="sheet">
-      <div class="gate-sheet" v-if="gateOpen" role="dialog" aria-labelledby="gate-title">
-        <button class="sheet-close" @click="closeGate" :aria-label="t('closeMessage')">
-          <ion-icon :icon="closeIcon" aria-hidden="true"></ion-icon>
-        </button>
-        <h2 id="gate-title">{{ t('grownUpsOnly') }}</h2>
-        <p>{{ gateMissed ? t('gateWrong') : t('gatePrompt') }}</p>
-        <p class="gate-words" aria-live="polite">{{ gateWords }}</p>
-        <p class="gate-dots" aria-hidden="true">
-          <i v-for="n in 3" :key="n" :class="{ on: gateEntry.length >= n }"></i>
-        </p>
-        <div class="pad-keys">
-          <button v-for="n in [1, 2, 3, 4, 5, 6, 7, 8, 9]" :key="n" class="pad-key" @click="gatePress(n)">{{ n }}</button>
-          <span></span>
-          <button class="pad-key" @click="gatePress(0)">0</button>
-          <span></span>
-        </div>
-      </div>
-    </transition>
+    <ParentalGate
+      :open="gateOpen"
+      :language="selectedLanguage"
+      @pass="onGatePassed"
+      @miss="triggerHaptic('error')"
+      @close="gateOpen = false"
+    />
   </ion-page>
 </template>
 <script>
-import {
-  IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
-  IonContent,
-  IonLabel,
-  IonIcon,
-  toastController,
-  IonItem,
-  IonButton,
-  IonButtons,
-  IonSpinner,
-  IonModal,
-  IonList
-} from "@ionic/vue";
+import { IonPage, IonContent, IonIcon, IonButton, toastController } from "@ionic/vue";
+import { play, volumeHigh, mic, refresh, timeOutline } from "ionicons/icons";
 import AnimatedBot from "@/components/AnimatedBot.vue";
-import { star, play, speedometer, calculator, mic, volumeHigh, sync, alertCircle, refresh, volumeMute, timeOutline, trashOutline, globe, fitness, settingsOutline, close, stopCircle, helpCircle, sunny, moon, backspaceOutline, checkmark, lockClosed, chevronUp } from "ionicons/icons";
+import GameHud from "@/components/game/GameHud.vue";
+import GameDock from "@/components/game/GameDock.vue";
+import IntroCard from "@/components/game/IntroCard.vue";
+import GrownUpsSheet from "@/components/game/GrownUpsSheet.vue";
+import HistorySheet from "@/components/game/HistorySheet.vue";
+import NumberPad from "@/components/game/NumberPad.vue";
+import MicrophoneCards from "@/components/game/MicrophoneCards.vue";
+import SumPicker from "@/components/game/SumPicker.vue";
+import ParentalGate from "@/components/game/ParentalGate.vue";
 import { OPERATORS, LEVELS, SCORING } from "@/config/gameConfig";
-import { getRandomInt } from "@/utils/helpers";
 import { checkSpokenAnswer } from "@/utils/numberWords";
 import { createSpeech, isNativeApp, openDeviceSettings } from "@/game/speech";
 import { nextQuestion, answerTo } from "@/game/questions";
+import { BODY_COLOURS } from "@/game/options";
 import { LANGUAGES, SPEECH_VOICES, getPreferredLanguage, setLanguage, t, getRandomPhrase } from "@/config/i18n";
-import { addToHistory, getHistory, clearHistory as clearHistoryService, formatTimestamp, getOperatorSymbol } from "@/services/historyService";
+import { addToHistory, getHistory, clearHistory as clearHistoryService, getOperatorSymbol } from "@/services/historyService";
 import { preloadSounds, playCorrectSound, playIncorrectSound, toggleMute, startMusic, stopMusic, duckMusic } from "@/services/soundService";
 import { celebrateConfetti, celebrateStreak, showStar } from "@/utils/confetti";
 
-// Kept beside the component so the saved-value check and the swatch list
-// cannot drift apart.
-const BODY_COLOURS = [
-  '#ffc62e', '#2fb4ff', '#3fe07f', '#2fe8e0',
-  '#ff6fb5', '#b47cff', '#ff8a3d', '#ff5f57',
-  '#8c8e92'
-];
-
+/**
+ * The game screen. It owns the turn: ask a sum, hear or read the answer, mark
+ * it, reward it. What the screen is made of lives in components/game, the
+ * robot's voice and ears in game/speech.js, and the choice of sum in
+ * game/questions.js.
+ */
 export default {
   name: "Math",
   components: {
     AnimatedBot,
-    IonHeader,
-    IonToolbar,
-    IonTitle,
-    IonContent,
+    GameHud,
+    GameDock,
+    IntroCard,
+    GrownUpsSheet,
+    HistorySheet,
+    NumberPad,
+    MicrophoneCards,
+    SumPicker,
+    ParentalGate,
     IonPage,
-    IonLabel,
+    IonContent,
     IonIcon,
-    IonItem,
-    IonButton,
-    IonButtons,
-    IonSpinner,
-    IonModal,
-    IonList
+    IonButton
   },
   setup() {
     return {
-      star,
-      starIcon: star,
       playIcon: play,
-      doneIcon: stopCircle,
-      backspaceIcon: backspaceOutline,
-      lockIcon: lockClosed,
-      chevronIcon: chevronUp,
-      isNative: isNativeApp,
-      checkIcon: checkmark,
-
-      helpIcon: helpCircle,
-      sunIcon: sunny,
-      moonIcon: moon,
-      speedometerIcon: speedometer,
-      calculatorIcon: calculator,
-      micIcon: mic,
       volumeIcon: volumeHigh,
-      syncIcon: sync,
-      alertIcon: alertCircle,
+      micIcon: mic,
       refreshIcon: refresh,
-      muteIcon: volumeMute,
-      historyIcon: timeOutline,
-      trashIcon: trashOutline,
-      globeIcon: globe,
-      targetIcon: fitness,
-      settingsIcon: settingsOutline,
-      closeIcon: close
+      historyIcon: timeOutline
     };
   },
   data() {
@@ -759,12 +318,8 @@ export default {
       // Parental gate in front of Grown-ups.
       gateThen: 'grown-ups',
       gateOpen: false,
-      gateCode: '',
-      gateEntry: '',
-      gateMissed: false,
       // Number pad and the no-microphone card.
       padOpen: false,
-      padValue: '',
       // The child chose to tap answers. Not saved: every visit gets a fresh
       // chance to use the microphone.
       padMode: false,
@@ -785,28 +340,6 @@ export default {
     };
   },
   watch: {
-    // aria-modal only tells assistive tech that the rest of the page is inert;
-    // it does not make it so. Without this, keyboard and screen-reader users
-    // could tab straight out of the card and onto the controls behind it.
-    showIntro: {
-      immediate: true,
-      handler(open) {
-        if (open) {
-          this.introReturnFocus = document.activeElement;
-          this.$nextTick(() => {
-            const first = this.$refs.introCard?.querySelector('button');
-            if (first) first.focus();
-            document.addEventListener('keydown', this.onIntroKeydown);
-          });
-        } else {
-          document.removeEventListener('keydown', this.onIntroKeydown);
-          if (this.introReturnFocus && this.introReturnFocus.focus) {
-            this.introReturnFocus.focus();
-          }
-          this.introReturnFocus = null;
-        }
-      }
-    },
     // Music through the speaker is picked straight back up by an open
     // microphone, so pull it down whenever the robot is talking or listening
     // and bring it back once the turn is over.
@@ -833,11 +366,6 @@ export default {
     }
   },
   computed: {
-    /** The gate's numbers, as words in the chosen language: "seven, two, nine". */
-    gateWords() {
-      const words = this.t('digitWords').split(',');
-      return this.gateCode.split('').map((d) => words[Number(d)]).join(', ');
-    },
     /** The four kinds of sum, each as a symbol and a word in the chosen language. */
     operatorChoices() {
       return [
@@ -871,16 +399,6 @@ export default {
     bubbleText() {
       if (this.showSum && this.text === this.currentQuestion) return '';
       return this.speech_phrases;
-    },
-    /**
-     * One thing at a time along the bottom. "Ready to play!" beside a button
-     * that says Play said it twice, and the listening panel already says whose
-     * turn it is.
-     */
-    showStatus() {
-      if (!this.statusText || this.isListening || this.padOpen) return false;
-      if (this.isPlayMode && this.statusText === this.t('ready')) return false;
-      return true;
     },
     /** In the apps, a refused microphone can only be turned back on in Settings. */
     micRefused() {
@@ -951,65 +469,9 @@ export default {
       const displayStars = Math.min(this.stars, 100);
       return this.stars >= 100 ? '100 ⭐' : displayStars.toString();
     },
-    levelOptions() {
-      return [
-        { value: 'beginner', label: this.t('easy') },
-        { value: 'medium', label: this.t('medium') },
-        { value: 'expert', label: this.t('hard') },
-        { value: 'auto', label: '🎯 ' + this.t('auto') },
-      ];
-    },
-    operatorOptions() {
-      return [
-        { value: 'times', label: '× ' + this.t('times') },
-        { value: 'plus', label: '+ ' + this.t('plus') },
-        { value: 'minus', label: '− ' + this.t('minus') },
-        { value: 'divide', label: '÷ ' + this.t('dividedBy') },
-      ];
-    },
-    modeOptions() {
-      return [
-        { value: 'random', label: this.t('randomMode') },
-        { value: 'weak_operators', label: this.t('practiceWeakOperators') },
-        { value: 'recent_failures', label: this.t('practiceRecentFailures') },
-      ];
-    },
     // 0-1, used as the strength of the edge glow while the robot talks.
     speakGlow() {
       return (0.22 + Math.min(this.audioLevel, 1) * 0.6).toFixed(3);
-    },
-    dayOptions() {
-      return [
-        { value: 'auto', label: this.t('viewAuto') },
-        { value: 'day', label: this.t('optionDay') },
-        { value: 'night', label: this.t('optionNight') },
-      ];
-    },
-    colourOptions() {
-      return [
-        { value: BODY_COLOURS[0], label: 'Yellow' },
-        { value: BODY_COLOURS[1], label: 'Blue' },
-        { value: BODY_COLOURS[2], label: 'Green' },
-        { value: BODY_COLOURS[3], label: 'Cyan' },
-        { value: BODY_COLOURS[4], label: 'Pink' },
-        { value: BODY_COLOURS[5], label: 'Purple' },
-        { value: BODY_COLOURS[6], label: 'Orange' },
-        { value: BODY_COLOURS[7], label: 'Red' },
-        { value: BODY_COLOURS[8], label: 'Silver' },
-      ];
-    },
-    chatOptions() {
-      return [
-        { value: true, label: this.t('optionOn') },
-        { value: false, label: this.t('optionOff') },
-      ];
-    },
-    viewOptions() {
-      return [
-        { value: 'auto', label: this.t('viewAuto') },
-        { value: 'face', label: this.t('viewFace') },
-        { value: 'full', label: this.t('viewFull') },
-      ];
     },
     statusColor() {
       switch (this.botState) {
@@ -1027,37 +489,6 @@ export default {
         default: return 'medium';
       }
     },
-    statusText() {
-      switch (this.botState) {
-        case 'speaking': return this.t('speaking');
-        case 'listening': return this.t('listening');
-        case 'computing': return this.t('thinking');
-        case 'broken': return 'Error';
-        case 'laughing': return 'Haha!';
-        case 'happy': return this.t('correct') + '! 🎉';
-        case 'sad': return '...';
-        case 'excited': return '🎉';
-        case 'proud': return '⭐';
-        case 'surprised': return '!';
-        case 'confused': return '?';
-        default: return this.t('ready');
-      }
-    },
-    statusIcon() {
-      switch (this.botState) {
-        case 'speaking': return this.volumeIcon;
-        case 'listening': return this.micIcon;
-        case 'computing': return this.syncIcon;
-        case 'broken': return this.alertIcon;
-        case 'happy': return this.starIcon;
-        case 'sad': return this.alertIcon;
-        case 'excited': return this.starIcon;
-        case 'proud': return this.starIcon;
-        case 'surprised': return this.starIcon;
-        case 'confused': return this.syncIcon;
-        default: return this.syncIcon;
-      }
-    }
   },
   methods: {
     /**
@@ -1123,22 +554,8 @@ export default {
       }
     },
     keyDownHandler(e) {
-      if (this.showSumPicker && e.key === 'Escape') {
-        this.showSumPicker = false;
-        return;
-      }
-      if (this.gateOpen) {
-        if (/^[0-9]$/.test(e.key)) this.gatePress(Number(e.key));
-        else if (e.key === 'Escape') this.closeGate();
-        return;
-      }
-      if (this.padOpen) {
-        if (/^[0-9]$/.test(e.key)) this.padPress(Number(e.key));
-        else if (e.key === 'Backspace') this.padDelete();
-        else if (e.key === 'Enter') this.submitPad();
-        else if (e.key === 'Escape') this.closePad();
-        return;
-      }
+      // The sheets handle their own keys while they are open.
+      if (this.padOpen || this.gateOpen || this.showSumPicker) return;
       let value = e.key * 1;
       if (!isNaN(parseFloat(value)) && isFinite(value)){
         this.typeText.push(value);
@@ -1313,16 +730,6 @@ export default {
       this.selectedOperator = value;
       this.showSumPicker = false;
     },
-    /** Three different digits, so the words never repeat. */
-    newGateCode() {
-      const digits = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
-      let code = '';
-      for (let i = 0; i < 3; i++) {
-        code += digits.splice(getRandomInt(0, digits.length - 1), 1)[0];
-      }
-      this.gateCode = code;
-      this.gateEntry = '';
-    },
     /** Shows the "ask a grown-up" card and waits for one of its two buttons. */
     askForGrownUp() {
       this.isComputing = false;
@@ -1342,29 +749,18 @@ export default {
      */
     openGate(then) {
       this.gateThen = then === 'device-settings' ? 'device-settings' : 'grown-ups';
-      this.gateMissed = false;
-      this.newGateCode();
       this.gateOpen = true;
     },
-    closeGate() {
+    onGatePassed() {
       this.gateOpen = false;
-      this.gateEntry = '';
+      // Leaving the app for the phone's Settings is a grown-up's step too.
+      if (this.gateThen === 'device-settings') openDeviceSettings();
+      else this.showSettingsModal = true;
     },
-    gatePress(digit) {
-      if (this.gateEntry.length >= 3) return;
-      this.gateEntry += String(digit);
-      if (this.gateEntry.length < 3) return;
-      if (this.gateEntry === this.gateCode) {
-        this.closeGate();
-        // Leaving the app for the phone's Settings is a grown-up's step too.
-        if (this.gateThen === 'device-settings') openDeviceSettings();
-        else this.showSettingsModal = true;
-        return;
-      }
-      // Wrong: new numbers, so the way in cannot be found by trying.
-      this.gateMissed = true;
-      this.triggerHaptic('error');
-      setTimeout(() => this.newGateCode(), 350);
+    /** A tapped answer goes down the same path as a spoken one: same stars. */
+    async submitPad(answer) {
+      this.padOpen = false;
+      await this.validateSpeechRecording(answer, true);
     },
     /**
      * Open the number pad for the current sum. If the microphone is open it is
@@ -1372,7 +768,6 @@ export default {
      * scored, because the child has chosen to tap instead.
      */
     openPad() {
-      this.padValue = '';
       this.padOpen = true;
       this.showNoMic = false;
       if (this.isListening) this.stopListening();
@@ -1383,29 +778,10 @@ export default {
     /** Close without answering. Like Done: the turn ends and is not scored. */
     closePad() {
       this.padOpen = false;
-      this.padValue = '';
       if (this.answerFinalised) return;
       this.answerFinalised = true;
       this.isQuery = false;
       this.isPlayMode = true;
-    },
-    padPress(digit) {
-      // The largest answer the game can ask for is 2000.
-      if (this.padValue.length >= 4) return;
-      if (this.padValue === '0') this.padValue = '';
-      this.padValue += String(digit);
-      this.triggerHaptic('light');
-    },
-    padDelete() {
-      this.padValue = this.padValue.slice(0, -1);
-    },
-    /** A tapped answer goes down the same path as a spoken one: same stars. */
-    async submitPad() {
-      if (!this.padValue) return;
-      const answer = this.padValue;
-      this.padOpen = false;
-      this.padValue = '';
-      await this.validateSpeechRecording(answer, true);
     },
     /** "Play with the number pad" on the no-microphone card. */
     playWithPad() {
@@ -1465,10 +841,6 @@ export default {
         this.openPad();
       }
     },
-    /**
-     * Persist the robot camera framing. localStorage is written directly here
-     * to match how every other preference in this view is stored.
-     */
     /**
      * Celebration panel for a correct answer. Replaces a plain text toast with
      * something a child who cannot read fluently can still understand: a big
@@ -1613,35 +985,6 @@ export default {
       await this.speak();
     },
 
-    /**
-     * Escape closes the card; Tab cycles within it.
-     */
-    onIntroKeydown(e) {
-      if (!this.showIntro) return;
-
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        this.dismissIntro();
-        return;
-      }
-
-      if (e.key !== 'Tab') return;
-
-      const focusable = this.$refs.introCard?.querySelectorAll('button, [href], [tabindex]:not([tabindex="-1"])');
-      if (!focusable || !focusable.length) return;
-
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault();
-        last.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
-        first.focus();
-      }
-    },
-
     dismissIntro() {
       this.showIntro = false;
       try {
@@ -1763,10 +1106,6 @@ export default {
      * Get operator symbol for display
      */
     getOperatorSymbol,
-    /**
-     * Format timestamp for display
-     */
-    formatTimestamp,
     /**
      * Trigger haptic feedback if available
      */
@@ -2095,7 +1434,6 @@ export default {
   },
   unmounted() {
     stopMusic();
-    document.removeEventListener('keydown', this.onIntroKeydown);
     this.stopIdleChat();
     clearTimeout(this.bubbleTimer);
     clearTimeout(this.rewardTimer);
@@ -2118,462 +1456,6 @@ export default {
 </script>
 
 <style scoped>
-/* Settings Modal Styles */
-ion-modal.settings-modal {
-  --height: 60%;
-  --min-height: 400px;
-  --border-radius: 16px 16px 0 0;
-  align-items: flex-end;
-}
-
-.settings-modal ion-content {
-  --background: #1a1a2e;
-}
-
-.settings-list {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.settings-group {
-  background: #16213e;
-  border-radius: 12px;
-  padding: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-}
-
-.settings-group-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 12px;
-  font-weight: 600;
-  font-size: 15px;
-  color: #e2e8f0;
-}
-
-.settings-group-header ion-icon {
-  font-size: 20px;
-}
-
-.settings-options {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.setting-option.danger {
-  color: #ff9c92;
-  border-color: rgba(255, 156, 146, 0.45);
-  background: transparent;
-}
-.settings-options.two {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-}
-/* One navy look. The sheet used to open under a default light-blue bar. */
-ion-toolbar.navy-bar {
-  --background: #101b3d;
-  --color: #ffffff;
-  --border-color: rgba(255, 255, 255, 0.12);
-}
-.parent-links {
-  margin-top: 14px;
-}
-.parent-links a {
-  display: block;
-  text-decoration: none;
-}
-.privacy-list {
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.privacy-list div {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 14px;
-}
-.privacy-list div + div {
-  padding-top: 10px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-.privacy-list dt {
-  color: #e2e8f0;
-  font-size: 15px;
-  font-weight: 600;
-  flex: none;
-  max-width: 48%;
-}
-.privacy-list dd {
-  margin: 0;
-  color: #cbd5e0;
-  font-size: 14px;
-  text-align: right;
-}
-.privacy-list dd.good {
-  color: #6ee7a0;
-  font-weight: 600;
-}
-
-/* Parental gate ------------------------------------------------------------- */
-.gate-sheet {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 40;
-  margin: 0 auto;
-  max-width: 460px;
-  padding: 18px 18px calc(env(safe-area-inset-bottom, 0px) + 18px);
-  border-radius: 26px 26px 0 0;
-  background: linear-gradient(160deg, #1d2a4d, #141d36);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-bottom: none;
-  box-shadow: 0 -18px 50px rgba(0, 0, 0, 0.45);
-  color: #ffffff;
-  text-align: center;
-}
-.gate-sheet h2 {
-  margin: 6px 44px 6px;
-  font-size: 22px;
-  font-weight: 800;
-}
-.gate-sheet p {
-  margin: 0;
-  font-size: 16px;
-  color: rgba(255, 255, 255, 0.78);
-}
-.gate-sheet .gate-words {
-  margin: 6px 0 10px;
-  font-size: 24px;
-  font-weight: 800;
-  color: #ffc62e;
-}
-.gate-dots {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  padding-bottom: 14px;
-}
-.gate-dots i {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.5);
-}
-.gate-dots i.on {
-  background: #ffffff;
-  border-color: #ffffff;
-}
-
-.settings-options.vertical {
-  flex-direction: column;
-}
-
-.setting-option {
-  flex: 1;
-  min-width: 60px;
-  /* Narrow side padding and no wrapping: "Medium" used to break as "Medi/um"
-     in a four-across row on a phone. */
-  padding: 12px 6px;
-  white-space: nowrap;
-  border: 2px solid #2d3748;
-  border-radius: 10px;
-  background: #0f3460;
-  font-size: 15px;
-  font-weight: 500;
-  color: #cbd5e0;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  text-align: center;
-}
-
-.setting-option.wide {
-  flex: none;
-  width: 100%;
-  text-align: left;
-}
-
-.setting-option:hover {
-  border-color: #4299e1;
-  background: #1a4a7a;
-}
-
-.setting-option.active {
-  border-color: #4299e1;
-  background: #3182ce;
-  color: white;
-}
-
-/* ---------------------------------------------------------------------------
-   Immersive chrome. There is no toolbar: the robot's world runs edge to edge
-   and the controls float over it as glass. Everything here respects the safe
-   area, because a full-bleed layout puts controls under the notch otherwise.
-   --------------------------------------------------------------------------- */
-
-.hud {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 20;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: calc(env(safe-area-inset-top, 0px) + 10px) 12px 10px;
-  pointer-events: none;
-}
-
-.hud > *,
-.hud-left > *,
-.hud-right > * {
-  pointer-events: auto;
-}
-
-.hud-right,
-.hud-left {
-  display: flex;
-  align-items: center;
-  flex: 0 0 auto;
-  gap: 8px;
-}
-
-.hud-btn.help {
-  border-color: rgba(255, 215, 0, 0.45);
-  color: #ffd700;
-}
-
-.hud-btn.sky {
-  border-color: rgba(160, 200, 255, 0.5);
-  color: #cfe4ff;
-}
-
-/* 48px, comfortably above the 44px minimum. The old icon buttons were 28px. */
-.hud-btn {
-  width: 44px;
-  height: 44px;
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  border-radius: 50%;
-  background: rgba(16, 24, 40, 0.42);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  color: #ffffff;
-  font-size: 22px;
-  cursor: pointer;
-  transition: transform 0.18s ease, background 0.18s ease;
-}
-
-.hud-btn:hover {
-  background: rgba(16, 24, 40, 0.6);
-}
-
-.hud-btn:active {
-  transform: scale(0.94);
-}
-
-.hud-btn:focus-visible,
-.hud-stars:focus-visible,
-.round-btn:focus-visible {
-  outline: 3px solid #ffd700;
-  outline-offset: 3px;
-}
-
-.hud-flag {
-  font-size: 22px;
-  line-height: 1;
-}
-
-.hud-stars {
-  display: flex;
-  align-items: center;
-  flex: 0 0 auto;
-  gap: 5px;
-  height: 44px;
-  padding: 0 12px;
-  border-radius: 22px;
-  border: 1px solid rgba(255, 215, 0, 0.45);
-  background: rgba(16, 24, 40, 0.42);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  color: #ffd700;
-  font-size: 18px;
-  font-weight: 700;
-  text-decoration: none;
-}
-
-/* Dock -------------------------------------------------------------------- */
-
-.dock {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 20;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
-  /* One row: status and control side by side, so they occupy a single band at
-     the bottom and leave the robot as much of the screen as possible. */
-  gap: 12px;
-  padding: 8px 16px calc(env(safe-area-inset-bottom, 0px) + 12px);
-  pointer-events: none;
-  background: linear-gradient(to top, rgba(10, 14, 26, 0.62), transparent);
-}
-
-.dock > * {
-  pointer-events: auto;
-}
-
-/* One big round control instead of a full-width rectangle, which read as a
-   form submit rather than a game. 84px is a generous target for a child. */
-.round-btn {
-  width: 64px;
-  height: 64px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  border-radius: 50%;
-  color: #ffffff;
-  font-size: 29px;
-  cursor: pointer;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.38);
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
-}
-
-.round-btn:active {
-  transform: scale(0.93);
-}
-
-.round-btn[disabled] {
-  opacity: 0.6;
-  cursor: default;
-}
-
-.round-btn.play {
-  width: 92px;
-  height: 92px;
-  font-size: 42px;
-  border: 4px solid #ffffff;
-  background: linear-gradient(145deg, #2a74ea, #1b57bc);
-}
-.round-btn.play ion-icon {
-  /* The triangle's visual centre sits left of its box. */
-  margin-left: 5px;
-}
-.play-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-}
-.play-label {
-  color: #ffffff;
-  font-size: 20px;
-  font-weight: 800;
-  line-height: 1;
-  text-shadow: 0 2px 6px rgba(10, 14, 26, 0.7);
-}
-/* With Play on screen the dock stacks: a reward or status above, Play below. */
-.dock.play-mode {
-  flex-direction: column;
-  gap: 10px;
-}
-
-/* The child's choice of sum ------------------------------------------------- */
-.sum-chip {
-  min-height: 44px;
-  padding: 6px 14px 6px 12px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(16, 27, 61, 0.86);
-  color: #ffffff;
-  font-size: 17px;
-  font-weight: 800;
-  cursor: pointer;
-}
-.sum-chip b {
-  color: #ffc62e;
-  font-size: 24px;
-  line-height: 1;
-}
-.sum-chip span::first-letter,
-.pick-tile span::first-letter {
-  text-transform: uppercase;
-}
-.sum-chip ion-icon {
-  font-size: 16px;
-  color: rgba(255, 255, 255, 0.7);
-}
-.pick-sheet {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 30;
-  margin: 0 auto;
-  max-width: 460px;
-  padding: 18px 18px calc(env(safe-area-inset-bottom, 0px) + 18px);
-  border-radius: 26px 26px 0 0;
-  background: linear-gradient(160deg, #1d2a4d, #141d36);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-bottom: none;
-  box-shadow: 0 -18px 50px rgba(0, 0, 0, 0.45);
-  color: #ffffff;
-  text-align: center;
-}
-.pick-sheet h2 {
-  margin: 6px 44px 14px;
-  font-size: 22px;
-  font-weight: 800;
-}
-.pick-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-.pick-tile {
-  min-height: 104px;
-  padding: 10px 6px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  border: 3px solid transparent;
-  border-radius: 20px;
-  background: #26355f;
-  color: #ffffff;
-  font-size: 18px;
-  font-weight: 800;
-  cursor: pointer;
-}
-.pick-tile b {
-  color: #ffc62e;
-  font-size: 46px;
-  line-height: 1;
-}
-.pick-tile.active {
-  background: #1f57c9;
-  border-color: #ffffff;
-}
-.sum-chip:focus-visible,
-.pick-tile:focus-visible {
-  outline: 3px solid #ffc62e;
-  outline-offset: 2px;
-}
 
 /* The sum in figures ------------------------------------------------------- */
 .sum-card {
@@ -2663,229 +1545,6 @@ ion-toolbar.navy-bar {
   border-radius: 18px;
 }
 
-/* Not success green: green with a tick is the correct-answer signal, and a
-   control must not borrow the vocabulary of feedback. */
-.round-btn.done {
-  background: linear-gradient(145deg, #5a4dc4, #3a3192);
-}
-.round-btn.pad {
-  background: linear-gradient(160deg, #26355f, #18233f);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  font-size: 18px;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  font-variant-numeric: tabular-nums;
-}
-
-/* Number pad and no-microphone card ---------------------------------------- */
-.pad-sheet,
-.nomic-sheet {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 30;
-  margin: 0 auto;
-  max-width: 460px;
-  padding: 18px 18px calc(env(safe-area-inset-bottom, 0px) + 18px);
-  border-radius: 26px 26px 0 0;
-  background: linear-gradient(160deg, #1d2a4d, #141d36);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-bottom: none;
-  box-shadow: 0 -18px 50px rgba(0, 0, 0, 0.45);
-  color: #ffffff;
-  text-align: center;
-}
-.sheet-close {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  border-radius: 50%;
-  background: transparent;
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 24px;
-  cursor: pointer;
-}
-.pad-sum {
-  margin: 0 44px 14px;
-  display: flex;
-  align-items: baseline;
-  justify-content: center;
-  gap: 10px;
-  font-size: 34px;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  line-height: 1.1;
-}
-.pad-sum b {
-  min-width: 1.6em;
-  padding: 0 6px 2px;
-  color: #3fe07f;
-  border-bottom: 4px dashed #3fe07f;
-}
-.pad-sum b.empty {
-  color: rgba(255, 255, 255, 0.45);
-  border-bottom-color: rgba(255, 255, 255, 0.35);
-}
-.pad-keys {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 9px;
-}
-.pad-key {
-  height: 58px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  border-radius: 16px;
-  background: #26355f;
-  color: #ffffff;
-  font-size: 27px;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  cursor: pointer;
-  touch-action: manipulation;
-  transition: transform 0.12s ease, background 0.12s ease;
-}
-.pad-key:active {
-  transform: scale(0.96);
-  background: #31437a;
-}
-.pad-key.del {
-  background: #1b2748;
-}
-.pad-key.ok {
-  background: #2fbf6b;
-  color: #06301a;
-  font-size: 30px;
-}
-.pad-key.ok[disabled] {
-  opacity: 0.4;
-  cursor: default;
-}
-.nomic-sheet h2 {
-  margin: 6px 44px 8px;
-  font-size: 22px;
-  font-weight: 800;
-}
-.nomic-sheet p {
-  margin: 0 0 16px;
-  font-size: 16px;
-  line-height: 1.4;
-  color: rgba(255, 255, 255, 0.78);
-}
-.learn-bar {
-  height: 12px;
-  margin: 4px 0 8px;
-  border-radius: 6px;
-  background: #26355f;
-  overflow: hidden;
-}
-.learn-bar i {
-  display: block;
-  width: 100%;
-  height: 100%;
-  border-radius: 6px;
-  background: #ffc62e;
-  transform-origin: left center;
-  /* Fills and fades rather than sliding across: it says "working" without
-     anything travelling along the bar. */
-  animation: learn-fill 1.6s ease-in-out infinite;
-}
-@keyframes learn-fill {
-  0% { transform: scaleX(0.08); opacity: 1; }
-  70% { transform: scaleX(1); opacity: 1; }
-  100% { transform: scaleX(1); opacity: 0; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .learn-bar i {
-    width: 100%;
-    animation: none;
-    opacity: 0.6;
-  }
-}
-.sheet-btn {
-  width: 100%;
-  min-height: 54px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 8px 14px;
-  border: none;
-  border-radius: 16px;
-  background: #26355f;
-  color: #ffffff;
-  font-size: 17px;
-  font-weight: 700;
-  cursor: pointer;
-}
-.sheet-btn + .sheet-btn {
-  margin-top: 10px;
-}
-.sheet-btn.primary {
-  background: linear-gradient(145deg, #2a74ea, #1b57bc);
-}
-.sheet-btn ion-icon {
-  font-size: 21px;
-}
-.sheet-123 {
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-}
-.pad-key:focus-visible,
-.sheet-btn:focus-visible,
-.sheet-close:focus-visible {
-  outline: 3px solid #ffc62e;
-  outline-offset: 2px;
-}
-.sheet-enter-active,
-.sheet-leave-active {
-  transition: transform 0.26s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.2s ease;
-}
-.sheet-enter-from,
-.sheet-leave-to {
-  transform: translateY(100%);
-  opacity: 0;
-}
-@media (prefers-reduced-motion: reduce) {
-  .sheet-enter-active,
-  .sheet-leave-active {
-    transition: opacity 0.15s ease;
-  }
-  .sheet-enter-from,
-  .sheet-leave-to {
-    transform: none;
-  }
-}
-
-
-.colour-swatch {
-  /* 44px: the minimum touch target, which the rest of this redesign holds to. */
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  border: 3px solid transparent;
-  cursor: pointer;
-}
-
-.colour-swatch.active {
-  border-color: #ffffff;
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.28);
-}
-
-.colour-swatch:focus-visible {
-  outline: 3px solid #ffd700;
-  outline-offset: 3px;
-}
-
 /* Available to assistive tech and crawlers, absent from the layout. Not
    display:none, which would remove it from the accessibility tree too. */
 .visually-hidden {
@@ -2899,93 +1558,6 @@ ion-toolbar.navy-bar {
   clip-path: inset(50%);
   white-space: nowrap;
   border: 0;
-}
-
-/* Wordmark ----------------------------------------------------------------- */
-
-/* A flex child between the two button groups, NOT absolutely centred.
-   Centring it with position:absolute meant it was laid out independently of
-   the buttons, so on a phone it sat straight on top of them - the icons
-   appeared to collapse and the words overlapped them. As a flex item it gets
-   its own space and shrinks before anything collides. */
-.wordmark {
-  flex: 0 1 auto;
-  min-width: 0;
-  margin: 0;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  /* Only the icon is spaced away; the two words sit tight together so they
-     read as one mark rather than two labels. */
-  gap: 6px;
-  font-size: clamp(14px, 3.6vw, 21px);
-  font-weight: 800;
-  letter-spacing: -0.4px;
-  white-space: nowrap;
-  overflow: hidden;
-  pointer-events: none;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.55);
-}
-
-/* Hidden outright on phones. Five controls plus a mark do not fit across a
-   phone at any size that leaves the mark legible: at 320px the two button
-   groups alone need 283px of a 296px content box. Showing just the icon still
-   crowded the controls on a real device, so the mark is desktop and tablet
-   only - the app is identified by its own icon on a phone home screen anyway. */
-@media (max-width: 767px) {
-  .wordmark {
-    display: none;
-  }
-}
-
-.wordmark-oliver {
-  color: #ffffff;
-}
-
-/* Solid gold with a brightness pulse, not a gradient clipped to the text:
-   background-clip renders the glyphs dark wherever the gradient happens to be
-   mid-sweep, and it drops out entirely where it is unsupported. */
-.wordmark-math {
-  color: #ffd700;
-  animation: wordmark-pulse 4s ease-in-out infinite;
-}
-
-.wordmark-words {
-  display: inline-flex;
-  gap: 2px;
-}
-
-/* Tilted and gently rocking - a calculator sitting perfectly straight looked
-   like a toolbar icon rather than part of a logo. */
-.wordmark-icon {
-  font-size: 1.3em;
-  color: #ffd700;
-  transform-origin: 50% 70%;
-  animation: wordmark-wiggle 3.2s ease-in-out infinite;
-}
-
-@keyframes wordmark-wiggle {
-  0%, 100% { transform: rotate(-9deg) translateY(0); filter: brightness(1); }
-  35% { transform: rotate(7deg) translateY(-1px); filter: brightness(1.3); }
-  70% { transform: rotate(-4deg) translateY(0.5px); filter: brightness(1.1); }
-}
-
-@keyframes wordmark-pulse {
-  0%, 100% { filter: brightness(1); }
-  50% { filter: brightness(1.35); }
-}
-
-.intro-brand .wordmark-oliver,
-.intro-brand .wordmark-math {
-  font-size: inherit;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .wordmark-math,
-  .wordmark-icon {
-    animation: none;
-  }
 }
 
 /* Speech glow -------------------------------------------------------------- */
@@ -3021,289 +1593,7 @@ ion-toolbar.navy-bar {
   .speak-glow {
     animation: none;
   }
-}
 
-/* Listening panel ---------------------------------------------------------- */
-
-.listen-panel,
-.reward-panel {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 16px;
-  border-radius: 20px;
-  background: rgba(10, 14, 26, 0.82);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  color: #ffffff;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
-}
-
-.listen-panel {
-  border-color: rgba(51, 230, 102, 0.55);
-}
-
-.listen-bars {
-  display: flex;
-  align-items: flex-end;
-  gap: 3px;
-  height: 22px;
-}
-
-.listen-bars i {
-  width: 4px;
-  border-radius: 2px;
-  background: #6ef09a;
-  animation: listen-bar 0.9s ease-in-out infinite;
-}
-
-.listen-bars i:nth-child(1) { height: 40%; animation-delay: 0s; }
-.listen-bars i:nth-child(2) { height: 70%; animation-delay: 0.12s; }
-.listen-bars i:nth-child(3) { height: 100%; animation-delay: 0.24s; }
-.listen-bars i:nth-child(4) { height: 65%; animation-delay: 0.36s; }
-.listen-bars i:nth-child(5) { height: 45%; animation-delay: 0.48s; }
-
-@keyframes listen-bar {
-  0%, 100% { transform: scaleY(0.4); }
-  50% { transform: scaleY(1); }
-}
-
-.listen-text {
-  font-size: 16px;
-  font-weight: 700;
-}
-
-.listen-heard {
-  padding: 3px 10px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.12);
-  font-size: 14px;
-  font-weight: 600;
-}
-
-/* Reward panel ------------------------------------------------------------- */
-
-.reward-panel {
-  border-color: rgba(255, 215, 0, 0.55);
-}
-
-.reward-star {
-  font-size: 26px;
-  color: #ffd700;
-}
-
-.reward-points {
-  font-size: 20px;
-  font-weight: 800;
-  color: #ffd700;
-}
-
-.reward-equation {
-  font-size: 16px;
-  font-weight: 700;
-  letter-spacing: 0.4px;
-}
-
-.reward-streak {
-  padding: 3px 10px;
-  border-radius: 12px;
-  background: rgba(255, 215, 0, 0.18);
-  font-size: 13px;
-  font-weight: 700;
-  color: #ffd700;
-}
-
-.panel-enter-active,
-.panel-leave-active {
-  transition: opacity 0.2s ease, transform 0.2s ease;
-}
-
-.panel-enter-from,
-.panel-leave-to {
-  opacity: 0;
-  transform: translateY(8px) scale(0.96);
-}
-
-/* Intro card --------------------------------------------------------------- */
-
-.intro-backdrop {
-  position: absolute;
-  inset: 0;
-  z-index: 40;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  background: rgba(6, 10, 20, 0.72);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-}
-
-.intro-card {
-  width: min(360px, 100%);
-  padding: 26px 24px;
-  border-radius: 26px;
-  background: linear-gradient(160deg, #1d2a4d, #141d36);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
-  text-align: center;
-  color: #ffffff;
-}
-
-.intro-brand {
-  margin: 0;
-  font-size: 26px;
-  font-weight: 800;
-  letter-spacing: -0.4px;
-}
-
-.intro-tagline {
-  margin: 6px 0 20px;
-  font-size: 14px;
-  line-height: 1.4;
-  color: #cbd6e8;
-}
-
-.intro-steps {
-  margin: 0 0 22px;
-  padding: 0;
-  list-style: none;
-  text-align: left;
-}
-
-.intro-steps li {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.intro-num {
-  flex: 0 0 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: #2a74ea;
-  font-size: 15px;
-  font-weight: 800;
-}
-
-.intro-hear {
-  width: 100%;
-  height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin-bottom: 10px;
-  border: 1px solid rgba(255, 215, 0, 0.5);
-  border-radius: 16px;
-  background: rgba(255, 215, 0, 0.12);
-  color: #ffd700;
-  font-size: 16px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.intro-hear ion-icon {
-  font-size: 20px;
-}
-
-.intro-hear[disabled] {
-  opacity: 0.55;
-  cursor: default;
-}
-
-.intro-hear:focus-visible {
-  outline: 3px solid #ffd700;
-  outline-offset: 3px;
-}
-
-.intro-go {
-  width: 100%;
-  height: 52px;
-  border: none;
-  border-radius: 16px;
-  background: linear-gradient(145deg, #2a74ea, #1b57bc);
-  color: #ffffff;
-  font-size: 17px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.intro-go:focus-visible {
-  outline: 3px solid #ffd700;
-  outline-offset: 3px;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .listen-bars i {
-    animation: none;
-  }
-  .panel-enter-active,
-  .panel-leave-active {
-    transition: none;
-  }
-}
-
-/* Status pill: carries state in colour AND an icon AND a word, so it does not
-   depend on colour alone. Replaces the ion-chip, whose shadow DOM overrode the
-   background and left white text at ~1.06:1 in light mode. */
-.status-pill {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 14px;
-  border-radius: 20px;
-  background: rgba(10, 14, 26, 0.78);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  color: #ffffff;
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.status-pill ion-icon {
-  font-size: 18px;
-  color: #8fd8ff;
-}
-
-.status-pill.listening {
-  border-color: rgba(51, 230, 102, 0.6);
-}
-
-.status-pill.listening ion-icon {
-  color: #6ef09a;
-}
-
-.status-pill.speaking ion-icon {
-  color: #7fdcff;
-}
-
-.status-pill.computing ion-icon,
-.status-pill.thinking ion-icon {
-  color: #ffc766;
-}
-
-.status-pill.broken {
-  border-color: rgba(255, 122, 147, 0.6);
-}
-
-.status-pill.broken ion-icon {
-  color: #ff9aae;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .hud-btn,
-  .round-btn {
-    transition: none;
-  }
 }
 
 /* Full-bleed: the robot is the scene, not a picture placed on the page. It
@@ -3332,125 +1622,12 @@ ion-toolbar.navy-bar {
   background: linear-gradient(#4a8be0, #8fb6ea 55%, #8a94a8 55%);
 }
 
-.status-indicator {
-  display: flex;
-  justify-content: center;
-  width: 100%;
-  padding: 12px 0;
-}
-
-.status-indicator ion-chip {
-  font-size: 14px;
-  padding: 8px 16px;
-  --border-radius: 16px;
-  /* `background`, not `--background`: ion-chip is shadow-encapsulated and its
-     own :host(.ion-color) rule sets background directly, which beat the custom
-     property. The chip was rendering white-on-8%-tint at ~1.06:1 - invisible on
-     any phone not set to dark mode. */
-  background: #0b4fd0;
-  color: white;
-}
-
-.status-indicator ion-icon {
-  color: #ffd700;
-  margin-right: 6px;
-}
-
-.status-indicator ion-label {
-  color: white;
-}
-
-ion-footer.footer-spacer {
-  min-height: 90px;
-}
-
-ion-footer ion-toolbar {
-  padding: 8px 16px 16px;
-  --background: transparent;
-}
-
-.play-button {
-  --border-radius: 16px;
-  font-size: 18px;
-  font-weight: 600;
-  height: 56px;
-  text-transform: none;
-}
-
-.play-button ion-icon {
-  font-size: 24px;
-  margin-right: 8px;
-}
-
-/* Same size and weight as Play: it occupies the same slot and is just as
-   important to a child who has finished speaking.
-   Deliberately NOT success green - green plus a checkmark is the correct-answer
-   signal, and a control must not borrow the vocabulary of feedback. Indigo is
-   distinct from the primary-blue Play button; white on it is 7.99:1. */
-.done-button {
-  --border-radius: 16px;
-  --background: #4a3fb0;
-  --background-activated: #3a3192;
-  --background-hover: #3a3192;
-  --color: #ffffff;
-  font-size: 18px;
-  font-weight: 600;
-  height: 56px;
-  text-transform: none;
-}
-
-.done-button ion-icon {
-  font-size: 24px;
-  margin-right: 8px;
-}
-
 /* Responsive adjustments */
 @media (max-width: 400px) {
   .bot-container {
     min-height: 300px;
   }
-  
-  .stats-row {
-    flex-wrap: wrap;
-  }
-  
-  .stat-chip {
-    font-size: 11px;
-    padding: 4px 8px;
-  }
-}
 
-/* Stats row styling */
-.stats-row {
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid var(--ion-color-step-100);
-}
-
-.stat-chip {
-  font-size: 12px;
-  margin: 2px;
-}
-
-.star-chip {
-  --background: #ffd700 !important;
-  color: #000 !important;
-  cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.star-chip:hover,
-.star-chip:focus {
-  transform: scale(1.05);
-  box-shadow: 0 2px 8px rgba(255, 215, 0, 0.5);
-}
-
-.star-chip:active {
-  transform: scale(0.98);
-}
-
-.star-chip ion-icon {
-  color: #000 !important;
 }
 
 /* Action buttons */
@@ -3481,27 +1658,6 @@ ion-footer ion-toolbar {
   --color: var(--ion-color-primary);
 }
 
-/* Language selector */
-.language-selector {
-  position: absolute;
-  top: 60px;
-  right: 8px;
-  z-index: 10;
-}
-
-.language-flag {
-  font-size: 24px;
-}
-
-.language-flag-toolbar {
-  font-size: 20px;
-  margin: 0 4px;
-}
-
-.selected-language {
-  --background: var(--ion-color-primary-tint);
-}
-
 /* Toast styling */
 .toast-compact::part(container) {
   padding: 12px 16px;
@@ -3516,84 +1672,22 @@ ion-footer ion-toolbar {
   padding: 0;
 }
 
-/* Problem History Modal */
-.no-history {
-  text-align: center;
-  padding: 40px 20px;
-  color: var(--ion-color-medium);
-}
-
-.correct-item {
-  --border-left: 4px solid var(--ion-color-success);
-}
-
-.incorrect-item {
-  --border-left: 4px solid var(--ion-color-danger);
-}
-
-.problem-equation {
-  font-size: 18px;
-  font-weight: 600;
-  font-family: 'Courier New', monospace;
-}
-
-.user-answer {
-  color: var(--ion-color-danger);
-  font-size: 13px;
-}
-
-.problem-time {
-  font-size: 11px;
-  color: var(--ion-color-medium);
-}
-
-.clear-history-btn {
-  margin-top: 20px;
-}
-
 @media (min-width: 768px) {
-  .settings-modal {
-    --max-width: 500px;
-    --border-radius: 16px;
-    align-items: center;
-  }
   
   .bot-container {
     min-height: 400px;
   }
-  
-  ion-footer ion-toolbar {
-    max-width: 400px;
-    margin: 0 auto;
-  }
-}
 
-/* Animation for status chip */
-.status-indicator ion-chip {
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.7;
-  }
 }
 
 /* Respect a reduced-motion preference. This stops the decorative loops only -
    the correct/incorrect feedback, expression changes and state colours all
    still happen, because that is information, not decoration. */
 @media (prefers-reduced-motion: reduce) {
-  .status-indicator ion-chip {
-    animation: none;
-  }
 
-  .toast-compact,
-  .setting-option,
-  .star-chip {
+  .toast-compact {
     transition: none;
   }
+
 }
 </style>

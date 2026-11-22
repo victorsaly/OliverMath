@@ -28,7 +28,6 @@ jobs:
 
       - name: Type check
         run: npm run typecheck
-        continue-on-error: true  # Allow JS files for now
 
       - name: Unit tests
         run: npm run test:unit
