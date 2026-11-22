@@ -26,6 +26,7 @@ import '@ionic/vue/css/palettes/dark.system.css';
 /* Theme variables */
 import './theme/variables.css';
 import './theme/sheets.css';
+import './theme/tablet.css';
 
 const app = createApp(App)
   .use(IonicVue)
